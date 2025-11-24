@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ titulo }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
+        h1, h2 { color: #333; }
+        form { display: flex; flex-direction: column; gap: 15px; }
+        .input-group { border: 1px solid #ddd; padding: 15px; border-radius: 5px; }
+        .input-group h3 { margin-top: 0; color: #5cb85c; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], input[type="number"], input[type="email"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .radio-group label { display: inline-block; font-weight: normal; margin-right: 15px; }
+        button {
+            background-color: #5cb85c;
+            color: white;
+            padding: 15px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover { background-color: #4cae4c; }
+        .error { color: red; font-weight: bold; margin-bottom: 15px; }
+        .results-container { margin-top: 30px; }
+        .summary-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .summary-table th, .summary-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        .summary-table th { background-color: #5cb85c; color: white; }
+        .summary-table tr:nth-child(even) { background-color: #f2f2f2; }
+        .highlight { background-color: #e0f7e0; font-weight: bold; }
+        .flex-row { display: flex; gap: 20px; }
+        .flex-row > div { flex: 1; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{{ titulo }}</h1>
+        {% if erro %}
+            <p class="error">Erro: {{ erro }}</p>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="input-group">
+                <h2>👥 Seus Dados</h2>
+                <label for="nome_usuario">Seu Nome:</label>
+                <input type="text" id="nome_usuario" name="nome_usuario" value="{{ dados_iniciais.nome_usuario|default:'' }}">
+    
+                <label for="email_usuario">Seu Email:</label>
+                <input type="email" id="email_usuario" name="email_usuario" value="{{ dados_iniciais.email_usuario|default:'' }}">
+            </div>
+
+            <div class="input-group">
+                <h3>🏠 Dados do Imóvel</h3>
+                <label for="valor_imovel">Valor Total do Imóvel (R$):</label>
+                <input type="number" id="valor_imovel" name="valor_imovel" step="any" required value="{{ dados_iniciais.valor_imovel|default:'300000' }}">
+
+                <label for="entrada">Valor da Entrada (R$):</label>
+                <input type="number" id="entrada" name="entrada" step="any" required value="{{ dados_iniciais.entrada|default:'60000' }}">
+                
+                <label for="prazo_anos">Prazo em Anos:</label>
+                <input type="number" id="prazo_anos" name="prazo_anos" required value="{{ dados_iniciais.prazo_anos|default:'30' }}">
+            </div>
+
+            <div class="flex-row">
+                <div class="input-group">
+                    <h3>💰 Cenário 1: Financiamento</h3>
+                    <label for="taxa_anual">Taxa de Juros Anual (%):</label>
+                    <input type="number" id="taxa_anual" name="taxa_anual" step="any" value="{{ dados_iniciais.taxa_anual|default:'8.5' }}">
+    
+                    <label for="seguro_mensal">Seguro Habitacional Mensal (R$):</label>
+                    <input type="number" id="seguro_mensal" name="seguro_mensal" step="any" value="{{ dados_iniciais.seguro_mensal|default:'50.00' }}">
+    
+                    <label for="taxa_admin_mensal">Taxa Administrativa Mensal (R$):</label>
+                    <input type="number" id="taxa_admin_mensal" name="taxa_admin_mensal" step="any" value="{{ dados_iniciais.taxa_admin_mensal|default:'25.00' }}">
+                    
+                    <hr>
+                    <h4>Uso do FGTS para Amortização:</h4>
+                    <label for="usar_fgts_financiamento">
+                        <input type="checkbox" id="usar_fgts_financiamento" name="usar_fgts_financiamento" 
+                               {% if dados_iniciais.usar_fgts_financiamento == 'on' %}checked{% endif %}>
+                        Usar Saldo FGTS na amortização do Financiamento
+                    </label>
+                    
+                    <label>Tipo de Amortização:</label>
+                    <div class="radio-group">
+                        <label for="reduzir_prazo">
+                            <input type="radio" id="reduzir_prazo" name="tipo_amortizacao_fgts" value="reduzir_prazo" 
+                                   {% if dados_iniciais.tipo_amortizacao_fgts == 'reduzir_prazo' %}checked{% endif %} required>
+                            Reduzir Prazo
+                        </label>
+                        <label for="reduzir_parcela">
+                            <input type="radio" id="reduzir_parcela" name="tipo_amortizacao_fgts" value="reduzir_parcela" 
+                                   {% if dados_iniciais.tipo_amortizacao_fgts == 'reduzir_parcela' %}checked{% endif %} required>
+                            Reduzir Parcela
+                        </label>
+                    </div>
+                    
+                    <label for="mes_uso_fgts_financiamento">Mês do Uso do FGTS (Ex: 1 para início):</label>
+                    <input type="number" id="mes_uso_fgts_financiamento" name="mes_uso_fgts_financiamento" 
+                           value="{{ dados_iniciais.mes_uso_fgts_financiamento|default:'1' }}">
+                </div>
+
+                <div class="input-group">
+                    <h3>🤝 Cenário 2: Consórcio</h3>
+                    <p>Sem juros, mas com taxas de administração e reserva.</p>
+                    <label for="taxa_adm">Taxa de Administração Anual (%):</label>
+                    <input type="number" id="taxa_adm" name="taxa_adm" step="any" value="{{ dados_iniciais.taxa_adm|default:'1.0' }}">
+                    
+                    <label for="fundo_reserva">Fundo de Reserva (% Total):</label>
+                    <input type="number" id="fundo_reserva" name="fundo_reserva" step="any" value="{{ dados_iniciais.fundo_reserva|default:'0.5' }}">
+                    
+                    <p style="font-size: 0.9em; color: gray;">
+                        O Saldo FGTS será considerado como lance para antecipar a contemplação.
+                    </p>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <h3>🏡 Cenário 3: Aluguel + Investimento</h3>
+                <div class="flex-row">
+                    <div>
+                        <label for="aluguel_inicial">Aluguel Mensal Inicial (R$):</label>
+                        <input type="number" id="aluguel_inicial" name="aluguel_inicial" step="any" value="{{ dados_iniciais.aluguel_inicial|default:'1500' }}">
+                    </div>
+                    <div>
+                        <label for="taxa_inflacao">Taxa de Reajuste do Aluguel Anual (%):</label>
+                        <input type="number" id="taxa_inflacao" name="taxa_inflacao" step="any" value="{{ dados_iniciais.taxa_inflacao|default:'4.0' }}">
+                    </div>
+                    <div>
+                        <label>Pagamento do Aluguel:</label>
+                        <div class="radio-group">
+                            <label for="pag_renda">
+                                <input type="radio" id="pag_renda" name="opcao_pagamento_aluguel" value="renda" 
+                                       {% if dados_iniciais.opcao_pagamento_aluguel == 'renda' %}checked{% endif %} required>
+                                Pela Renda (Aluguel é Custo)
+                            </label>
+                            <label for="pag_investimento">
+                                <input type="radio" id="pag_investimento" name="opcao_pagamento_aluguel" value="investimento" 
+                                       {% if dados_iniciais.opcao_pagamento_aluguel == 'investimento' %}checked{% endif %} required>
+                                Pelo Investimento (Reduz Saldo)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="input-group">
+                <h3>💵 Recursos e Renda Familiar</h3>
+                
+                <div class="flex-row">
+                    <div>
+                        <label for="renda_familiar_bruta">Renda Familiar Bruta Mensal (R$):</label>
+                        <input type="number" id="renda_familiar_bruta" name="renda_familiar_bruta" step="any" value="{{ dados_iniciais.renda_familiar_bruta|default:'8000.00' }}">
+                    </div>
+                    
+                    <div>
+                        <label for="recursos_proprios_iniciais">Recursos Próprios Iniciais (Investimento) (R$):</label>
+                        <input type="number" id="recursos_proprios_iniciais" name="recursos_proprios_iniciais" step="any" value="{{ dados_iniciais.recursos_proprios_iniciais|default:'0' }}">
+                        <p style="font-size: 0.8em; color: gray; margin-top: -5px;">Capital inicial extra para investir (além da Entrada).</p>
+                    </div>
+                </div>
+
+                <div class="flex-row">
+                    <div>
+                        <label for="fgts_mensal_percent">FGTS Mensal (0 a 8% da Renda Bruta):</label>
+                        <input type="number" id="fgts_mensal_percent" name="fgts_mensal_percent" step="any" value="{{ dados_iniciais.fgts_mensal_percent|default:'8.0' }}">
+                    </div>
+                    
+                    <div>
+                        <label for="fgts_saldo">Saldo Atual do FGTS (R$):</label>
+                        <input type="number" id="fgts_saldo" name="fgts_saldo" step="any" value="{{ dados_iniciais.fgts_saldo|default:'10000.00' }}">
+                    </div>
+                </div>
+                <p style="font-size: 0.9em; color: gray;">O limite de endividamento geralmente é 30% da Renda Bruta.</p>
+            </div>
+            
+            <div class="input-group">
+                <h3>📈 Cenário de Variáveis e Crescimento</h3>
+                
+                <label for="taxa_investimento">Rendimento Líquido Anual do Investimento da Entrada/Sobras (%):</label>
+                <input type="number" id="taxa_investimento" name="taxa_investimento" step="any" value="{{ dados_iniciais.taxa_investimento|default:'8.0' }}">
+                
+                <label for="valorizacao_imovel">Valorização Anual do Imóvel Estimada (%):</label>
+                <input type="number" id="valorizacao_imovel" name="valorizacao_imovel" step="any" value="{{ dados_iniciais.valorizacao_imovel|default:'6.0' }}">
+                
+                <label for="rendimento_fgts">Rendimento Anual do Saldo FGTS Estimado (%):</label>
+                <input type="number" id="rendimento_fgts" name="rendimento_fgts" step="any" value="{{ dados_iniciais.rendimento_fgts|default:'6.5' }}">
+
+                <label for="aporte_13">Valor do Aporte Anual (13º Salário, PL, etc.) (R$):</label>
+                <input type="number" id="aporte_13" name="aporte_13" step="any" value="{{ dados_iniciais.aporte_13|default:'0' }}">
+                <p style="font-size: 0.8em; color: gray; margin-top: -5px;">Valor anual extra destinado a amortização ou investimento.</p>
+            </div>
+            
+            <button type="submit">COMPARAR CENÁRIOS</button>
+        </form>
+
+        {% if resumo_comparativo %}
+            <div class="results-container">
+                <h2>📊 Resumo da Comparação Financeira</h2>
+
+                <table class="summary-table">
+                    <thead>
+                        <tr>
+                            <th>Método</th>
+                            <th>Parcela Inicial (R$)</th>
+                            <th>Custo Total de Juros/Taxas (R$)</th>
+                            <th>Total Desembolsado (R$)</th>
+                            <th>Resultado/Vantagem Extra</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in resumo_comparativo %}
+                            <tr>
+                                <td>{{ item.metodo }}</td>
+                                <td>R$ {{ item.parcela_inicial|floatformat:2|default:'0.00' }}</td>
+                                
+                                {% if item.metodo == 'Aluguel + Investimento' %}
+                                    {# Renda: Custo Total AGORA é o Saldo Acumulado Total (Ganhos) #}
+                                    <td class="highlight" style="color: green; font-weight: bold;">
+                                        R$ {{ item.custo_total|floatformat:2 }} (Acum. Total)
+                                    </td>
+                                    {# Total Desembolsado AGORA é o Gasto Total Bruto com Aluguel #}
+                                    <td>R$ {{ item.total_pago|floatformat:2 }} (Total Aluguel Bruto)</td>
+                                    {# Vantagem Extra agora mostra os detalhes de Investimento, FGTS e Valorização #}
+                                    <td>
+                                        {% for detalhe in item.extra.detalhes %}
+                                            <p style="margin: 0;">{{ detalhe|safe }}</p>
+                                        {% endfor %}
+                                    </td>
+                                {% elif item.metodo == 'Consórcio' and item.extra.lance_fgts %}
+                                    <td>R$ {{ item.custo_total|floatformat:2 }}</td>
+                                    <td>R$ {{ item.total_pago|floatformat:2 }}</td>
+                                    <td>{{ item.extra.lance_fgts }}</td>
+                                {% else %}
+                                    {# Financiamento / Consórcio #}
+                                    <td>R$ {{ item.custo_total|floatformat:2 }}</td>
+                                    <td>R$ {{ item.total_pago|floatformat:2 }}</td>
+                                    <td>---</td>
+                                {% endif %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <p>O **Custo Total de Juros/Taxas** representa os juros e custos do financiamento/consórcio, ou o **Acúmulo Total (Investimento + FGTS)** no cenário de aluguel (neste caso, é um ganho líquido).</p>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>
