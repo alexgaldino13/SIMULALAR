@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Tabela de Amortização SAC Detalhada</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 900px; margin: 0 auto; }
+        h2 { border-bottom: 2px solid #ccc; padding-bottom: 5px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: right; }
+        th { background-color: #f2f2f2; text-align: left; }
+        .config-table td:nth-child(even) { font-weight: bold; }
+        .principal-value { color: #007bff; font-size: 1.1em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tabela de Amortização SAC Detalhada</h1>
+
+        <h2>Configuração do Contrato</h2>
+        <table class="config-table">
+            <tr>
+                <th>Valor do Imóvel:</th>
+                <td>R$ {{ financiamento.valor_imovel|floatformat:2|default:"0.00" }}</td>
+                <th>Taxa Juros Anual:</th>
+                <td>{{ financiamento.taxa_juros_anual|floatformat:3|default:"0.000" }}%</td>
+            </tr>
+            <tr>
+                <th>Recursos Próprios (Entrada):</th>
+                <td>R$ {{ financiamento.valor_entrada|floatformat:2|default:"0.00" }}</td>
+                <th>Prazo Base:</th>
+                <td>{{ financiamento.prazo_meses }} meses</td>
+            </tr>
+            <tr>
+                <th>Total de Despesas de Transação:</th>
+                <td>R$ {{ financiamento.valor_despesas|floatformat:2|default:"0.00" }}</td>
+                <th>Incorporado ao Financiamento?</th>
+                <td>{{ financiamento.incorporar_despesas|yesno:"Sim, Não" }}</td>
+            </tr>
+            <tr>
+                <th>Principal Financiado (Base de Cálculo):</th>
+                <td class="principal-value">R$ {{ principal_financiado_real|floatformat:2|default:"N/A" }}</td>
+                <th>Sistema:</th>
+                <td>SAC</td>
+            </tr>
+        </table>
+        
+        <br>
+        
+        <h2>Tabela de Amortização</h2>
+        {% if tabela_sac %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Mês</th>
+                    <th>Juros</th>
+                    <th>Amortização</th>
+                    <th>Seguros e Taxas</th>
+                    <th>Parcela Total</th>
+                    <th>Saldo Devedor Final</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in tabela_sac %}
+                <tr>
+                    <td>{{ item.mes }}</td>
+                    <td>R$ {{ item.juros|floatformat:2 }}</td>
+                    <td>R$ {{ item.amortizacao|floatformat:2 }}</td>
+                    <td>R$ {{ item.seguros_taxas|floatformat:2 }}</td>
+                    <td>R$ {{ item.parcela_total|floatformat:2 }}</td>
+                    <td>R$ {{ item.saldo_devedor_final|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>Não foi possível gerar a tabela de amortização. Verifique os dados do contrato.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

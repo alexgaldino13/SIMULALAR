@@ -1,9 +1,49 @@
 from django.shortcuts import render
 from decimal import Decimal
 from .calculadora_financeira import simular_financiamento_geral
-from .models import Usuario, Simulacao, CenarioComparativo, ResultadoComparacao
+# Adicionei o modelo Financiamento nas importações
+from .models import Usuario, Simulacao, CenarioComparativo, ResultadoComparacao, Financiamento
 
 
+# ----------------------------------------------------------------------
+# VIEW DE DETALHE SAC (Onde você quer ver a tabela de amortização completa)
+# ----------------------------------------------------------------------
+def simulacao_sac_view(request, financiamento_id):
+    try:
+        # 1. Carrega o objeto Financiamento
+        financiamento = Financiamento.objects.get(pk=financiamento_id)
+    except Financiamento.DoesNotExist:
+        # Se não encontrar o ID, retorna um erro 404
+        return render(request, 'simulacao/404.html', status=404)
+    
+    # 💥 Usa o valor calculado pelo @property (Este já considera as despesas incorporadas)
+    principal_para_calculo = financiamento.principal_financiado 
+    
+    # 2. Chama a função de cálculo geral para gerar a tabela SAC
+    # Substituí o indefinido 'calcular_sac' pela função correta 'simular_financiamento_geral'
+    tabela_sac = simular_financiamento_geral(
+        'sac',
+        principal=float(principal_para_calculo),
+        taxa_juros=float(financiamento.taxa_juros_anual), 
+        prazo=financiamento.prazo_meses,
+        seguro_mensal=float(financiamento.seguro_mensal),
+        taxa_admin_mensal=float(financiamento.taxa_admin_mensal)
+    )
+    
+    # 3. Prepara o contexto
+    contexto = {
+        'financiamento': financiamento,
+        'tabela_sac': tabela_sac,
+        'principal_financiado_real': principal_para_calculo # Passa o valor para o HTML
+    }
+    
+    # 4. Retorna o template que reconstruímos
+    return render(request, 'simulacao/simulacao_sac.html', contexto)
+
+
+# ----------------------------------------------------------------------
+# VIEW PRINCIPAL (Simulador de Comparação - Com as Despesas Incorporadas)
+# ----------------------------------------------------------------------
 def simular_financiamento(request):
     
     # --- FUNÇÕES AUXILIARES ---
@@ -45,7 +85,9 @@ def simular_financiamento(request):
         'valorizacao_imovel': Decimal('6.0'),
         'rendimento_fgts': Decimal('6.5'),
         'aporte_13': Decimal('0'),
-        'recursos_proprios_iniciais': Decimal('0'), # <--- NOVO CAMPO
+        'recursos_proprios_iniciais': Decimal('0'), 
+        'valor_despesas': Decimal('0.00'),           # NOVO CAMPO
+        'incorporar_despesas': 'on',               # NOVO CAMPO (Padrão: marcado)
         'opcao_pagamento_aluguel': 'renda',
         'usar_fgts_financiamento': '',
         'tipo_amortizacao_fgts': 'reduzir_prazo',
@@ -67,10 +109,22 @@ def simular_financiamento(request):
             valor_imovel = to_decimal(request.POST.get('valor_imovel'))
             entrada = to_decimal(request.POST.get('entrada'))
             prazo_anos = to_int(request.POST.get('prazo_anos'))
+            
+            # NOVOS CAMPOS DE DESPESAS:
+            valor_despesas = to_decimal(request.POST.get('valor_despesas'))
+            # 'on' se marcado, None/string vazia se desmarcado
+            incorporar_despesas = request.POST.get('incorporar_despesas') == 'on'
 
             # DADOS BASE DE CÁLCULO
             prazo_meses = prazo_anos * 12
-            valor_financiado = valor_imovel - entrada
+            
+            # CÁLCULO BASE (Valor Imóvel - Entrada)
+            valor_financiado = valor_imovel - entrada 
+            
+            # LÓGICA DE INCORPORAÇÃO DE DESPESAS
+            if incorporar_despesas:
+                valor_financiado += valor_despesas # Adiciona as despesas se for para incorporar
+                
             taxa_anual_financiamento = to_decimal(request.POST.get('taxa_anual'))
             seguro_mensal = to_decimal(request.POST.get('seguro_mensal'))
             taxa_admin_mensal = to_decimal(request.POST.get('taxa_admin_mensal'))
@@ -103,7 +157,7 @@ def simular_financiamento(request):
             # ---------------------------
             if valor_financiado > 0 and taxa_anual_financiamento > 0 and prazo_meses > 0:
                 taxa_float = float(taxa_anual_financiamento)
-                valor_float = float(valor_financiado)
+                valor_float = float(valor_financiado) # O valor_financiado JÁ ESTÁ CORRIGIDO
                 custos_adicionais_totais = (seguro_mensal + taxa_admin_mensal) * prazo_meses
 
                 # --- PRICE ---
@@ -213,10 +267,15 @@ def simular_financiamento(request):
                 'taxa_inflacao': taxa_inflacao, 'taxa_investimento': taxa_investimento, 'renda_familiar_bruta': renda_familiar_bruta,
                 'fgts_mensal_percent': fgts_mensal_percent, 'fgts_saldo': fgts_saldo, 'valorizacao_imovel': valorizacao_imovel,
                 'rendimento_fgts': rendimento_fgts, 'aporte_13': aporte_13, 'recursos_proprios_iniciais': recursos_proprios_iniciais,
+                'valor_despesas': valor_despesas, # Persiste o NOVO CAMPO
+                'incorporar_despesas': 'on' if incorporar_despesas else '', # Persiste o NOVO CAMPO
                 'opcao_pagamento_aluguel': opcao_pagamento_aluguel,
                 'usar_fgts_financiamento': 'on' if usar_fgts_financiamento else '',
                 'tipo_amortizacao_fgts': tipo_amortizacao_fgts,
                 'mes_uso_fgts_financiamento': mes_uso_fgts_financiamento,
+                # OBS: 'financiamento', 'tabela_sac', e 'principal_financiado_real' não são relevantes aqui, 
+                # pois essa view retorna o resumo comparativo, não a tabela SAC detalhada. Removê-los é opcional.
+                # Se eles não forem usados no template 'tabela_price.html', não há problema em mantê-los.
             }
             
             contexto = {

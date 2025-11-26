@@ -33,6 +33,7 @@ class Simulacao(models.Model):
     def __str__(self):
         return f"Simulação de {self.valor_imovel} por {self.usuario.nome}"
 
+# Trecho de código corrigido para o seu simulacao/models.py
 
 # ======================================================================
 # 2. NOVOS CAMPOS PARA DESPESAS DE TRANSAÇÃO - ADICIONADOS À SIMULAÇÃO
@@ -58,8 +59,28 @@ class Financiamento(models.Model):
         decimal_places=2,
         default=0.00,
         verbose_name="Total de Despesas de Transação (ITBI, Cartório, Avaliação, etc.)"
-    )
+    ) # <--- 1. CORREÇÃO PRINCIPAL: Parênteses de fechamento adicionado aqui.
     
+    # 2. CAMPO NOVO: O checkbox precisa ser um BooleanField no modelo
+    incorporar_despesas = models.BooleanField(
+        default=False, 
+        verbose_name="Incorporar despesas ao financiamento"
+    )
+
+    @property # <--- O decorador agora está no lugar correto
+    def principal_financiado(self):
+        """Calcula o Principal Financiado (Base de cálculo do SAC/PRICE)."""
+        
+        # 3. CORREÇÃO DE TYPO: Usando self.entrada (nome correto do campo)
+        principal_base = self.valor_imovel - self.entrada
+
+        if self.incorporar_despesas:
+            # Se Sim, soma as despesas ao valor que o banco financia
+            return principal_base + self.valor_despesas
+        else:
+            # Se Não, o Principal é só o valor do imóvel menos a entrada
+            return principal_base
+# Não há parênteses extra aqui.
     incorporar_despesas = models.BooleanField(
         default=True,
         verbose_name="Incorporar Despesas no Financiamento?"
