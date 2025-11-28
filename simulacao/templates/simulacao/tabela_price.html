@@ -67,31 +67,33 @@
 
             <div class="input-group">
                 <h3>🏠 Dados do Imóvel</h3>
+                
                 <label for="valor_imovel">Valor Total do Imóvel (R$):</label>
                 <input type="number" id="valor_imovel" name="valor_imovel" step="any" required value="{{ dados_iniciais.valor_imovel|default:'300000' }}">
 
                 <label for="entrada">Valor da Entrada (R$):</label>
-                <div class="form-group">
-    <label for="valor_despesas">Valor Total de Despesas de Transação (R$):</label>
-    <input type="number" step="0.01" min="0" 
-           class="form-control" id="valor_despesas" 
-           name="valor_despesas" 
-           value="{{ dados_iniciais.valor_despesas|default:'0.00' }}"
-           placeholder="Ex: 25000.00">
-    <small class="form-text text-muted">Ex: ITBI, Registro, Taxas de Despachante.</small>
-</div>
-
-<div class="form-check mb-3">
-    <input type="checkbox" class="form-check-input" 
-           id="incorporar_despesas" 
-           name="incorporar_despesas" 
-           {% if dados_iniciais.incorporar_despesas == 'on' %}checked{% endif %}>
-    <label class="form-check-label" for="incorporar_despesas">
-        Incorporar Despesas no Valor Financiado?
-    </label>
-    <small class="form-text text-muted">Se marcado, o valor das despesas será somado ao principal do financiamento (Imóvel - Entrada).</small>
-</div>
                 <input type="number" id="entrada" name="entrada" step="any" required value="{{ dados_iniciais.entrada|default:'60000' }}">
+
+                <div class="form-group">
+                    <label for="valor_despesas">Valor Estimado das Despesas de Transação (R$):</label>
+                    <input type="number" step="0.01" min="0" 
+                           class="form-control" id="valor_despesas" 
+                           name="valor_despesas" 
+                           value="{{ dados_iniciais.valor_despesas|default:'15000.00' }}"
+                           placeholder="Ex: 15000.00">
+                    <small class="form-text text-muted">Ex: ITBI, Registro, Taxas de Despachante. 5% do imóvel é uma boa expectativa inicial. **Pode ser editado!**</small>
+                </div>
+
+                <div class="form-check mb-3">
+                    <input type="checkbox" class="form-check-input" 
+                           id="incorporar_despesas" 
+                           name="incorporar_despesas" 
+                           {% if dados_iniciais.incorporar_despesas == 'on' %}checked{% endif %}>
+                    <label class="form-check-label" for="incorporar_despesas">
+                        Incorporar Despesas no Valor Financiado?
+                    </label>
+                    <small class="form-text text-muted">Se marcado, o valor das despesas será somado ao principal do financiamento (Imóvel - Entrada).</small>
+                </div>
                 
                 <label for="prazo_anos">Prazo em Anos:</label>
                 <input type="number" id="prazo_anos" name="prazo_anos" required value="{{ dados_iniciais.prazo_anos|default:'30' }}">
@@ -133,7 +135,7 @@
                     
                     <label for="mes_uso_fgts_financiamento">Mês do Uso do FGTS (Ex: 1 para início):</label>
                     <input type="number" id="mes_uso_fgts_financiamento" name="mes_uso_fgts_financiamento" 
-                           value="{{ dados_iniciais.mes_uso_fgts_financiamento|default:'1' }}">
+                               value="{{ dados_iniciais.mes_uso_fgts_financiamento|default:'1' }}">
                 </div>
 
                 <div class="input-group">
@@ -245,41 +247,78 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for item in resumo_comparativo %}
-                            <tr>
-                                <td>{{ item.metodo }}</td>
-                                <td>R$ {{ item.parcela_inicial|floatformat:2|default:'0.00' }}</td>
-                                
-                                {% if item.metodo == 'Aluguel + Investimento' %}
-                                    {# Renda: Custo Total AGORA é o Saldo Acumulado Total (Ganhos) #}
-                                    <td class="highlight" style="color: green; font-weight: bold;">
-                                        R$ {{ item.custo_total|floatformat:2 }} (Acum. Total)
-                                    </td>
-                                    {# Total Desembolsado AGORA é o Gasto Total Bruto com Aluguel #}
-                                    <td>R$ {{ item.total_pago|floatformat:2 }} (Total Aluguel Bruto)</td>
-                                    {# Vantagem Extra agora mostra os detalhes de Investimento, FGTS e Valorização #}
-                                    <td>
-                                        {% for detalhe in item.extra.detalhes %}
-                                            <p style="margin: 0;">{{ detalhe|safe }}</p>
-                                        {% endfor %}
-                                    </td>
-                                {% elif item.metodo == 'Consórcio' and item.extra.lance_fgts %}
-                                    <td>R$ {{ item.custo_total|floatformat:2 }}</td>
-                                    <td>R$ {{ item.total_pago|floatformat:2 }}</td>
-                                    <td>{{ item.extra.lance_fgts }}</td>
-                                {% else %}
-                                    {# Financiamento / Consórcio #}
-                                    <td>R$ {{ item.custo_total|floatformat:2 }}</td>
-                                    <td>R$ {{ item.total_pago|floatformat:2 }}</td>
-                                    <td>---</td>
-                                {% endif %}
-                            </tr>
-                        {% endfor %}
-                    </tbody>
+    {% for item in resumo_comparativo %}
+        <tr>
+            <td>{{ item.metodo }}</td>
+            
+            <td>{{ item.parcela_inicial }}</td>
+            
+            <td {% if item.metodo == 'Aluguel + Investimento' %}class="highlight" style="color: green; font-weight: bold;"{% endif %}>
+                {{ item.custo_total }}
+                {% if item.metodo == 'Aluguel + Investimento' %} (Acum. Total) {% endif %}
+            </td>
+            
+            <td>
+                {{ item.total_pago }}
+                {% if item.metodo == 'Aluguel + Investimento' %} (Total Aluguel Bruto) {% endif %}
+            </td>
+            
+            <td>
+                {% if item.metodo == 'Consórcio' and item.extra.lance_fgts %}
+                    R$ Lance de FGTS utilizado: {{ item.extra.lance_fgts }}
+                {% elif item.metodo == 'Aluguel + Investimento' %}
+                    {% for detalhe in item.extra.detalhes %}
+                        <p style="margin: 0;">{{ detalhe|safe }}</p>
+                    {% endfor %}
+                {% else %}
+                    ---
+                {% endif %}
+            </td>
+        </tr>
+    {% endfor %}
+</tbody>
                 </table>
                 <p>O **Custo Total de Juros/Taxas** representa os juros e custos do financiamento/consórcio, ou o **Acúmulo Total (Investimento + FGTS)** no cenário de aluguel (neste caso, é um ganho líquido).</p>
             </div>
         {% endif %}
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', (event) => {
+            const valorImovelInput = document.getElementById('valor_imovel');
+            const valorDespesasInput = document.getElementById('valor_despesas');
+            const AUTO_CALC_PERCENT = 0.05; // 5%
+
+            const updateDespesasIfAuto = () => {
+                const valorImovel = parseFloat(valorImovelInput.value);
+                
+                if (!isNaN(valorImovel) && valorImovel > 0) {
+                    // Calcula 5% do valor do imóvel
+                    const despesasEstimadas = valorImovel * AUTO_CALC_PERCENT;
+                    
+                    // Atualiza o campo Despesas com o novo valor estimado, formatado com 2 casas decimais
+                    valorDespesasInput.value = despesasEstimadas.toFixed(2);
+                } else {
+                     // Se o valor do imóvel for inválido ou zero, zera as despesas
+                     valorDespesasInput.value = "0.00";
+                }
+            };
+
+            // Adiciona um listener ao campo Valor do Imóvel.
+            // Sempre que o valor mudar (o usuário digitar), o campo Despesas será recalculado automaticamente.
+            valorImovelInput.addEventListener('input', updateDespesasIfAuto);
+            
+            // Lógica para garantir que o valor inicial seja o 5% do valor do imóvel carregado,
+            // caso o valor do imóvel tenha sido preenchido pelo servidor com um valor diferente do default (300000)
+            const loadedValorImovel = parseFloat(valorImovelInput.value);
+            const defaultDespesasValue = parseFloat("15000.00"); // 5% de 300000
+            
+            if (loadedValorImovel !== 300000 && parseFloat(valorDespesasInput.value) === defaultDespesasValue) {
+                // Se o imóvel tem um valor não padrão, mas a despesa tem o valor padrão (15000), 
+                // recalculamos a despesa para o valor do imóvel carregado.
+                updateDespesasIfAuto();
+            }
+        });
+    </script>
 </body>
 </html>

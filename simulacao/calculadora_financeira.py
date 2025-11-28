@@ -1,7 +1,46 @@
-# simulacao/calculadora_financeira.py
-
 from decimal import Decimal
-import math # ESSENCIAL: Necessário para o cálculo logarítmico na amortização PRICE
+import math
+import locale
+
+# ----------------------------------------------------------------------
+# FUNÇÃO DE UTILIDADE: FORMATAÇÃO BRL (R$) - CORRIGIDA (ROBUSTA DEFINITIVA)
+# ----------------------------------------------------------------------
+
+def formatar_moeda_brl(valor):
+    """Formata float para string de moeda brasileira (R$ 1.234.567,89)."""
+    if not isinstance(valor, (int, float, Decimal)):
+        return 'R$ 0,00'
+    
+    valor_float = float(valor)
+    
+    # 1. Tenta usar locale configurado (MELHOR OPÇÃO, mas limpa a saída)
+    try:
+        # Tenta configurar a locale
+        locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
+        
+        # Tenta formatar apenas o número, usando locale.format_string
+        # Isso garante que a vírgula e o ponto de milhar estejam corretos.
+        locale_str = locale.format_string("%.2f", valor_float, grouping=True) 
+        
+        # Limpa espaços em branco ou caracteres não-quebráveis (\xa0) da string formatada pelo locale
+        final_str = locale_str.strip().replace(u'\xa0', u' ')
+        
+        return f"R$ {final_str}"
+        
+    except Exception:
+        # 2. FALLBACK MANUAL ROBUSTO (Garante a formatação EUA->BRL - SEMPRE FUNCIONA)
+        
+        # Formata com separador de milhar (vírgula) e decimal (ponto) - padrão EUA
+        valor_str_eua = f"{valor_float:,.2f}"
+        
+        # Lógica de swap:
+        # 1. Troca a vírgula de milhar (,) por um placeholder ('TEMP')
+        # 2. Troca o ponto decimal (.) pela vírgula (,)
+        # 3. Troca o placeholder ('TEMP') pelo ponto de milhar (.)
+        final_str = valor_str_eua.replace(',', 'TEMP').replace('.', ',').replace('TEMP', '.')
+        
+        # O f-string já inclui o sinal de negativo se for o caso.
+        return f"R$ {final_str}"
 
 # ----------------------------------------------------------------------
 # FUNÇÃO 1: CÁLCULO PRICE/SAC (COM LÓGICA DE AMORTIZAÇÃO FGTS) - CORRIGIDA
@@ -36,6 +75,10 @@ def calcular_price_sac(metodo, valor_principal, taxa_anual, prazo_meses, seguro_
     amortizacao_fixa = valor_principal / prazo_meses # SAC inicial
     parcela_fixa = Decimal(0) # Price inicial
     
+    # Variáveis de Soma (para o resumo)
+    total_juros = Decimal(0)
+    total_seguros_taxas = Decimal(0)
+    
     # 2. Cálculo do Fator de Pagamento Inicial (Price)
     if metodo == 'price' and taxa_mensal > 0 and prazo_atual > 0:
         try:
@@ -69,6 +112,7 @@ def calcular_price_sac(metodo, valor_principal, taxa_anual, prazo_meses, seguro_
                     saldo_devedor_float = float(saldo_devedor)
                     
                     try:
+                        # Recalcula o número de parcelas restantes (n)
                         novo_n = math.log(parcela_fixa_float / (parcela_fixa_float - taxa_mensal_float * saldo_devedor_float)) / math.log(1 + taxa_mensal_float)
                         prazo_restante = math.ceil(novo_n)
                         prazo_atual = mes_original + prazo_restante - 1 
@@ -78,6 +122,7 @@ def calcular_price_sac(metodo, valor_principal, taxa_anual, prazo_meses, seguro_
                         
                 elif metodo == 'sac':
                     if prazo_restante > 0:
+                        # Recalcula a amortização constante com o novo saldo
                         amortizacao_fixa = saldo_devedor / prazo_restante
             
             elif tipo_amortizacao == 'reduzir_parcela':
@@ -88,6 +133,7 @@ def calcular_price_sac(metodo, valor_principal, taxa_anual, prazo_meses, seguro_
                     parcela_fixa = saldo_devedor * fator_novo
                 
                 elif metodo == 'sac' and prazo_restante > 0:
+                    # Recalcula a amortização constante com o novo saldo (não muda o prazo)
                     amortizacao_fixa = saldo_devedor / prazo_restante
             
             # Adiciona o evento FGTS
@@ -109,6 +155,10 @@ def calcular_price_sac(metodo, valor_principal, taxa_anual, prazo_meses, seguro_
             break
             
         juros_mensal = saldo_devedor * taxa_mensal
+        
+        # Acumula juros e taxas
+        total_juros += juros_mensal
+        total_seguros_taxas += seguro_mensal_dec + taxa_admin_mensal_dec
         
         if metodo == 'price':
             amortizacao = parcela_fixa - juros_mensal
@@ -142,7 +192,13 @@ def calcular_price_sac(metodo, valor_principal, taxa_anual, prazo_meses, seguro_
         
         mes_original += 1
         
-    return tabela
+    return {
+        'tabela': tabela,
+        'parcela_inicial': float(tabela[0]['parcela']) if tabela else 0.0,
+        'total_juros': float(total_juros),
+        'total_seguros_taxas': float(total_seguros_taxas),
+        'prazo_final_meses': mes_original - 1 # O número do último mês simulado
+    }
 
 # ----------------------------------------------------------------------
 # FUNÇÃO 2: CÁLCULO CONSÓRCIO (AGORA INCLUI LANCE FGTS NO RESULTADO) - CORRIGIDA
@@ -244,7 +300,14 @@ def simular_aluguel_investimento(
         
         # Decisão de onde o aluguel é pago
         if opcao_pagamento_aluguel == 'investimento':
-            saldo_investimento_atual -= aluguel_mensal_atual
+            # Subtrai do investimento (se saldo positivo)
+            if saldo_investimento_atual >= aluguel_mensal_atual:
+                 saldo_investimento_atual -= aluguel_mensal_atual
+            else:
+                 # Se o investimento não cobre o aluguel, o saldo vai a zero.
+                 # Neste cenário, o aluguel restante teria que vir da renda
+                 # ou o investimento é insuficiente. Para simplificar, zeramos.
+                 saldo_investimento_atual = Decimal(0)
 
         # D) TRATAMENTO DO APORTE ANUAL
         if mes % 12 == 0:
@@ -260,7 +323,9 @@ def simular_aluguel_investimento(
         'acumulado_final': float(saldo_investimento_atual),
         'total_gasto_aluguel': float(total_gasto_aluguel),
         'fgts_final': float(fgts_saldo_atual),
-        'valor_imovel_final': float(valor_imovel_final)
+        'valor_imovel_final': float(valor_imovel_final),
+        'capital_inicial': float(capital_inicial),
+        'aluguel_inicial': float(aluguel_inicial_dec)
     }
 
 
@@ -315,3 +380,154 @@ def simular_financiamento_geral(metodo, valor_principal, taxa_anual, prazo_meses
         )
 
     return []
+
+# ----------------------------------------------------------------------
+# FUNÇÃO CENTRAL DE AGREGAÇÃO E FORMATAÇÃO (CHAMADA PELO VIEWS.PY)
+# ----------------------------------------------------------------------
+
+def comparar_cenarios_e_formatar(dados_form):
+    """
+    Função principal que recebe os dados brutos, coordena os cálculos
+    e retorna o resumo comparativo FORMATADO para o template.
+    """
+    
+    # 1. PARSE E PREPARAÇÃO DOS DADOS DE ENTRADA (LÓGICA DE NEGÓCIO)
+    try:
+        # Variáveis Core
+        valor_imovel_num = float(dados_form.get('valor_imovel'))
+        entrada_num = float(dados_form.get('entrada'))
+        valor_despesas_num = float(dados_form.get('valor_despesas'))
+        prazo_anos_num = int(dados_form.get('prazo_anos'))
+        prazo_meses_num = prazo_anos_num * 12
+        
+        # Variáveis de Configuração
+        taxa_anual_num = float(dados_form.get('taxa_anual'))
+        seguro_mensal_num = float(dados_form.get('seguro_mensal'))
+        taxa_admin_mensal_num = float(dados_form.get('taxa_admin_mensal'))
+        fgts_saldo_num = float(dados_form.get('fgts_saldo'))
+        incorporar_despesas = dados_form.get('incorporar_despesas') == 'on'
+        
+        # 2. CÁLCULO DO PRINCIPAL FINANCIADO (CARTA DE CRÉDITO)
+        principal_base = valor_imovel_num - entrada_num
+        principal_financiado = principal_base
+        
+        if incorporar_despesas:
+            principal_financiado += valor_despesas_num
+        else:
+            # Se não incorporar, a despesa deve ser adicionada ao "desembolso" total
+            pass 
+        
+        # Dicionário de Kwargs para as funções de cálculo
+        kwargs_comuns = {
+            'seguro_mensal': seguro_mensal_num,
+            'taxa_admin_mensal': taxa_admin_mensal_num,
+            'fgts_saldo': fgts_saldo_num,
+            'usar_fgts_financiamento': dados_form.get('usar_fgts_financiamento') == 'on',
+            'tipo_amortizacao_fgts': dados_form.get('tipo_amortizacao_fgts'),
+            'mes_uso_fgts_financiamento': int(dados_form.get('mes_uso_fgts_financiamento')),
+            
+            # Variáveis para Consórcio e Aluguel
+            'taxa_adm': float(dados_form.get('taxa_adm')),
+            'fundo_reserva': float(dados_form.get('fundo_reserva')),
+            'valor_imovel_total': valor_imovel_num,
+            'entrada_total': entrada_num,
+            'taxa_investimento': float(dados_form.get('taxa_investimento')),
+            'aluguel_inicial': float(dados_form.get('aluguel_inicial')),
+            'taxa_inflacao': float(dados_form.get('taxa_inflacao')),
+            'recursos_proprios_iniciais': float(dados_form.get('recursos_proprios_iniciais')),
+            'opcao_pagamento_aluguel': dados_form.get('opcao_pagamento_aluguel'),
+            'rendimento_fgts': float(dados_form.get('rendimento_fgts')),
+            'fgts_mensal_percent': float(dados_form.get('fgts_mensal_percent')),
+            'aporte_13': float(dados_form.get('aporte_13')),
+            'renda_familiar_bruta': float(dados_form.get('renda_familiar_bruta')), 
+            'valorizacao_imovel': float(dados_form.get('valorizacao_imovel'))
+        }
+
+    except Exception as e:
+        # Se algum campo numérico obrigatório falhar, retorna erro
+        print(f"Erro de conversão de dados: {e}")
+        return None 
+    
+    resumo = []
+    
+    # 3. CENÁRIO 1: FINANCIAMENTO (PRICE E SAC)
+    
+    for metodo in ['price', 'sac']:
+        resultado = simular_financiamento_geral(
+            metodo=metodo, 
+            valor_principal=principal_financiado, 
+            taxa_anual=taxa_anual_num, 
+            prazo_meses=prazo_meses_num, 
+            **kwargs_comuns
+        )
+
+        # Se a simulação falhar ou retornar lista vazia
+        if not resultado or not resultado['tabela']:
+             continue
+
+        total_juros_e_taxas = resultado['total_juros'] + resultado['total_seguros_taxas']
+        total_desembolsado = principal_base + valor_despesas_num + total_juros_e_taxas
+        
+        # Mapeamento do nome
+        nome_metodo = 'Tabela Price' if metodo == 'price' else 'Tabela SAC'
+
+        resumo.append({
+            'metodo': nome_metodo,
+            'parcela_inicial': formatar_moeda_brl(resultado['parcela_inicial']),
+            'custo_total': formatar_moeda_brl(total_juros_e_taxas),
+            'total_pago': formatar_moeda_brl(total_desembolsado),
+            'extra': f'Prazo Final: {resultado["prazo_final_meses"] // 12} anos e {resultado["prazo_final_meses"] % 12} meses.'
+        })
+
+    # 4. CENÁRIO 2: CONSÓRCIO
+    
+    resultado_cons = simular_financiamento_geral(
+        metodo='consorcio',
+        valor_principal=valor_imovel_num, # O principal do consórcio é o valor do bem (carta de crédito)
+        taxa_anual=0, # A taxa de juros não se aplica aqui
+        prazo_meses=prazo_meses_num,
+        **kwargs_comuns
+    )
+    
+    # Total pago = Valor do Imóvel + Custos (taxa adm + reserva) + Despesas de transação
+    total_pago_cons = valor_imovel_num + resultado_cons['total_custo'] + valor_despesas_num
+
+    resumo.append({
+        'metodo': 'Consórcio',
+        'parcela_inicial': formatar_moeda_brl(resultado_cons['parcela_fixa']),
+        'custo_total': formatar_moeda_brl(resultado_cons['total_custo']), # Total de Taxas
+        'total_pago': formatar_moeda_brl(total_pago_cons),
+        'extra': f'Lance FGTS: {formatar_moeda_brl(resultado_cons["valor_lance_fgts"])} usado.'
+    })
+
+
+    # 5. CENÁRIO 3: ALUGUEL + INVESTIMENTO
+    
+    resultado_aluguel = simular_financiamento_geral(
+        metodo='renda',
+        valor_principal=0, # Não se aplica
+        taxa_anual=0, # Não se aplica
+        prazo_meses=prazo_meses_num,
+        **kwargs_comuns
+    )
+    
+    # Saldo final acumulado (Investimento + FGTS Final)
+    saldo_total_acumulado = resultado_aluguel['acumulado_final'] + resultado_aluguel['fgts_final']
+    
+    # Detalhes para o campo 'Resultado/Vantagem Extra'
+    detalhes = [
+        f'Saldo Investimento Final: {formatar_moeda_brl(resultado_aluguel["acumulado_final"])}',
+        f'Saldo FGTS Final: {formatar_moeda_brl(resultado_aluguel["fgts_final"])}',
+        f'Valor Final do Imóvel (Estimado): {formatar_moeda_brl(resultado_aluguel["valor_imovel_final"])}',
+        f'Ganho Líquido Total: <strong style="color: green;">{formatar_moeda_brl(saldo_total_acumulado - resultado_aluguel["capital_inicial"])}</strong>',
+    ]
+
+    resumo.append({
+        'metodo': 'Aluguel + Investimento',
+        'parcela_inicial': formatar_moeda_brl(resultado_aluguel['aluguel_inicial']),
+        'custo_total': formatar_moeda_brl(saldo_total_acumulado), # Acumulado Total (GANHO)
+        'total_pago': formatar_moeda_brl(resultado_aluguel['total_gasto_aluguel']), # Gasto Total com Aluguel Bruto
+        'extra': {'detalhes': detalhes}
+    })
+    
+    return resumo
