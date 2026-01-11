@@ -1,78 +1,68 @@
-# views.py
 from django.shortcuts import render
-# Importa APENAS a função de agregação de alto nível
-from .calculadora_financeira import comparar_cenarios_e_formatar 
-# Importa o modelo (necessário apenas para a view de detalhe, mas OK aqui)
-from .models import Financiamento 
-# Não precisamos mais de 'from decimal import Decimal' ou de 'simular_financiamento_geral'
-# na view principal.
+from .forms import FinanciamentoForm
+# 1. IMPORTAR a lógica de cálculo do utils.py
+from . import utils # Importa tudo do utils.py
 
-# --- VIEW DE DETALHE SAC (Mantida) ---
-def simulacao_sac_view(request, financiamento_id):
-    # Lógica de detalhe correta. (Ainda depende de 'simular_financiamento_geral'
-    # mas esta função deve ser importada DENTRO desta view ou movida para o topo.)
-    # Por questões de limpeza, vamos assumir que 'simular_financiamento_geral'
-    # foi movida para o topo das importações, ou importada localmente se o Django permitir.
-    # ...
-    # (Este código é mantido, pois a arquitetura está OK)
-    # ...
-    pass # Código omitido
+# Também é bom importar Decimal para garantir que os cálculos funcionem
+from decimal import Decimal 
 
-# ----------------------------------------------------------------------
-# VIEW PRINCIPAL (Simulador de Comparação - LIMPA e FOCADA)
-# ----------------------------------------------------------------------
-def simular_financiamento(request):
+def simulacao_view(request):
+    form = FinanciamentoForm()
     
-    # --- DADOS PADRÃO (GET) ---
-    dados_iniciais_padrao = {
-        # Mantenha os seus dados padrão aqui.
-        # Eles NÃO PRECISAM SER Decimal. Strings são suficientes para o contexto do formulário.
-        'valor_imovel': '500000',
-        'entrada': '60000',
-        'prazo_anos': '30',
-        # ...
+    context = {
+        'form': form,
+        'tabela_amortizacao': None,
+        'resultado_final': None,
     }
-    
-    resultados_finais = [] 
-    erro = None
-    
+
+    # Verifica se a requisição é POST (o usuário enviou o formulário)
     if request.method == 'POST':
-        # 1. Sobrescreve os defaults com os dados do POST
-        dados_iniciais = request.POST.dict() 
-        
-        try:
-            # 2. Chama a única função que faz o trabalho pesado, passando o dicionário POST inteiro
-            # Esta função lida com conversão, cálculo, agregação e formatação.
-            resultados_finais = comparar_cenarios_e_formatar(dados_iniciais)
-            
-            if resultados_finais is None:
-                 erro = "Erro ao processar os dados. Verifique se todos os campos estão preenchidos corretamente."
+        form = FinanciamentoForm(request.POST)
 
-        except Exception as e:
-            # Captura qualquer erro inesperado durante o cálculo
-            erro = f"Ocorreu um erro inesperado durante a simulação. Erro técnico: {e}"
-            print(f"Erro no processamento: {e}")
+        if form.is_valid():
+            # 2. CAPTURAR OS DADOS (já em Decimal devido ao settings.py)
+            data = form.cleaned_data
             
-        contexto = {
-            'titulo': 'ImobCalc - Simulador Financeiro Completo',
-            'dados_iniciais': dados_iniciais, # Usa os dados submetidos
-            'resumo_comparativo': resultados_finais,
-            'erro': erro
-        }
-        
-        # 3. ESTE É O RETURN CORRETO PARA O POST.
-        return render(request, 'simulacao/tabela_price.html', contexto)
+            valor_imovel = data['valor_imovel']
+            valor_entrada = data['valor_entrada']
+            taxa_anual_percentual = data['taxa_anual']
+            prazo_meses = data['prazo_meses']
+            metodo = data['metodo']
+            
+            # Calcular o Saldo Devedor Principal
+            saldo_devedor = valor_imovel - valor_entrada
+            
+            # 3. CHAMAR A LÓGICA DE CÁLCULO
+            
+            tabela_final = []
+            
+            if metodo == 'price':
+                # Chamando sua função PRICE (assumindo que ela existe em utils.py)
+                tabela_final = utils.calcular_price(
+                    saldo_devedor, 
+                    taxa_anual_percentual, 
+                    prazo_meses
+                )
+                context['resultado_final'] = "Simulação PRICE calculada com sucesso!"
 
-    # ----------------------------------------------------------------------
-    # FLUXO GET (Primeira carga da página)
-    # ----------------------------------------------------------------------
-    else:
-        # Define o contexto inicial com os valores padrão
-        contexto = {
-            'titulo': 'ImobCalc - Simulador Financeiro Completo',
-            'dados_iniciais': dados_iniciais_padrao, # Usa os dados padrão
-            'resumo_comparativo': []
-        }
-        
-        # Este é o return para o GET.
-        return render(request, 'simulacao/tabela_price.html', contexto)
+            elif metodo == 'sac':
+                # Chamando sua função SAC (assumindo que ela existe em utils.py)
+                tabela_final = utils.calcular_sac(
+                    saldo_devedor, 
+                    taxa_anual_percentual, 
+                    prazo_meses
+                )
+                context['resultado_final'] = "Simulação SAC calculada com sucesso!"
+                
+            # Adicione aqui os métodos 'renda' e 'consorcio'
+            # ...
+            
+            # 4. ENVIAR OS RESULTADOS PARA O TEMPLATE
+            context['tabela_amortizacao'] = tabela_final
+            
+        else:
+            # Se a validação falhar (ex: campo vazio)
+            context['resultado_final'] = "Erro! Verifique os dados do formulário."
+    
+    # 5. RENDERIZAR
+    return render(request, 'simulacao/index.html', context)
