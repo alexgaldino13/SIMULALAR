@@ -243,6 +243,8 @@
                             <th>Parcela Inicial (R$)</th>
                             <th>Custo Total de Juros/Taxas (R$)</th>
                             <th>Total Desembolsado (R$)</th>
+                            <th>Economia (R$)</th>
+                            <th>Redução de Prazo</th>
                             <th>Resultado/Vantagem Extra</th>
                         </tr>
                     </thead>
@@ -261,6 +263,18 @@
             <td>
                 {{ item.total_pago }}
                 {% if item.metodo == 'Aluguel + Investimento' %} (Total Aluguel Bruto) {% endif %}
+            </td>
+
+            <td>
+                {{ item.economia|default:'-' }}
+            </td>
+
+            <td>
+                {% if item.prazo_reducao_meses and item.prazo_reducao_meses > 0 %}
+                    {{ item.prazo_reducao_meses }} meses
+                {% else %}
+                    -
+                {% endif %}
             </td>
             
             <td>

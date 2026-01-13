@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ step_title }} - Wizard ImobCalc</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .wizard-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        
+        .wizard-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .wizard-header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .wizard-header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .progress-bar {
+            background: rgba(255, 255, 255, 0.3);
+            height: 8px;
+            margin-top: 20px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            background: white;
+            height: 100%;
+            width: {{ progress }}%;
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+        
+        .progress-text {
+            margin-top: 10px;
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        
+        .wizard-body {
+            padding: 40px;
+        }
+        
+        .step-indicator {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .step-title {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 15px;
+        }
+        
+        .help-text {
+            font-size: 13px;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
+        }
+        
+        input[type="text"],
+        input[type="number"],
+        input[type="email"],
+        select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .radio-group,
+        .checkbox-group {
+            margin-top: 10px;
+        }
+        
+        .radio-group label,
+        .checkbox-group label {
+            font-weight: normal;
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .radio-group label:hover,
+        .checkbox-group label:hover {
+            border-color: #667eea;
+            background: #f5f7ff;
+        }
+        
+        .radio-group input[type="radio"],
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin-right: 10px;
+            margin-top: 0;
+        }
+        
+        .wizard-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+            gap: 15px;
+        }
+        
+        .btn {
+            padding: 14px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 1;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #666;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .errorlist {
+            list-style: none;
+            color: #e74c3c;
+            margin-top: 5px;
+            font-size: 14px;
+        }
+        
+        .errorlist li {
+            padding: 5px 0;
+        }
+        
+        @media (max-width: 600px) {
+            .wizard-body {
+                padding: 20px;
+            }
+            
+            .wizard-actions {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="wizard-container">
+        <div class="wizard-header">
+            <h1>Simulador Imobiliário</h1>
+            <p>Vamos te guiar passo a passo</p>
+            <div class="progress-bar" aria-hidden="true">
+                <div class="progress-fill" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ progress }}"></div>
+            </div>
+            <div class="progress-text">Passo {{ current_step }} de {{ total_steps }} — {{ progress }}% concluído</div>
+        </div>
+        
+        <div class="wizard-body">
+            <div class="step-indicator">
+                Etapa {{ current_step }} de {{ total_steps }}
+            </div>
+            
+            <h2 class="step-title">{{ step_title }}</h2>
+            {% if step_title == 'Privacidade & Preferências' %}
+                <p style="text-align:center; color:#555; margin-top:10px;">Suas respostas ficarão locais no seu navegador a menos que aceite salvar/compartilhar. A IA pode sugerir ajustes — pode desativar nas preferências.</p>
+            {% endif %}
+            
+            <form method="post">
+                {% csrf_token %}
+                
+                {% for field in form %}
+                    <div class="form-group">
+                        <label for="{{ field.id_for_label }}">
+                            {{ field.label }}
+                            {% if field.field.required %}<span style="color: red;">*</span>{% endif %}
+                        </label>
+                        
+                        {% if field.field.widget.input_type == 'radio' %}
+                            <div class="radio-group">
+                                {% for choice in field %}
+                                    <label for="{{ choice.id_for_label }}" style="display: flex; align-items: center; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; margin-bottom: 10px; cursor: pointer; transition: all 0.3s;">
+                                        {{ choice.tag }}
+                                        <span style="margin-left: 10px;">{{ choice.choice_label }}</span>
+                                    </label>
+                                {% endfor %}
+                            </div>
+                        {% elif field.field.widget.input_type == 'checkbox' %}
+                            <div class="checkbox-group">
+                                <label style="display: flex; align-items: center; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; margin-bottom: 10px; cursor: pointer; transition: all 0.3s;">
+                                    {{ field }}
+                                    <span style="margin-left: 10px;">{{ field.label }}</span>
+                                </label>
+                            </div>
+                        {% else %}
+                            {{ field }}
+                        {% endif %}
+                        
+                        {% if field.help_text %}
+                            <div class="help-text">{{ field.help_text }}</div>
+                        {% endif %}
+                        
+                        {% if field.errors %}
+                            <ul class="errorlist">
+                                {% for error in field.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                
+                {% if form.non_field_errors %}
+                    <ul class="errorlist">
+                        {% for error in form.non_field_errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                
+                <!-- quick privacy hint -->
+                {% if step_title != 'Privacidade & Preferências' and wizard_data.privacy %}
+                    <div style="background:#f7f9fb;border-left:4px solid #667eea;padding:12px;border-radius:6px;margin-bottom:16px;font-size:14px;color:#333;">
+                        <strong>Preferências:</strong>
+                        {% if wizard_data.privacy.acceptar_privacidade %}Termos aceitos{% else %}Termos não aceitos{% endif %} •
+                        {% if wizard_data.privacy.permitir_ia %}Sugestões IA ativadas{% else %}Sugestões IA desativadas{% endif %}
+                    </div>
+                {% endif %}
+                
+                <div class="wizard-actions">
+                    {% if can_go_back %}
+                        <a href="{% url 'wizard_back' current_step %}" class="btn btn-secondary">
+                            ← Voltar
+                        </a>
+                    {% else %}
+                        <div></div>
+                    {% endif %}
+                    
+                    <button type="submit" class="btn btn-primary">
+                        {% if is_last_step %}
+                            Finalizar e Calcular →
+                        {% else %}
+                            Próximo →
+                        {% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

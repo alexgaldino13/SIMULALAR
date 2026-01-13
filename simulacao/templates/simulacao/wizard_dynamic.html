@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Wizard Dinâmico</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;background:#f6f8fb;padding:20px}
+    .card{max-width:900px;margin:0 auto;background:#fff;padding:24px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.08)}
+    h1{margin-bottom:8px}
+    .question{margin-bottom:14px}
+    label{display:block;font-weight:600;margin-bottom:6px}
+    input[type=text],input[type=number],select{width:100%;padding:10px;border:1px solid #ddd;border-radius:6px}
+    .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+    button{padding:10px 16px;border-radius:8px;border:0;cursor:pointer}
+    .btn-primary{background:#4a6cf7;color:#fff}
+    .btn-ghost{background:#eef2ff;color:#333}
+    pre{background:#0b1220;color:#dbeafe;padding:12px;border-radius:6px;overflow:auto}
+    .hidden{display:none}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Assistente Rápido</h1>
+    <p>Responda as perguntas rápidas. O assistente monta cenários automaticamente.</p>
+
+    <div id="wizard-root">Carregando perguntas...</div>
+
+    <div class="actions">
+      <button id="prevBtn" class="btn-ghost" disabled>↩ Voltar</button>
+      <button id="nextBtn" class="btn-primary">Próximo →</button>
+    </div>
+
+    <div id="result" class="hidden">
+      <h2>Resultados</h2>
+      <div id="resumo-json"></div>
+    </div>
+  </div>
+
+  <script>
+    // Fetch questions and render simple single-step form that advances
+    (async function(){
+      const root = document.getElementById('wizard-root');
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+      const resultEl = document.getElementById('result');
+      const resumoJson = document.getElementById('resumo-json');
+
+      const resp = await fetch('/wizard/api/questions/');
+      const data = await resp.json();
+      const questions = data.questions || [];
+
+      // state
+      let idx = 0;
+      const answers = {};
+
+      function normalizeValue(v){
+        if(v === null || v === undefined) return v;
+        if(typeof v !== 'string') return v;
+        if(v === 'true') return true;
+        if(v === 'false') return false;
+        // numeric?
+        const n = Number(v);
+        if(!Number.isNaN(n) && String(n) === v) return n;
+        return v;
+      }
+
+      function isVisible(question){
+        if(!question.visible_if) return true;
+        for(const key in question.visible_if){
+          const expect = question.visible_if[key];
+          const actual = normalizeValue(answers[key]);
+          if(Array.isArray(expect)){
+            if(!expect.includes(actual)) return false;
+          } else {
+            if(expect === '*' ){ // wildcard: any truthy
+              if(!actual) return false;
+            } else {
+              if(actual !== expect) return false;
+            }
+          }
+        }
+        return true;
+      }
+
+      function findNextVisible(start){
+        for(let i=start;i<questions.length;i++){
+          if(isVisible(questions[i])) return i;
+        }
+        return -1;
+      }
+
+      function findPrevVisible(start){
+        for(let i=start;i>=0;i--){
+          if(isVisible(questions[i])) return i;
+        }
+        return -1;
+      }
+
+      function renderQuestion(i){
+        // find next visible from i (in case i points to hidden)
+        const v = findNextVisible(i);
+        if(v === -1){ root.innerHTML = '<p>Nenhuma pergunta disponível.</p>'; return; }
+        idx = v;
+        const q = questions[v];
+        root.innerHTML = '';
+        const container = document.createElement('div');
+        container.className = 'question';
+
+        const label = document.createElement('label');
+        label.textContent = q.label;
+        container.appendChild(label);
+
+        let input;
+        switch(q.type){
+          case 'choice':
+            input = document.createElement('select');
+            for(const opt of q.options||[]){
+              const o = document.createElement('option'); o.value = opt; o.textContent = opt; input.appendChild(o);
+            }
+            break;
+          case 'bool':
+            input = document.createElement('select');
+            [['true','Sim'],['false','Não']].forEach(pair=>{const o=document.createElement('option');o.value=pair[0];o.textContent=pair[1];input.appendChild(o)})
+            break;
+          case 'int':
+          case 'money':
+          case 'percent':
+          default:
+            input = document.createElement('input');
+            input.type = 'number';
+            input.step = 'any';
+            if(q.default!==undefined) input.value = q.default;
+        }
+
+        input.id = 'q_'+q.key;
+        container.appendChild(input);
+
+        if(q.help){const h=document.createElement('div');h.style.marginTop='6px';h.style.fontSize='13px';h.style.color='#666';h.textContent=q.help;container.appendChild(h)}
+
+        root.appendChild(container);
+
+        // restore previous answer
+        if(answers[q.key] !== undefined){
+          if(input.tagName === 'SELECT') input.value = answers[q.key]; else input.value = answers[q.key];
+        }
+        // update navigation buttons
+        prevBtn.disabled = findPrevVisible(idx-1) === -1;
+        nextBtn.textContent = (findNextVisible(idx+1) === -1) ? 'Finalizar →' : 'Próximo →';
+      }
+
+      function showResult(json){
+        resultEl.classList.remove('hidden');
+        resumoJson.innerHTML = '<pre>'+JSON.stringify(json,null,2)+'</pre>';
+      }
+
+      prevBtn.addEventListener('click',()=>{
+        // save current
+        const q = questions[idx];
+        const el = document.getElementById('q_'+q.key);
+        if(el) answers[q.key] = el.value;
+        const prev = findPrevVisible(idx-1);
+        if(prev !== -1) renderQuestion(prev);
+      })
+
+      nextBtn.addEventListener('click', async ()=>{
+        const q = questions[idx];
+        const el = document.getElementById('q_'+q.key);
+        if(el) answers[q.key] = el.value;
+
+        // simple validation: required
+        if((el.value===''||el.value===undefined) && (el.type==='number' || el.tagName==='INPUT')){ alert('Preencha o valor'); return }
+
+        // find next visible
+        const next = findNextVisible(idx+1);
+        if(next !== -1){ renderQuestion(next); }
+        else {
+          // submit
+          nextBtn.disabled = true; nextBtn.textContent='Enviando...';
+          try{
+            const r = await fetch('/wizard/api/submit/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(answers)});
+            const jr = await r.json();
+            showResult(jr);
+            nextBtn.textContent='Concluído';
+            nextBtn.disabled = true;
+          }catch(err){ alert('Erro ao submeter: '+err); nextBtn.disabled=false }
+        }
+      })
+
+      // start at first visible question
+      const start = findNextVisible(0);
+      if(start !== -1) renderQuestion(start);
+      else root.innerHTML = '<p>Nenhuma pergunta configurada.</p>';
+
+    })();
+  </script>
+</body>
+</html>

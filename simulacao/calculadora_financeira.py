@@ -1,46 +1,13 @@
 from decimal import Decimal
 import math
-import locale
 
-# ----------------------------------------------------------------------
-# FUNÇÃO DE UTILIDADE: FORMATAÇÃO BRL (R$) - CORRIGIDA (ROBUSTA DEFINITIVA)
-# ----------------------------------------------------------------------
-
-def formatar_moeda_brl(valor):
-    """Formata float para string de moeda brasileira (R$ 1.234.567,89)."""
-    if not isinstance(valor, (int, float, Decimal)):
-        return 'R$ 0,00'
-    
-    valor_float = float(valor)
-    
-    # 1. Tenta usar locale configurado (MELHOR OPÇÃO, mas limpa a saída)
-    try:
-        # Tenta configurar a locale
-        locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
-        
-        # Tenta formatar apenas o número, usando locale.format_string
-        # Isso garante que a vírgula e o ponto de milhar estejam corretos.
-        locale_str = locale.format_string("%.2f", valor_float, grouping=True) 
-        
-        # Limpa espaços em branco ou caracteres não-quebráveis (\xa0) da string formatada pelo locale
-        final_str = locale_str.strip().replace(u'\xa0', u' ')
-        
-        return f"R$ {final_str}"
-        
-    except Exception:
-        # 2. FALLBACK MANUAL ROBUSTO (Garante a formatação EUA->BRL - SEMPRE FUNCIONA)
-        
-        # Formata com separador de milhar (vírgula) e decimal (ponto) - padrão EUA
-        valor_str_eua = f"{valor_float:,.2f}"
-        
-        # Lógica de swap:
-        # 1. Troca a vírgula de milhar (,) por um placeholder ('TEMP')
-        # 2. Troca o ponto decimal (.) pela vírgula (,)
-        # 3. Troca o placeholder ('TEMP') pelo ponto de milhar (.)
-        final_str = valor_str_eua.replace(',', 'TEMP').replace('.', ',').replace('TEMP', '.')
-        
-        # O f-string já inclui o sinal de negativo se for o caso.
-        return f"R$ {final_str}"
+# Use centralized formatting helpers
+from simulacao.formatacao import (
+    formatar_moeda_brl,
+    formatar_percentual,
+    formatar_numero,
+    formatar_meses_anos,
+)
 
 # ----------------------------------------------------------------------
 # FUNÇÃO 1: CÁLCULO PRICE/SAC (COM LÓGICA DE AMORTIZAÇÃO FGTS) - CORRIGIDA
@@ -453,12 +420,25 @@ def comparar_cenarios_e_formatar(dados_form):
     # 3. CENÁRIO 1: FINANCIAMENTO (PRICE E SAC)
     
     for metodo in ['price', 'sac']:
+        # Simulação com as opções do formulário
         resultado = simular_financiamento_geral(
-            metodo=metodo, 
-            valor_principal=principal_financiado, 
-            taxa_anual=taxa_anual_num, 
-            prazo_meses=prazo_meses_num, 
+            metodo=metodo,
+            valor_principal=principal_financiado,
+            taxa_anual=taxa_anual_num,
+            prazo_meses=prazo_meses_num,
             **kwargs_comuns
+        )
+
+        # Simulação baseline: sem uso de FGTS / sem amortizações extras
+        baseline_kwargs = kwargs_comuns.copy()
+        baseline_kwargs['usar_fgts_financiamento'] = False
+        baseline_kwargs['fgts_saldo'] = 0.0
+        baseline = simular_financiamento_geral(
+            metodo=metodo,
+            valor_principal=principal_financiado,
+            taxa_anual=taxa_anual_num,
+            prazo_meses=prazo_meses_num,
+            **baseline_kwargs
         )
 
         # Se a simulação falhar ou retornar lista vazia
@@ -467,6 +447,14 @@ def comparar_cenarios_e_formatar(dados_form):
 
         total_juros_e_taxas = resultado['total_juros'] + resultado['total_seguros_taxas']
         total_desembolsado = principal_base + valor_despesas_num + total_juros_e_taxas
+
+        # Baseline totals (sem amortização/FGTS)
+        baseline_juros_taxas = baseline['total_juros'] + baseline['total_seguros_taxas']
+        baseline_desembolsado = principal_base + valor_despesas_num + baseline_juros_taxas
+
+        # Economia obtida ao aplicar FGTS/amortizações (positivo se economizou)
+        economia_valor = baseline_desembolsado - total_desembolsado
+        prazo_reducao = max(0, baseline.get('prazo_final_meses', prazo_meses_num) - resultado.get('prazo_final_meses', prazo_meses_num))
         
         # Mapeamento do nome
         nome_metodo = 'Tabela Price' if metodo == 'price' else 'Tabela SAC'
@@ -476,6 +464,8 @@ def comparar_cenarios_e_formatar(dados_form):
             'parcela_inicial': formatar_moeda_brl(resultado['parcela_inicial']),
             'custo_total': formatar_moeda_brl(total_juros_e_taxas),
             'total_pago': formatar_moeda_brl(total_desembolsado),
+            'economia': formatar_moeda_brl(economia_valor),
+            'prazo_reducao_meses': prazo_reducao,
             'extra': f'Prazo Final: {resultado["prazo_final_meses"] // 12} anos e {resultado["prazo_final_meses"] % 12} meses.'
         })
 

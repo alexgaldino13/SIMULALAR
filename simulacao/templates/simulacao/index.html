@@ -67,7 +67,20 @@
 <body>
     <div class="container">
         <h1>Simulador Financeiro Imobiliário</h1>
+        
+        <div style="background: #e3f2fd; border-left: 4px solid #2196f3; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+            <strong>💡 Recomendamos:</strong> Use nosso <a href="{% url 'wizard_inicio' %}" style="color: #1976d2; font-weight: bold;">Wizard Guiado</a> para descobrir qual método (PRICE, SAC, Consórcio ou Investimento) é mais vantajoso para você!
+        </div>
+        
         <p style="text-align: center;">Insira os parâmetros para calcular seu financiamento ou investimento.</p>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
         
         {% if resultado_final %}
             <p style="text-align: center; color: green; font-weight: bold;">{{ resultado_final }}</p>
@@ -96,8 +109,8 @@
                 <tbody>
                     {% for linha in tabela_amortizacao %}
                     <tr>
-                        <td class="mes-col">{{ linha.mes }}</td>
-                        <td>R$ {{ linha.saldo_anterior|floatformat:2 }}</td>
+                        <td class="mes-col">{{ linha.mes|floatformat:0 }}</td>
+                        <td>R$ {{ linha.saldo_inicial|floatformat:2 }}</td>
                         <td>R$ {{ linha.juros|floatformat:2 }}</td>
                         <td>R$ {{ linha.amortizacao|floatformat:2 }}</td>
                         <td>R$ {{ linha.parcela|floatformat:2 }}</td>

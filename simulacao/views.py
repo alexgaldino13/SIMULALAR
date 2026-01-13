@@ -1,12 +1,19 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
+from django.contrib import messages
 from .forms import FinanciamentoForm
-# 1. IMPORTAR a lógica de cálculo do utils.py
-from . import utils # Importa tudo do utils.py
-
-# Também é bom importar Decimal para garantir que os cálculos funcionem
+from . import utils
 from decimal import Decimal 
 
 def simulacao_view(request):
+    """
+    View antiga - mantida para compatibilidade
+    Recomenda usar o wizard para melhor experiência
+    """
+    # Redireciona para o wizard na primeira visita
+    if request.method == 'GET' and 'wizard_recommended' not in request.session:
+        request.session['wizard_recommended'] = True
+        messages.info(request, "💡 Dica: Use nosso Wizard guiado para descobrir qual método é mais vantajoso para você!")
+    
     form = FinanciamentoForm()
     
     context = {
@@ -15,12 +22,10 @@ def simulacao_view(request):
         'resultado_final': None,
     }
 
-    # Verifica se a requisição é POST (o usuário enviou o formulário)
     if request.method == 'POST':
         form = FinanciamentoForm(request.POST)
 
         if form.is_valid():
-            # 2. CAPTURAR OS DADOS (já em Decimal devido ao settings.py)
             data = form.cleaned_data
             
             valor_imovel = data['valor_imovel']
@@ -32,37 +37,25 @@ def simulacao_view(request):
             # Calcular o Saldo Devedor Principal
             saldo_devedor = valor_imovel - valor_entrada
             
-            # 3. CHAMAR A LÓGICA DE CÁLCULO
+            # Usa a função correta do utils.py
+            resultado = utils.simular_financiamento_geral(
+                metodo=metodo,
+                valor_principal=float(saldo_devedor),
+                taxa_anual=float(taxa_anual_percentual),
+                prazo_meses=int(prazo_meses),
+                seguro_mensal=float(data.get('seguro_mensal', 0.03)),
+            )
             
-            tabela_final = []
-            
-            if metodo == 'price':
-                # Chamando sua função PRICE (assumindo que ela existe em utils.py)
-                tabela_final = utils.calcular_price(
-                    saldo_devedor, 
-                    taxa_anual_percentual, 
-                    prazo_meses
-                )
-                context['resultado_final'] = "Simulação PRICE calculada com sucesso!"
-
-            elif metodo == 'sac':
-                # Chamando sua função SAC (assumindo que ela existe em utils.py)
-                tabela_final = utils.calcular_sac(
-                    saldo_devedor, 
-                    taxa_anual_percentual, 
-                    prazo_meses
-                )
-                context['resultado_final'] = "Simulação SAC calculada com sucesso!"
-                
-            # Adicione aqui os métodos 'renda' e 'consorcio'
-            # ...
-            
-            # 4. ENVIAR OS RESULTADOS PARA O TEMPLATE
-            context['tabela_amortizacao'] = tabela_final
-            
+            if resultado and resultado.get('tabela'):
+                # Extrai a tabela do resultado
+                tabela_final = resultado['tabela']
+                context['tabela_amortizacao'] = tabela_final
+                context['resultado_final'] = f"Simulação {metodo.upper()} calculada com sucesso!"
+                context['parcela_inicial'] = resultado.get('parcela_inicial', 0)
+                context['total_juros'] = resultado.get('total_juros', 0)
+            else:
+                context['resultado_final'] = "Erro no cálculo! Verifique os parâmetros."
         else:
-            # Se a validação falhar (ex: campo vazio)
             context['resultado_final'] = "Erro! Verifique os dados do formulário."
     
-    # 5. RENDERIZAR
     return render(request, 'simulacao/index.html', context)
