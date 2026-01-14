@@ -1,0 +1,43 @@
+{
+  "resumo": [
+    {
+      "metodo": "Tabela Price",
+      "parcela_inicial": "R$ 1.845,39",
+      "custo_total": "R$ 424.341,25",
+      "total_pago": "R$ 679.341,25",
+      "economia": "R$ 0,00",
+      "prazo_reducao_meses": 0,
+      "extra": "Prazo Final: 30 anos e 0 meses."
+    },
+    {
+      "metodo": "Tabela SAC",
+      "parcela_inicial": "R$ 2.366,67",
+      "custo_total": "R$ 306.850,00",
+      "total_pago": "R$ 561.850,00",
+      "economia": "R$ 0,00",
+      "prazo_reducao_meses": 0,
+      "extra": "Prazo Final: 30 anos e 0 meses."
+    },
+    {
+      "metodo": "Consórcio",
+      "parcela_inicial": "R$ 1.212,50",
+      "custo_total": "R$ 136.500,00",
+      "total_pago": "R$ 451.500,00",
+      "extra": "Lance FGTS: R$ 0,00 usado."
+    },
+    {
+      "metodo": "Aluguel + Investimento",
+      "parcela_inicial": "R$ 0,00",
+      "custo_total": "R$ 734.306,12",
+      "total_pago": "R$ 0,00",
+      "extra": {
+        "detalhes": [
+          "Saldo Investimento Final: R$ 361.354,51",
+          "Saldo FGTS Final: R$ 372.951,61",
+          "Valor Final do Imóvel (Estimado): R$ 532.753,41",
+          "Ganho Líquido Total: <strong style=\"color: green;\">R$ 674.306,12</strong>"
+        ]
+      }
+    }
+  ]
+}
