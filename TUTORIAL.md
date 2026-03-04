@@ -13,23 +13,19 @@
 
 | Item | Descrição | Arquivos | Status |
 |------|-----------|----------|--------|
-| **4.2** | APIs backend AdMob | `views.py`, `urls.py` | 🔄 FAZER AGORA |
+| **4.3** | Posicionamento de anúncios | `templates/` | 🔄 FAZER AGORA |
 
 ### 📋 DETALHAMENTO DA TAREFA
 
-**Objetivo:** Criar as APIs que o frontend do AdMob precisa para funcionar.
+**Objetivo:** Inserir os banners e intersticiais nas páginas do sistema.
 
 **Arquivos que serão modificados:**
-1. `D:\PROJETOS\FI\simulacao\views.py` - Criar 2 novas views
-2. `D:\PROJETOS\FI\simulacao\urls.py` - Adicionar 2 rotas
-
-**Funções a criar:**
-- `api_assinatura_status(request)` - Verifica se usuário é premium
-- `api_registrar_ad_view(request)` - Registra visualização de anúncio
+1. `D:\PROJETOS\FI\Templates\base.html` - Adicionar banner no rodapé
+2. `D:\PROJETOS\FI\simulacao\templates\simulacao\wizard_v2_resultados.html` - Adicionar intersticial
 
 **Referências:**
-- Modelo `Subscription` em `subscription_models.py`
-- Frontend em `static/js/admob-integration.js` (já faz as chamadas)
+- Componente `admob_banner.html`
+- Frontend em `static/js/admob-integration.js`
 
 ---
 
@@ -118,11 +114,11 @@ Após implementar, execute o servidor e teste:
 
 ## 📅 ÚLTIMA ATUALIZAÇÃO
 
-**Data:** 03 de Março de 2026 - 15:30  
+**Data:** 03 de Março de 2026 - 15:45  
 **Desenvolvedor:** Galdino  
-**Progresso:** 50% (40 de 80 itens)  
-**Último item concluído:** ✅ Cenário 7 - Comparador de Investimentos  
-**Próximo item:** 🔄 Item 4.2 - APIs backend AdMob
+**Progresso:** 51% (41 de 80 itens)  
+**Último item concluído:** ✅ Item 4.2 - APIs backend AdMob  
+**Próximo item:** 🔄 Item 4.3 - Posicionamento de anúncios
 
 ---
 
@@ -130,7 +126,7 @@ Após implementar, execute o servidor e teste:
 
 | Data | Comando | Arquivos alterados | Status |
 |------|---------|-------------------|--------|
-| 03/03 | Criar APIs AdMob (status e tracking) | views.py, urls.py | 🔄 Pendente |
+| 03/03 | Criar APIs AdMob (status e tracking) | views.py, urls.py | ✅ Concluído |
 | 23/02 | Corrigir bugs wizard (pergunta duplicada, checkbox dependentes) | wizard_forms_v2.py, wizard_forms_novo.py, wizard_views_novo.py | ✅ Concluído |
 | 18/02 | Corrigir erro filtro 'mul' | templatetags/custom_filters.py, wizard_v2_resultados.html | ✅ Concluído |
 
@@ -158,8 +154,8 @@ Após implementar, execute o servidor e teste:
 | Item | Descrição | Status | Próximo |
 |------|-----------|--------|---------|
 | 4.1 | Integrar Google AdMob no frontend | ✅ Concluído | - |
-| **4.2** | **APIs backend AdMob** | 🔄 **FAZENDO** | **AGORA** |
-| 4.3 | Posicionamento de anúncios nas páginas | ⏳ Pendente | Após 4.2 |
+| 4.2 | APIs backend AdMob | ✅ Concluído | - |
+| **4.3** | **Posicionamento de anúncios nas páginas** | 🔄 **FAZENDO** | **AGORA** |
 | 4.4 | Integrar Google Play Billing | ⏳ Pendente | - |
 | 4.5 | Lógica de assinatura Premium | ⏳ Pendente | - |
 | 4.6 | Tela de upgrade para Premium | ⏳ Pendente | - |
@@ -267,4 +263,3 @@ Você é o **Arquiteto de Soluções**. Sua função:
 ---
 
 **🚀 BOM DESENVOLVIMENTO!**
-
