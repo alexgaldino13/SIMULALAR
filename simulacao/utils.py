@@ -400,7 +400,12 @@ def comparar_cenarios_e_formatar(dados_form):
         prazo_anos_num = int(dados_form.get('prazo_anos'))
         prazo_meses_num = prazo_anos_num * 12
         
-        # Variáveis de Configuração
+        # Variáveis de Confi
+        # # ----------------------------------------------------------------------
+        # # FUNÇÃO 5: GUARDAR DINHEIRO (POUPANÇA) - NOVA
+        # # ----------------------------------------------------------------------
+        # 
+        # ração
         taxa_anual_num = float(dados_form.get('taxa_anual'))
         seguro_mensal_num = float(dados_form.get('seguro_mensal'))
         taxa_admin_mensal_num = float(dados_form.get('taxa_admin_mensal'))
@@ -531,3 +536,56 @@ def comparar_cenarios_e_formatar(dados_form):
     })
     
     return resumo
+
+
+# ----------------------------------------------------------------------
+# FUNCAO 5: GUARDAR DINHEIRO (POUPANCA) - NOVA
+# ----------------------------------------------------------------------
+
+def guardar_dinheiro(
+    valor_imovel, valor_entrada_inicial, valor_mensal_guardar, valor_aluguel,
+    taxa_rendimento_mensal, prazo_meses, taxa_reajuste_aluguel_anual,
+    fgts_saldo_inicial, renda_familiar_bruta, fgts_mensal_percent
+):
+    """Simula o cenario de guardar dinheiro (poupanca) enquanto paga aluguel."""
+    
+    # Conversao para Decimal
+    valor_entrada_inicial_dec = Decimal(str(valor_entrada_inicial))
+    valor_mensal_guardar_dec = Decimal(str(valor_mensal_guardar))
+    valor_aluguel_dec = Decimal(str(valor_aluguel))
+    taxa_rendimento_mensal_dec = Decimal(str(taxa_rendimento_mensal))
+    taxa_reajuste_aluguel_anual_dec = Decimal(str(taxa_reajuste_aluguel_anual))
+    fgts_saldo_dec = Decimal(str(fgts_saldo_inicial))
+    renda_familiar_bruta_dec = Decimal(str(renda_familiar_bruta))
+    fgts_mensal_percent_dec = Decimal(str(fgts_mensal_percent))
+    prazo_meses_int = int(prazo_meses)
+    
+    # Inicializacao
+    saldo_poupanca = valor_entrada_inicial_dec
+    total_gasto_aluguel = Decimal(0)
+    aluguel_atual = valor_aluguel_dec
+    
+    # Loop mes a mes
+    for mes in range(1, prazo_meses_int + 1):
+        saldo_poupanca *= (1 + taxa_rendimento_mensal_dec)
+        saldo_poupanca += valor_mensal_guardar_dec
+        fgts_saldo_dec *= (1 + taxa_rendimento_mensal_dec)
+        deposito_fgts = renda_familiar_bruta_dec * fgts_mensal_percent_dec
+        fgts_saldo_dec += deposito_fgts
+        total_gasto_aluguel += aluguel_atual
+        
+        if mes % 12 == 0 and mes < prazo_meses_int:
+            aluguel_atual *= (1 + taxa_reajuste_aluguel_anual_dec)
+    
+    saldo_total_final = saldo_poupanca + fgts_saldo_dec
+    
+    return {
+        'saldo_poupanca_final': float(saldo_poupanca),
+        'fgts_final': float(fgts_saldo_dec),
+        'saldo_total_final': float(saldo_total_final),
+        'total_gasto_aluguel': float(total_gasto_aluguel),
+        'tempo_para_comprar_anos': 0,
+        'tempo_para_comprar_meses': 0,
+        'viavel': saldo_total_final >= Decimal(str(valor_imovel))
+    }
+

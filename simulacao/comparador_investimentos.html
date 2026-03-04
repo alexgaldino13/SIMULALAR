@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block head_title %}Comparador de Investimentos - ImobCalc{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="mb-4">Comparador de Investimentos</h1>
+    
+    <form id="comparadorForm" method="post">
+        {% csrf_token %}
+        
+        <div id="investimentos-container">
+            <!-- Investimento 1 -->
+            <div class="card mb-3 investimento-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    Investimento 1
+                    <!-- O primeiro não pode ser removido para garantir que sempre haja pelo menos um -->
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label>Nome:</label>
+                            <input type="text" class="form-control" name="nome_1" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label>Tipo:</label>
+                            <select class="form-control" name="tipo_1" required>
+                                <option value="poupanca">Poupança</option>
+                                <option value="cdb">CDB</option>
+                                <option value="tesouro">Tesouro Direto</option>
+                                <option value="lci_lca">LCI/LCA</option>
+                                <option value="fundos">Fundos</option>
+                                <option value="acoes">Ações</option>
+                                <option value="fiis">FIIs</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label>Valor Inicial (R$):</label>
+                            <input type="number" class="form-control" name="valor_inicial_1" step="0.01" required>
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-md-4">
+                            <label>Taxa (% a.a.):</label>
+                            <input type="number" class="form-control" name="taxa_1" step="0.01" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label>Prazo (meses):</label>
+                            <input type="number" class="form-control" name="prazo_1" required>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <button type="button" class="btn btn-secondary mb-3" onclick="adicionarInvestimento()">+ Adicionar Investimento</button>
+        <button type="submit" class="btn btn-primary mb-3">Comparar</button>
+    </form>
+    
+    <div id="resultados" style="display:none;">
+        <h2 class="mt-4">Resultados</h2>
+        <div id="tabela-resultados"></div>
+    </div>
+</div>
+
+<script>
+let contadorInvestimentos = 1;
+
+function adicionarInvestimento() {
+    // Usamos a contagem de elementos para ser mais robusto caso um item seja removido.
+    if (document.querySelectorAll('.investimento-card').length >= 5) {
+        alert('Você pode comparar no máximo 5 investimentos.');
+        return;
+    }
+    contadorInvestimentos++;
+    
+    const container = document.getElementById('investimentos-container');
+    const novoInvestimentoHTML = `
+        <div class="card mb-3 investimento-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                Investimento ${contadorInvestimentos}
+                <button type="button" class="btn-close" aria-label="Close" onclick="this.closest('.investimento-card').remove()"></button>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <label>Nome:</label>
+                        <input type="text" class="form-control" name="nome_${contadorInvestimentos}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label>Tipo:</label>
+                        <select class="form-control" name="tipo_${contadorInvestimentos}" required>
+                            <option value="poupanca">Poupança</option>
+                            <option value="cdb">CDB</option>
+                            <option value="tesouro">Tesouro Direto</option>
+                            <option value="lci_lca">LCI/LCA</option>
+                            <option value="fundos">Fundos</option>
+                            <option value="acoes">Ações</option>
+                            <option value="fiis">FIIs</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label>Valor Inicial (R$):</label>
+                        <input type="number" class="form-control" name="valor_inicial_${contadorInvestimentos}" step="0.01" required>
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-md-4">
+                        <label>Taxa (% a.a.):</label>
+                        <input type="number" class="form-control" name="taxa_${contadorInvestimentos}" step="0.01" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label>Prazo (meses):</label>
+                        <input type="number" class="form-control" name="prazo_${contadorInvestimentos}" required>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    container.insertAdjacentHTML('beforeend', novoInvestimentoHTML);
+}
+
+document.getElementById('comparadorForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitButton = this.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Calculando...';
+
+    fetch("{% url 'comparador_investimentos' %}", {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.errors) {
+            alert('Erro nos dados: ' + JSON.stringify(data.errors));
+            return;
+        }
+
+        const resultadosContainer = document.getElementById('tabela-resultados');
+        let tableHTML = `<table class="table table-striped table-hover mt-3"><thead class="table-light"><tr><th>Nome</th><th>Valor Final Bruto</th><th>Imposto de Renda</th><th class="table-primary">Valor Final Líquido</th></tr></thead><tbody>`;
+
+        data.forEach(item => {
+            tableHTML += `<tr><td>${item.nome}</td><td>R$ ${item.valor_final_bruto.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td><td>R$ ${item.imposto_renda.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td><td class="fw-bold">R$ ${item.valor_final_liquido.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td></tr>`;
+        });
+
+        tableHTML += `</tbody></table>`;
+        resultadosContainer.innerHTML = tableHTML;
+        document.getElementById('resultados').style.display = 'block';
+        document.getElementById('resultados').scrollIntoView({ behavior: 'smooth' });
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Ocorreu um erro ao processar a sua solicitação. A funcionalidade de cálculo pode não estar implementada no backend.');
+    })
+    .finally(() => {
+        submitButton.disabled = false;
+        submitButton.innerHTML = 'Comparar';
+    });
+});
+</script>
+{% endblock %}

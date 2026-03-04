@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load humanize %}
+
+{% block head_title %}Resultados da Simulação{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4 text-center fw-bold text-dark">Comparativo de Cenários</h2>
+
+    <!-- Alertas de Consumidor (Topo) -->
+    {% if alertas_consumidor %}
+        <div class="row mb-4">
+            {% for alerta in alertas_consumidor %}
+                <div class="col-md-12 mb-2">
+                    <div class="alert alert-{{ alerta.tipo }} d-flex align-items-center shadow-sm border-0" role="alert">
+                        <div class="me-3 display-6"><i class="fas fa-{{ alerta.icone }}"></i></div>
+                        <div>
+                            <h5 class="alert-heading mb-1 fw-bold">{{ alerta.titulo }}</h5>
+                            <p class="mb-0 small">{{ alerta.mensagem|safe }}</p>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Resumo Comparativo (Cards) -->
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mb-5">
+        {% for key, result in resultados.items %}
+            <div class="col">
+                <!-- Destaque visual para MCMV -->
+                <div class="card h-100 shadow-sm {% if 'MCMV' in result.metodo %}border-success border-2{% else %}border-0{% endif %}">
+                    
+                    <div class="card-header bg-white py-3 border-bottom-0">
+                        <h5 class="card-title mb-0 fw-bold text-primary text-center">
+                            {% if 'MCMV' in result.metodo %}
+                                <span class="text-success"><i class="fas fa-home me-2"></i>{{ result.metodo }}</span>
+                            {% else %}
+                                {{ result.metodo }}
+                            {% endif %}
+                        </h5>
+                    </div>
+
+                    <div class="card-body pt-0">
+                        <div class="mb-4 text-center">
+                            <span class="text-muted small text-uppercase fw-bold">Parcela Inicial</span>
+                            <h3 class="fw-bold text-dark mb-2">R$ {{ result.parcela_inicial|floatformat:2|intcomma }}</h3>
+                            
+                            <!-- Alerta de Comprometimento de Renda -->
+                            {% if result.alerta_comprometimento %}
+                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger mb-2" title="Acima do recomendado (30%)">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    {{ result.comprometimento_renda|floatformat:1 }}% da Renda
+                                </span>
+                            {% else %}
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success mb-2" title="Dentro do recomendado">
+                                    <i class="fas fa-check-circle me-1"></i>
+                                    {{ result.comprometimento_renda|floatformat:1 }}% da Renda
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <ul class="list-group list-group-flush small">
+                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                Total Desembolsado
+                                <span class="fw-bold">R$ {{ result.total_desembolso|floatformat:2|intcomma }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                Patrimônio Final
+                                <span class="fw-bold">R$ {{ result.patrimonio_final|floatformat:2|intcomma }}</span>
+                            </li>
+                            {% if result.economia_com_fgts > 0 %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center px-0 text-success">
+                                Economia com FGTS
+                                <span class="fw-bold">- R$ {{ result.economia_com_fgts|floatformat:2|intcomma }}</span>
+                            </li>
+                            {% endif %}
+                        </ul>
+                        
+                        {% if result.observacao %}
+                            <div class="alert alert-light mt-3 mb-0 small border">
+                                <i class="fas fa-info-circle me-1 text-info"></i> {{ result.observacao }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="card-footer bg-white border-top-0 text-center pb-4">
+                        <button class="btn btn-outline-primary btn-sm w-100 rounded-pill" type="button" data-bs-toggle="collapse" data-bs-target="#detalhes-{{ key }}">
+                            Ver Detalhes <i class="fas fa-chevron-down ms-1"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Detalhes Expansíveis -->
+    {% for key, result in resultados.items %}
+        <div class="collapse mb-4" id="detalhes-{{ key }}">
+            <div class="card card-body shadow-sm border-0">
+                <h4 class="mb-3 fw-bold text-secondary">{{ result.metodo }} - Detalhamento</h4>
+                
+                {% if 'MCMV' in result.metodo %}
+                    <div class="alert alert-success border-success">
+                        <h5 class="alert-heading fw-bold"><i class="fas fa-check-circle"></i> Elegível para Minha Casa Minha Vida!</h5>
+                        <p>Você se enquadra na <strong>Faixa {{ result.faixa }}</strong> do programa.</p>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-4"><strong>Subsídio:</strong> R$ {{ result.subsidio|floatformat:2|intcomma }}</div>
+                            <div class="col-md-4"><strong>Taxa de Juros:</strong> {{ result.taxa_juros }}% a.a.</div>
+                            <div class="col-md-4"><strong>Economia vs Mercado:</strong> R$ {{ result.economia_vs_tradicional|floatformat:2|intcomma }}</div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- Seção de Taxas e Seguros (Novo) -->
+                {% if result.cet_anual %}
+                <div class="card bg-light border-0 mb-3">
+                    <div class="card-body py-3">
+                        <h6 class="card-title fw-bold text-secondary mb-3 small text-uppercase"><i class="fas fa-percentage me-1"></i> Taxas e Seguros</h6>
+                        <div class="row g-3 small">
+                            <div class="col-6 col-md-3">
+                                <span class="d-block text-muted">Taxa Nominal</span>
+                                <span class="fw-bold">{{ result.taxa_nominal_anual }}% a.a.</span>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <span class="d-block text-muted">Taxa Efetiva</span>
+                                <span class="fw-bold">{{ result.taxa_efetiva }}% a.a.</span>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <span class="d-block text-muted">CET (Anual)</span>
+                                <span class="fw-bold text-primary">{{ result.cet_anual }}%</span>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <span class="d-block text-muted">Seguros (Mensal)</span>
+                                <span class="fw-bold">{{ result.seguro_mensal_inicial }}</span>
+                            </div>
+                        </div>
+                        <div class="mt-2 text-muted" style="font-size: 0.75rem;">
+                            <i class="fas fa-info-circle me-1"></i> O Custo Efetivo Total (CET) inclui juros, seguros e taxas administrativas.
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Tabela de Amortização (se houver) -->
+                {% if result.tabela %}
+                    <h6 class="fw-bold mt-3">Evolução das Parcelas (Primeiros 12 meses)</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover table-striped text-center small">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Mês</th>
+                                    <th>Parcela</th>
+                                    <th>Amortização</th>
+                                    <th>Juros</th>
+                                    <th>Saldo Devedor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for linha in result.tabela|slice:":12" %}
+                                    <tr>
+                                        <td>{{ linha.mes }}</td>
+                                        <td>R$ {{ linha.parcela|floatformat:2|intcomma }}</td>
+                                        <td>R$ {{ linha.amortizacao|floatformat:2|intcomma }}</td>
+                                        <td>R$ {{ linha.juros|floatformat:2|intcomma }}</td>
+                                        <td>R$ {{ linha.saldo_final|floatformat:2|intcomma }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <p class="text-muted small text-end">Mostrando apenas o primeiro ano.</p>
+                    </div>
+                {% endif %}
+                
+                <!-- Detalhes Consórcio -->
+                {% if key == 'consorcio' %}
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <ul class="list-group">
+                                <li class="list-group-item"><strong>Parcela Base:</strong> R$ {{ result.parcela_base|floatformat:2|intcomma }}</li>
+                                <li class="list-group-item"><strong>Taxa Adm:</strong> R$ {{ result.taxa_adm_mensal|floatformat:2|intcomma }}/mês</li>
+                                <li class="list-group-item"><strong>Fundo Reserva:</strong> R$ {{ result.fundo_reserva_mensal|floatformat:2|intcomma }}/mês</li>
+                            </ul>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    {% endfor %}
+
+    <div class="text-center mt-5 mb-5">
+        <a href="calcular_mcmvfrom{% url 'wizard_novo' %}{% url 'wizard_novo_reset' %}" class="btn btn-secondary me-2 px-4">Reiniciar Simulação</a>
+        <a href="{% url 'wizard_novo_exportar_pdf' %}" class="btn btn-outline-danger me-2 px-4 shadow-sm"><i class="fas fa-file-pdf me-2"></i>Baixar PDF</a>
+        <a href="{% url 'wizard_novo_salvar' %}" class="btn btn-primary px-4 shadow-sm"><i class="fas fa-save me-2"></i>Salvar no Dashboard</a>
+    </div>
+</div>
+{% endblock %}

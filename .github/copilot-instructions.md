@@ -1,49 +1,177 @@
-## Copilot / AI assistant notes for this repo
+## Guia do Assistente IA: FI (Financiamento Imobiliário)
 
-Purpose: quick orientation for code edits, tests and where business logic lives.
+### Visão Geral do Projeto
+Aplicação Django para simulações de financiamento imobiliário brasileiro: Tabela Price (parcelas constantes), SAC (parcelas decrescentes), consórcio e aluguel+investimento (análise comparativa aluguel vs. compra).
 
-- **Project type**: Django app for mortgage/finance simulations (SAC, Price, consórcio, aluguel+investimento).
+### Setup & Dependências
+**Instalação inicial:**
+```sh
+pip install -r requirements.txt
+pip install scipy numpy  # CRÍTICO: não estão em requirements.txt mas são usados em CET
+python manage.py migrate
+python manage.py runserver
+```
 
-- **Two project roots**: there are two `manage.py` and `ImobCalc/settings.py` copies — one at repository root and one under `FI/`. Always confirm which `manage.py` / settings module your environment or CI uses before running commands or editing settings.
+**Notas críticas:**
+- `requirements.txt` incompleto (scipy/numpy faltando). Instale manualmente.
+- Banco de dados: SQLite em `./db.sqlite3`. Uma única instância.
+- Allauth integrado para autenticação social (Google, etc.)
 
-- **Quick dev commands** (choose the matching `manage.py`):
-  - Run server: `python manage.py runserver` or `python FI/manage.py runserver`
-  - Apply migrations: `python manage.py migrate`
-  - Make migrations: `python manage.py makemigrations`
-  - Run tests for the app: `python manage.py test simulacao`
-  - Open Django shell for quick checks: `python manage.py shell`
+### Arquitetura de Fluxo Dados
+```
+Usuário (Forms HTML)
+    ↓
+wizard_views.py (WizardStep 1-8)  ou  views.py (Price/SAC direto)
+    ↓
+wizard_forms.py / forms.py (Validação)
+    ↓
+calculadora_financeira.py (Funções core de cálculo - Decimal para precisão)
+    ↓
+formatacao.py (Conversão float, formatação moeda)
+    ↓
+templates/ (Renderização com custom_filters.py)
+```
 
-- **No `requirements.txt` detected** in the repo root — verify the Python environment and install Django and other deps used by CI locally before running.
+**Componentes principais:**
+- [simulacao/calculadora_financeira.py](simulacao/calculadora_financeira.py) (1551 linhas)—fonte única da verdade; toda lógica financeira; usa Decimal internamente
+- [simulacao/wizard_views.py](simulacao/wizard_views.py)—orquestra fluxo multi-step com estado em sessão; 8 etapas (privacidade, perfil, imóvel, métodos, financiamento, consórcio, investimento, aluguel)
+- [simulacao/views.py](simulacao/views.py)—vista alternativa para cálculos diretos (Price/SAC sem wizard)
+- [simulacao/wizard_questions.py](simulacao/wizard_questions.py)—mapeamento Q&A → campos de formulário via `map_answers_to_dados_form()`
+- [simulacao/wizard_forms.py](simulacao/wizard_forms.py)—8 formulários correspondentes aos steps; validação de entrada
 
-- **Core code / data-flow**
-  - Input layer: `simulacao/forms.py` and `simulacao/wizard_forms.py` (user inputs, validation)
-  - Controller / view: `simulacao/views.py` and `simulacao/wizard_views.py` (parse form, call calculation functions, prepare context)
-  - Business logic: `simulacao/calculadora_financeira.py` — the authoritative location for calculations.
-    - Key exported functions to call or test directly: `simular_financiamento_geral`, `calcular_price_sac`, `simular_consorcio`, `simular_aluguel_investimento`, `comparar_cenarios_e_formatar`.
-    - Calculation functions accept numeric values (often as kwargs) and internally convert to `Decimal` — follow this pattern when adding numeric APIs.
-  - Formatting utilities: `simulacao/formatacao.py` and local format helpers (e.g. `formatar_moeda_brl` inside `calculadora_financeira.py`).
-  - Templates: see `simulacao/templates/simulacao/` (examples: `tabela_price.html`, `simulacao_sac.html`, `wizard_step.html`, `wizard_resultados.html`).
+### Funções Core de Cálculo (API Pública)
+Importar direto em testes ou novas views:
+```python
+from simulacao.calculadora_financeira import (
+    calcular_price_sac,              # (metodo, valor_principal, taxa_anual, prazo_meses, **kwargs)
+    simular_consorcio,                # (valor_imovel, prazo_meses, taxa_adm, fundo_reserva, fgts_saldo=0)
+    simular_consorcio_com_lances,     # Versão com cronograma de lances
+    simular_aluguel_investimento,     # Análise aluguel vs. compra (VPL)
+    calcular_cet,                     # (valor_financiado, parcelas_mensais, custos_iniciais=None)
+    comparar_cenarios_e_formatar      # Orquestrador: roteador de cenários + formatação final
+)
 
-- **How to run and debug calculation logic quickly**
-  - Use Django shell and import functions directly, e.g.:
+# Exemplo direto (testes):
+resultado = calcular_price_sac('price', valor_principal=300000, taxa_anual=7.0, prazo_meses=360)
+print(resultado['tabela'][0])  # Primeiro mês
+print(resultado['total_juros'])
+```
 
-    from simulacao.calculadora_financeira import simular_financiamento_geral
-    simular_financiamento_geral('price', 300000, 7.0, 360)
+**Contrato de assinatura:**
+- Aceita valores numéricos (float/int); converte internamente para `Decimal(str(x))`—nunca literal float
+- `**kwargs` para flags opcionais: `seguro_mensal`, `fgts_saldo`, `tipo_amortizacao_fgts`, etc.
+- Retorna dict com chaves float (serialização JSON/sessão)
+- Chaves esperadas em templates: `'tabela'`, `'total_juros'`, `'parcela_inicial'`, `'cet_anual'`, `'saldo_final'`
 
-  - Prefer unit-tests that call those functions directly rather than exercising full HTTP views for fast feedback.
+### Regra de Ouro: Decimal para Precisão Monetária
+```python
+from decimal import Decimal
+# ✓ CORRETO
+valor = Decimal(str(entrada_usuario))  # Sempre de string, não float literal
+saldo = Decimal('300000')
 
-- **Patterns & conventions**
-  - Financial computations use `Decimal` for precision — ensure inputs are converted similarly when modifying or adding helpers.
-  - Many functions accept `**kwargs` routing extra flags (e.g. FGTS handling) — follow existing argument names to avoid breaking callers from views.
-  - Views call a single orchestrator (`comparar_cenarios_e_formatar`) which returns a context-ready, formatted result for templates. If adding outputs, keep the shape compatible with existing templates.
+# ✗ ERRADO
+valor = Decimal(0.1)  # Float literal → erro de arredondamento
+saldo = Decimal(300000.0)
+```
+Centavos reais dependem disso. Use Decimal em todo código de `calculadora_financeira.py`.
 
-- **Testing and migrations**
-  - Test module: `simulacao/tests.py` — add focused unit tests for pure-Python functions in `calculadora_financeira.py`.
-  - DB: SQLite files exist at repo root (`db.sqlite3`) and under `FI/` — be intentional which DB file you use in local runs.
+### Fluxo Wizard (Multi-step Stateful)
+Controle em [simulacao/wizard_views.py](simulacao/wizard_views.py), linha ~40 (WIZARD_STEPS dict):
 
-- **What to check before submitting changes**
-  - Run `python manage.py test simulacao` after editing calculations.
-  - If changing public API of calculation functions, update any callers in `views.py` and the template keys consumed by templates in `simulacao/templates/simulacao/`.
-  - If touching settings, prefer editing the `ImobCalc/settings.py` that corresponds to the `manage.py` you run.
+**8 Steps → 8 Formulários:**
+1. **Privacy** (`WizardPrivacyForm`)—consentimento, preferências de privacidade
+2. **Perfil** (`WizardPerfilForm`)—renda, idade, estado civil
+3. **Imóvel** (`WizardImovelForm`)—localização, valor, tipo
+4. **Métodos** (`WizardMetodosForm`)—seleção de cenários (Price/SAC/Consórcio/Aluguel)
+5. **Financiamento** (`WizardFinanciamentoForm`)—taxa, prazo, entrada
+6. **Consórcio** (`WizardConsorcioForm`)—taxa de administração, fundo de reserva
+7. **Investimento** (`WizardInvestimentoForm`)—rendimento, aplicação
+8. **Aluguel** (`WizardAluguelForm`)—aluguel inicial, inflação; chama `comparar_cenarios_e_formatar()`
 
-If any section is unclear or you'd like more examples (unit test snippets, common call signatures, or a short checklist for PR reviews), tell me which part to expand.
+**Fluxo de dados wizard:**
+- Dados em sessão: `request.session['wizard_data']`—dict com dados de cada step
+- Step 8 recolhe tudo, chama `map_answers_to_dados_form()` para mapear respostas a nomes de campos
+- Passa para `comparar_cenarios_e_formatar(dados_form)` que roteador 4 cenários simultâneos
+- Renderiza `wizard_resultados.html` com comparação lado-a-lado
+
+**Tipagem de sessão:**
+- Armazena floats (não Decimal)—use helper `_convert_decimal_to_float()` antes de serializar
+- Recupere e reconverta com `Decimal(str(valor_sessao))` ao chamar funções de cálculo
+
+### Testes
+```sh
+python manage.py test simulacao  # Executa todos em tests.py
+
+# Debug rápido (shell):
+python manage.py shell
+>>> from simulacao.calculadora_financeira import calcular_price_sac
+>>> resultado = calcular_price_sac('price', 300000, 7.0, 360)
+>>> print(resultado['tabela'][0])
+```
+
+**Padrão em [simulacao/tests.py](simulacao/tests.py):**
+- `SimpleTestCase` para funções puras (sem banco de dados)
+- Chama core functions diretamente: `calcular_price_sac()`, `simular_consorcio()`, etc.
+- Valida chaves de retorno e intervalos esperados
+
+### Padrões Comuns de Modificação
+
+**Adicionar novo campo de entrada:**
+1. Novo field em `WizardFinanciamentoForm` (ou formulário apropriado em [simulacao/wizard_forms.py](simulacao/wizard_forms.py))
+2. Receba em [simulacao/wizard_views.py](simulacao/wizard_views.py) view; passe como kwarg a `comparar_cenarios_e_formatar()`
+3. Atualize assinatura de função core em [simulacao/calculadora_financeira.py](simulacao/calculadora_financeira.py) (adicione `novo_param=0.0` em `**kwargs`)
+4. Atualize template de resultado para referenciar nova chave
+
+**Mudar lógica de cálculo:**
+1. Edite função em [simulacao/calculadora_financeira.py](simulacao/calculadora_financeira.py) (ex: `calcular_price_sac()`)
+2. Garanta que chaves dict retornadas existem: `'tabela'`, `'total_juros'`, `'cet_anual'`
+3. Se chaves forem renomeadas, atualize views + templates que usam dict hardcoded
+4. Execute testes: `python manage.py test simulacao`
+
+**Adicionar nova métrica:**
+1. Calcule em função de simulação relevante (ex: `calcular_price_sac()`)
+2. Retorne como chave dict em float (não Decimal)
+3. Adicione a resultado de `comparar_cenarios_e_formatar()`
+4. Em template, referencie chave; use custom_filters se for moeda (ex: `|formatar_moeda_brl`)
+
+### Funcionalidades Especiais
+
+**CET (Custo Efetivo Total)**—[simulacao/calculadora_financeira.py](simulacao/calculadora_financeira.py)~L18
+- Usa `scipy.optimize.newton()` para encontrar TIR
+- Iguala valor líquido liberado = fluxo de caixa dos pagamentos
+- Retorna `cet_mensal` e `cet_anual` (%)
+- Requer scipy instalado
+
+**FGTS Integration**—kwargs `fgts_saldo`, `uso_fgts_financiamento`, `tipo_amortizacao_fgts`
+- Roteador em funções de simulação; deduz saldo FGTS da entrada
+- Três tipos de amortização: padrão, diferido, outros
+- Sempre converta Decimal antes de armazenar em sessão
+
+**Consórcio com Lances**—[simulacao/calculadora_financeira.py](simulacao/calculadora_financeira.py)~L395 `simular_consorcio_com_lances()`
+- Cronograma dinâmico; determina quem saca e quando via lances competitivos
+- Distinto de `simular_consorcio()` básico (parcelas fixas, sem lances)
+- Retorna tabela mensal com situação de cada participante
+
+**Aluguel+Investimento**—análise VPL tri-cenário
+- Cenário 1: Compra com financiamento
+- Cenário 2: Compra à vista (recursos próprios)
+- Cenário 3: Aluguel + investir entrada em ativos (rendimento %)
+- Compara riqueza cumulativa (casa + poupança vs. aluguel + investimento)
+
+**SAC Realista**—[simulacao/sac_realista.py](simulacao/sac_realista.py)
+- Variante de SAC com seguros diferidos (não linear como SAC padrão)
+- Alternativa para análises realistas de crédito imobiliário
+
+### Convenções do Projeto
+- **Idioma**: Português para lógica de domínio; inglês para utilities genéricas
+- **Persistência sessão**: Sempre Decimal → float antes de armazenar; reconverta ao ler
+- **Formatação**: Use [simulacao/templatetags/custom_filters.py](simulacao/templatetags/custom_filters.py) (ex: `|formatar_moeda_brl`) em templates; evite floats brutos
+- **API Stability**: Funções core são API pública—mudanças de assinatura requerem updates em views + templates
+
+### Pré-commit Checklist
+- [ ] Testes passam: `python manage.py test simulacao`
+- [ ] Se modificar função de cálculo: grep `calculadora_financeira` em `views.py`, `wizard_views.py` para verificar todos os chamadores
+- [ ] Se adicionar chaves dict: encontre em templates (`grep -r` por chave em `templates/`) e valide referências
+- [ ] Inputs numéricos usam `Decimal(str(...))` em código de cálculo
+- [ ] scipy/numpy instalado se tocar em `calcular_cet()` ou otimização numérica

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Relatório ImobCalc</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 12px;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .header h1 { color: #667eea; margin: 0; }
+        .section { margin-bottom: 20px; }
+        .section-title {
+            background-color: #f0f0f0;
+            padding: 5px;
+            font-weight: bold;
+            border-left: 5px solid #667eea;
+            margin-bottom: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th { background-color: #f9f9f9; }
+        .destaque { color: #28a745; font-weight: bold; }
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 10px;
+            color: #999;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏠 ImobCalc - Relatório de Simulação</h1>
+        <p>Gerado em {% now "d/m/Y H:i" %}</p>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Parâmetros da Simulação</div>
+        <table>
+            <tr>
+                <th>Valor do Imóvel</th>
+                <td>R$ {{ wizard_data.objetivo.valor_imovel_desejado|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <th>Prazo Desejado</th>
+                <td>{{ wizard_data.objetivo.prazo_desejado_anos }} anos</td>
+            </tr>
+            <tr>
+                <th>Renda Familiar</th>
+                <td>R$ {{ wizard_data.renda_custos.renda_familiar_bruta|floatformat:2 }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Comparativo de Cenários</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Cenário</th>
+                    <th>Parcela Inicial</th>
+                    <th>Total Desembolso</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for key, result in resultados.items %}
+                <tr>
+                    <td><strong>{{ result.metodo }}</strong></td>
+                    <td>R$ {{ result.parcela_inicial|floatformat:2 }}</td>
+                    <td>R$ {{ result.total_desembolso|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="footer">
+        Simulação gerada por ImobCalc. Os valores são estimativas e podem variar.
+    </div>
+</body>
+</html>

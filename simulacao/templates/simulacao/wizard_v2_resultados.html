@@ -1,0 +1,349 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+    {% load custom_filters %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seus Resultados - Simulador Financeiro</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-size: 42px;
+            margin-bottom: 10px;
+        }
+        
+        .recommendation-card {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        .recommendation-card h2 {
+            font-size: 32px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .recommendation-card p {
+            font-size: 18px;
+            color: #555;
+            line-height: 1.6;
+        }
+        
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .result-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .result-card h3 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .metric:last-child {
+            border-bottom: none;
+        }
+        
+        .metric-label {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .metric-value {
+            font-weight: 600;
+            color: #333;
+            font-size: 16px;
+        }
+        
+        .highlight-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .highlight-card h4 {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        
+        .pros-cons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .pros, .cons {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+        }
+        
+        .pros h4 {
+            color: #10b981;
+            margin-bottom: 15px;
+        }
+        
+        .cons h4 {
+            color: #ef4444;
+            margin-bottom: 15px;
+        }
+        
+        .pros ul, .cons ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .pros li, .cons li {
+            padding: 8px 0;
+            font-size: 14px;
+            color: #555;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            justify-content: center;
+        }
+        
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: white;
+            color: #667eea;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(255,255,255,0.3);
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .badge-best {
+            background: #10b981;
+            color: white;
+        }
+        
+        .resumo-box {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #555;
+        }
+        
+        .resumo-box p {
+            margin: 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Seus Resultados Personalizados</h1>
+            <p>Baseado no seu perfil e objetivos</p>
+        </div>
+        
+        {% if analise.recomendacao_principal %}
+        <div class="recommendation-card">
+            <h2>🏆 Nossa Recomendação para Você</h2>
+            <p><strong>{% if analise.recomendacao_principal == 'price' %}Financiamento PRICE{% elif analise.recomendacao_principal == 'sac' %}Financiamento SAC{% elif analise.recomendacao_principal == 'consorcio' %}Consórcio{% endif %}</strong></p>
+            <p>{{ analise.motivo_recomendacao }}</p>
+        </div>
+        {% endif %}
+        
+        <div class="cards-grid">
+            {% for nome, resultado in resultados.items %}
+            <div class="result-card {% if nome == analise.recomendacao_principal %}recommended{% endif %}">
+                <h3>
+                    {{ resultado.metodo }}
+                    {% if nome == analise.recomendacao_principal %}
+                        <span class="badge badge-best">RECOMENDADO</span>
+                    {% endif %}
+                </h3>
+                
+                {% if resultado.resumo_explicativo %}
+                <div class="resumo-box">
+                    <p>{{ resultado.resumo_explicativo|safe }}</p>
+                </div>
+                {% endif %}
+                
+                <div class="metric">
+                    <span class="metric-label">Parcela Inicial</span>
+                    <span class="metric-value">R$ {{ resultado.parcela_inicial|floatformat:2 }}</span>
+                </div>
+                
+                <div class="metric">
+                    <span class="metric-label">Custo Total</span>
+                    <span class="metric-value">R$ {{ resultado.total_custo|floatformat:2 }}</span>
+                </div>
+                
+                <div class="metric">
+                    <span class="metric-label">Prazo</span>
+                    <span class="metric-value">{{ resultado.prazo_final_anos }} anos</span>
+                </div>
+                
+                {% if resultado.total_desembolso %}
+                <div class="metric">
+                    <span class="metric-label">Custo Total + Aluguel</span>
+                    <span class="metric-value">R$ {{ resultado.total_desembolso|floatformat:2 }}</span>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% if margem_credito %}
+        <div class="highlight-card">
+            <h4>💳 Sua Margem de Crédito</h4>
+            <p><strong>Renda Considerada pelo Banco:</strong> R$ {{ margem_credito.renda_total_considerada|floatformat:2 }}</p>
+            <p><strong>Margem Disponível (30%):</strong> R$ {{ margem_credito.margem_30_porcento|floatformat:2 }}/mês</p>
+            <p><strong>Capacidade de Financiamento (20 anos):</strong> R$ {{ margem_credito.margem_30_porcento|floatformat:2 }} x 240 meses = R$ {{ margem_credito.margem_30_porcento|floatformat:2|mul:240 }}</p>
+            {% if margem_credito.desconto_aplicado > 0 %}
+            <p style="font-size: 14px; margin-top: 10px;">💡 Outras rendas foram consideradas com desconto de {{ margem_credito.desconto_aplicado|floatformat:0 }}%</p>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        {% if fgts_futuro %}
+        <div class="highlight-card">
+            <h4>🏦 Projeção do seu FGTS</h4>
+            <p><strong>Depósito Mensal:</strong> R$ {{ fgts_futuro.deposito_mensal|floatformat:2 }}</p>
+            <p><strong>Total Depositado ({{ fgts_futuro.meses }} meses):</strong> R$ {{ fgts_futuro.total_depositado|floatformat:2 }}</p>
+            <p><strong>Rendimento Acumulado:</strong> R$ {{ fgts_futuro.rendimento_acumulado|floatformat:2 }}</p>
+            <p><strong>Saldo Final Projetado:</strong> R$ {{ fgts_futuro.saldo_final|floatformat:2 }}</p>
+            <p style="font-size: 14px; margin-top: 10px;">💡 Baseado em: 8% do salário CLT + {{ fgts_futuro.taxa_efetiva_anual|floatformat:1 }}% a.a.</p>
+        </div>
+        {% endif %}
+        
+        {% if cenario_80 and not cenario_80.erro %}
+        <div class="highlight-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;">
+            <h4 style="color: white;">🎯 Cenário Especial: Você tem {{ cenario_80.percentual_capital_disponivel|floatformat:0 }}% do valor!</h4>
+            
+            <p style="margin-top: 15px;"><strong>Opção A - {{ cenario_80.opcao_a.descricao }}:</strong></p>
+            <p>Valor a financiar: R$ {{ cenario_80.opcao_a.valor_financiado|floatformat:2 }}</p>
+            <p>Parcela mensal: R$ {{ cenario_80.opcao_a.parcela_mensal|floatformat:2 }}</p>
+            <p>Custo total: R$ {{ cenario_80.opcao_a.custo_total_financiamento|floatformat:2 }}</p>
+            <p>Patrimônio final: R$ {{ cenario_80.opcao_a.patrimonio_final|floatformat:2 }}</p>
+            
+            <p style="margin-top: 15px;"><strong>Opção B - {{ cenario_80.opcao_b.descricao }}:</strong></p>
+            <p>Capital investido: R$ {{ cenario_80.opcao_b.capital_investido|floatformat:2 }}</p>
+            <p>Aluguel mensal: R$ {{ cenario_80.opcao_b.aluguel_mensal|floatformat:2 }}</p>
+            <p>Valor final do investimento: R$ {{ cenario_80.opcao_b.valor_final_investimento|floatformat:2 }}</p>
+            <p>Patrimônio final: R$ {{ cenario_80.opcao_b.patrimonio_final|floatformat:2 }}</p>
+            
+            <p style="margin-top: 20px; font-size: 18px; border-top: 2px solid white; padding-top: 15px;"><strong>🏆 {{ cenario_80.comparacao.recomendacao }}</strong></p>
+            <p style="font-size: 14px; margin-top: 5px;">Diferença patrimonial: R$ {{ cenario_80.comparacao.diferenca_patrimonial|floatformat:2 }} ({{ cenario_80.comparacao.vantagem_percentual|floatformat:1 }}% do imóvel)</p>
+        </div>
+        {% endif %}
+        
+        {% if analise.destaques %}
+        <div class="highlight-card">
+            <h4>📊 Destaques</h4>
+            <p><strong>Mais Econômico:</strong> {{ analise.destaques.mais_economico.cenario }} 
+               (R$ {{ analise.destaques.mais_economico.valor|floatformat:2 }})</p>
+            <p><strong>Menor Parcela:</strong> {{ analise.destaques.menor_parcela.cenario }} 
+               (R$ {{ analise.destaques.menor_parcela.valor|floatformat:2 }})</p>
+            <p><strong>Menor Prazo:</strong> {{ analise.destaques.menor_prazo.cenario }} 
+               ({{ analise.destaques.menor_prazo.anos|floatformat:1 }} anos)</p>
+        </div>
+        {% endif %}
+        
+        {% if analise.argumentos_pro %}
+        <div class="pros-cons">
+            <div class="pros">
+                <h4>✅ Vantagens</h4>
+                <ul>
+                    {% for arg in analise.argumentos_pro %}
+                        <li>{{ arg }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            
+            <div class="cons">
+                <h4>⚠️ Pontos de Atenção</h4>
+                <ul>
+                    {% for arg in analise.argumentos_contra %}
+                        <li>{{ arg }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="button-group">
+            <a href="{% url 'wizard_v2_reset' %}" class="btn btn-primary">
+                🔄 Nova Simulação
+            </a>
+        </div>
+    </div>
+</body>
+</html>

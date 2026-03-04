@@ -1,0 +1,156 @@
+{% extends 'simulacao/auth/base_auth.html' %}
+
+{% block title %}Cadastro - ImobCalc{% endblock %}
+
+{% block content %}
+<h2 style="text-align: center; color: #333; margin-bottom: 30px; font-size: 24px;">Criar sua conta</h2>
+
+<form method="post" action="{% url 'register' %}" id="registerForm">
+    {% csrf_token %}
+    
+    <div class="form-group">
+        <label for="first_name">Nome</label>
+        <input type="text" id="first_name" name="first_name" placeholder="Seu nome" required autofocus>
+    </div>
+
+    <div class="form-group">
+        <label for="last_name">Sobrenome</label>
+        <input type="text" id="last_name" name="last_name" placeholder="Seu sobrenome" required>
+    </div>
+
+    <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" placeholder="seu@email.com" required>
+    </div>
+
+    <div class="form-group">
+        <label for="telefone">Telefone (opcional)</label>
+        <input type="tel" id="telefone" name="telefone" placeholder="(11) 99999-9999">
+    </div>
+
+    <div class="form-group">
+        <label for="password">Senha</label>
+        <input type="password" id="password" name="password" placeholder="Mínimo 8 caracteres" required>
+        <div class="password-strength" id="passwordStrength" style="display: none;">
+            <span id="strengthText"></span>
+            <div class="strength-bar">
+                <div class="strength-bar-fill" id="strengthBar"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="password_confirm">Confirmar Senha</label>
+        <input type="password" id="password_confirm" name="password_confirm" placeholder="Digite a senha novamente" required>
+    </div>
+
+    <div class="checkbox-group">
+        <input type="checkbox" id="aceito_termos" name="aceito_termos" required>
+        <label for="aceito_termos">Aceito os <a href="#" target="_blank">Termos de Uso</a></label>
+    </div>
+
+    <div class="checkbox-group">
+        <input type="checkbox" id="aceito_privacidade" name="aceito_privacidade" required>
+        <label for="aceito_privacidade">Aceito a <a href="#" target="_blank">Política de Privacidade</a></label>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Criar Conta</button>
+</form>
+
+<div class="divider">
+    <span>ou</span>
+</div>
+
+<a href="/accounts/google/login/" class="btn btn-google">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M19.8 10.2273C19.8 9.51818 19.7364 8.83636 19.6182 8.18182H10.2V12.05H15.5818C15.3364 13.3 14.5909 14.3591 13.4727 15.0682V17.5773H16.7636C18.7182 15.8364 19.8 13.2727 19.8 10.2273Z" fill="#4285F4"/>
+        <path d="M10.2 20C12.9 20 15.1727 19.1045 16.7636 17.5773L13.4727 15.0682C12.5318 15.6682 11.3409 16.0227 10.2 16.0227C7.59545 16.0227 5.38182 14.2636 4.54091 11.9H1.14545V14.4909C2.72727 17.6318 6.20909 20 10.2 20Z" fill="#34A853"/>
+        <path d="M4.54091 11.9C4.32727 11.3 4.20455 10.6591 4.20455 10C4.20455 9.34091 4.32727 8.7 4.54091 8.1V5.50909H1.14545C0.418182 6.95909 0 8.43182 0 10C0 11.5682 0.418182 13.0409 1.14545 14.4909L4.54091 11.9Z" fill="#FBBC05"/>
+        <path d="M10.2 3.97727C11.4591 3.97727 12.5864 4.40909 13.4682 5.24545L16.3818 2.33182C15.1682 1.19091 12.8955 0 10.2 0C6.20909 0 2.72727 2.36818 1.14545 5.50909L4.54091 8.1C5.38182 5.73636 7.59545 3.97727 10.2 3.97727Z" fill="#EA4335"/>
+    </svg>
+    Continuar com Google
+</a>
+
+<div class="auth-footer">
+    Já tem uma conta? <a href="{% url 'login' %}">Faça login</a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Validação de força da senha
+    const passwordInput = document.getElementById('password');
+    const strengthDiv = document.getElementById('passwordStrength');
+    const strengthText = document.getElementById('strengthText');
+    const strengthBar = document.getElementById('strengthBar');
+
+    passwordInput.addEventListener('input', function() {
+        const password = this.value;
+        
+        if (password.length === 0) {
+            strengthDiv.style.display = 'none';
+            return;
+        }
+        
+        strengthDiv.style.display = 'block';
+        
+        let strength = 0;
+        
+        // Critérios de força
+        if (password.length >= 8) strength++;
+        if (password.length >= 12) strength++;
+        if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+        if (/\d/.test(password)) strength++;
+        if (/[^a-zA-Z0-9]/.test(password)) strength++;
+        
+        // Remove classes antigas
+        strengthBar.className = 'strength-bar-fill';
+        
+        if (strength <= 2) {
+            strengthBar.classList.add('strength-weak');
+            strengthText.textContent = 'Senha fraca';
+            strengthText.style.color = '#dc3545';
+        } else if (strength <= 4) {
+            strengthBar.classList.add('strength-medium');
+            strengthText.textContent = 'Senha média';
+            strengthText.style.color = '#ffc107';
+        } else {
+            strengthBar.classList.add('strength-strong');
+            strengthText.textContent = 'Senha forte';
+            strengthText.style.color = '#28a745';
+        }
+    });
+
+    // Validação de confirmação de senha
+    const form = document.getElementById('registerForm');
+    const passwordConfirm = document.getElementById('password_confirm');
+
+    form.addEventListener('submit', function(e) {
+        if (passwordInput.value !== passwordConfirm.value) {
+            e.preventDefault();
+            alert('As senhas não coincidem!');
+            passwordConfirm.focus();
+        }
+    });
+
+    // Máscara de telefone
+    const telefoneInput = document.getElementById('telefone');
+    telefoneInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        
+        if (value.length > 11) {
+            value = value.slice(0, 11);
+        }
+        
+        if (value.length > 6) {
+            value = value.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3');
+        } else if (value.length > 2) {
+            value = value.replace(/(\d{2})(\d{0,5})/, '($1) $2');
+        } else if (value.length > 0) {
+            value = value.replace(/(\d{0,2})/, '($1');
+        }
+        
+        e.target.value = value;
+    });
+</script>
+{% endblock %}

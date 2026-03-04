@@ -1,0 +1,551 @@
+{% extends 'simulacao/auth/base_auth.html' %}
+{% load static %}
+
+{% block title %}Consentimento LGPD - ImobCalc{% endblock %}
+
+{% block extra_css %}
+<style>
+    .consent-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .consent-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .consent-header h1 {
+        font-size: 2rem;
+        color: #667eea;
+        margin-bottom: 10px;
+    }
+
+    .consent-header p {
+        color: #666;
+        font-size: 1rem;
+    }
+
+    .consent-section {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .consent-section h2 {
+        font-size: 1.3rem;
+        color: #333;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .consent-item {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 15px;
+        border-left: 4px solid #667eea;
+        transition: all 0.3s ease;
+    }
+
+    .consent-item:hover {
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        transform: translateX(5px);
+    }
+
+    .consent-item.required {
+        border-left-color: #e74c3c;
+    }
+
+    .consent-item.optional {
+        border-left-color: #3498db;
+    }
+
+    .consent-checkbox {
+        display: flex;
+        align-items: flex-start;
+        gap: 15px;
+        cursor: pointer;
+    }
+
+    .consent-checkbox input[type="checkbox"] {
+        width: 24px;
+        height: 24px;
+        cursor: pointer;
+        margin-top: 2px;
+        flex-shrink: 0;
+    }
+
+    .consent-label {
+        flex: 1;
+    }
+
+    .consent-label strong {
+        display: block;
+        color: #333;
+        font-size: 1.1rem;
+        margin-bottom: 8px;
+    }
+
+    .consent-label p {
+        color: #666;
+        font-size: 0.95rem;
+        line-height: 1.6;
+        margin: 0;
+    }
+
+    .consent-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-left: 10px;
+    }
+
+    .badge-required {
+        background: #fee;
+        color: #e74c3c;
+    }
+
+    .badge-optional {
+        background: #e3f2fd;
+        color: #3498db;
+    }
+
+    .consent-details {
+        margin-top: 10px;
+        padding: 10px;
+        background: white;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        color: #777;
+    }
+
+    .consent-actions {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        margin-top: 30px;
+        flex-wrap: wrap;
+    }
+
+    .btn-consent {
+        padding: 15px 40px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        min-width: 200px;
+    }
+
+    .btn-accept-all {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .btn-accept-all:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-accept-selected {
+        background: white;
+        color: #667eea;
+        border: 2px solid #667eea;
+    }
+
+    .btn-accept-selected:hover {
+        background: #667eea;
+        color: white;
+    }
+
+    .btn-reject-all {
+        background: #f8f9fa;
+        color: #666;
+        border: 2px solid #ddd;
+    }
+
+    .btn-reject-all:hover {
+        background: #e9ecef;
+    }
+
+    .info-box {
+        background: #e3f2fd;
+        border-left: 4px solid #2196f3;
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+    }
+
+    .info-box p {
+        margin: 0;
+        color: #1976d2;
+        font-size: 0.95rem;
+    }
+
+    .warning-box {
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin-top: 20px;
+    }
+
+    .warning-box p {
+        margin: 0;
+        color: #856404;
+        font-size: 0.9rem;
+    }
+
+    .consent-summary {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 30px;
+        display: none;
+    }
+
+    .consent-summary.show {
+        display: block;
+    }
+
+    .consent-summary h3 {
+        color: #333;
+        margin-bottom: 15px;
+        font-size: 1.1rem;
+    }
+
+    .consent-summary ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .consent-summary li {
+        padding: 8px 0;
+        color: #666;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .consent-summary li::before {
+        content: "✓";
+        color: #4caf50;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+
+    @media (max-width: 768px) {
+        .consent-container {
+            padding: 10px;
+        }
+
+        .consent-section {
+            padding: 20px 15px;
+        }
+
+        .consent-actions {
+            flex-direction: column;
+        }
+
+        .btn-consent {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="consent-container">
+    <div class="consent-header">
+        <h1>🔒 Privacidade e Consentimento</h1>
+        <p>Sua privacidade é importante para nós. Por favor, revise e escolha suas preferências.</p>
+    </div>
+
+    <div class="info-box">
+        <p><strong>ℹ️ Informação:</strong> Você pode alterar suas preferências a qualquer momento nas configurações da sua conta.</p>
+    </div>
+
+    <form method="post" id="consentForm">
+        {% csrf_token %}
+
+        <!-- Consentimentos Obrigatórios -->
+        <div class="consent-section">
+            <h2>📋 Consentimentos Obrigatórios</h2>
+            <p style="color: #666; margin-bottom: 20px;">Estes consentimentos são necessários para usar o ImobCalc.</p>
+
+            <div class="consent-item required">
+                <label class="consent-checkbox">
+                    <input type="checkbox" name="consent_terms" value="1" required checked disabled>
+                    <div class="consent-label">
+                        <strong>
+                            Termos de Uso
+                            <span class="consent-badge badge-required">OBRIGATÓRIO</span>
+                        </strong>
+                        <p>Aceito os Termos de Uso do ImobCalc e concordo em seguir as regras de utilização da plataforma.</p>
+                        <div class="consent-details">
+                            📄 <a href="{% url 'terms_of_service' %}" target="_blank">Ler Termos de Uso completos</a>
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            <div class="consent-item required">
+                <label class="consent-checkbox">
+                    <input type="checkbox" name="consent_privacy" value="1" required checked disabled>
+                    <div class="consent-label">
+                        <strong>
+                            Política de Privacidade
+                            <span class="consent-badge badge-required">OBRIGATÓRIO</span>
+                        </strong>
+                        <p>Aceito a Política de Privacidade e entendo como meus dados pessoais serão coletados, armazenados e utilizados.</p>
+                        <div class="consent-details">
+                            📄 <a href="{% url 'privacy_policy' %}" target="_blank">Ler Política de Privacidade completa</a>
+                        </div>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <!-- Consentimentos Opcionais -->
+        <div class="consent-section">
+            <h2>⚙️ Consentimentos Opcionais</h2>
+            <p style="color: #666; margin-bottom: 20px;">Você pode escolher quais dados deseja compartilhar.</p>
+
+            <div class="consent-item optional">
+                <label class="consent-checkbox">
+                    <input type="checkbox" name="consent_analytics" value="1" id="consent_analytics">
+                    <div class="consent-label">
+                        <strong>
+                            Análise de Dados e Melhorias
+                            <span class="consent-badge badge-optional">OPCIONAL</span>
+                        </strong>
+                        <p>Permito que o ImobCalc colete dados anônimos sobre meu uso da plataforma para melhorar a experiência do usuário e desenvolver novos recursos.</p>
+                        <div class="consent-details">
+                            ℹ️ Dados coletados: páginas visitadas, tempo de uso, funcionalidades mais utilizadas (sempre de forma anônima).
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            <div class="consent-item optional">
+                <label class="consent-checkbox">
+                    <input type="checkbox" name="consent_marketing" value="1" id="consent_marketing">
+                    <div class="consent-label">
+                        <strong>
+                            Comunicações de Marketing
+                            <span class="consent-badge badge-optional">OPCIONAL</span>
+                        </strong>
+                        <p>Aceito receber e-mails com novidades, dicas sobre financiamento imobiliário, ofertas especiais e atualizações do ImobCalc.</p>
+                        <div class="consent-details">
+                            ℹ️ Você pode cancelar a inscrição a qualquer momento clicando no link presente em cada e-mail.
+                        </div>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <!-- Compartilhamento com Parceiros -->
+        <div class="consent-section">
+            <h2>🤝 Compartilhamento com Parceiros</h2>
+            <p style="color: #666; margin-bottom: 20px;">Compartilhar seus dados pode ajudá-lo a receber ofertas personalizadas de nossos parceiros.</p>
+
+            <div class="consent-item optional">
+                <label class="consent-checkbox">
+                    <input type="checkbox" name="consent_data_sharing" value="1" id="consent_data_sharing" class="partnership-consent">
+                    <div class="consent-label">
+                        <strong>
+                            Compartilhamento Geral de Dados
+                            <span class="consent-badge badge-optional">OPCIONAL</span>
+                        </strong>
+                        <p>Autorizo o ImobCalc a compartilhar meus dados de simulação com parceiros selecionados para receber ofertas personalizadas.</p>
+                        <div class="consent-details">
+                            ℹ️ Ao marcar esta opção, você também concorda com os compartilhamentos específicos abaixo.
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            <div class="consent-item optional" style="margin-left: 20px;">
+                <label class="consent-checkbox">
+                    <input type="checkbox" name="consent_partnership_consorcio" value="1" id="consent_consorcio" class="specific-partnership">
+                    <div class="consent-label">
+                        <strong>
+                            Administradoras de Consórcio
+                            <span class="consent-badge badge-optional">OPCIONAL</span>
+                        </strong>
+                        <p>Autorizo o compartilhamento dos meus dados com administradoras de consórcio para receber propostas de consórcio imobiliário.</p>
+                        <div class="consent-details">
+                            💰 Dados compartilhados: nome, e-mail, telefone, valor do imóvel desejado, capacidade de pagamento.
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            <div class="consent-item optional" style="margin-left: 20px;">
+                <label class="consent-checkbox">
+                    <input type="checkbox" name="consent_partnership_corretora" value="1" id="consent_corretora" class="specific-partnership">
+                    <div class="consent-label">
+                        <strong>
+                            Corretoras de Imóveis
+                            <span class="consent-badge badge-optional">OPCIONAL</span>
+                        </strong>
+                        <p>Autorizo o compartilhamento dos meus dados com corretoras de imóveis para receber ofertas de imóveis compatíveis com meu perfil.</p>
+                        <div class="consent-details">
+                            🏠 Dados compartilhados: nome, e-mail, telefone, localização preferida, faixa de preço, tipo de imóvel.
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            <div class="consent-item optional" style="margin-left: 20px;">
+                <label class="consent-checkbox">
+                    <input type="checkbox" name="consent_partnership_banco" value="1" id="consent_banco" class="specific-partnership">
+                    <div class="consent-label">
+                        <strong>
+                            Instituições Financeiras
+                            <span class="consent-badge badge-optional">OPCIONAL</span>
+                        </strong>
+                        <p>Autorizo o compartilhamento dos meus dados com bancos e instituições financeiras para receber propostas de financiamento imobiliário.</p>
+                        <div class="consent-details">
+                            🏦 Dados compartilhados: nome, e-mail, telefone, renda mensal, valor do financiamento desejado, prazo.
+                        </div>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <div class="warning-box">
+            <p><strong>⚠️ Importante:</strong> Você pode revogar qualquer consentimento a qualquer momento através das configurações de privacidade na sua conta. Seus dados serão tratados conforme a LGPD (Lei Geral de Proteção de Dados).</p>
+        </div>
+
+        <!-- Resumo de Consentimentos -->
+        <div class="consent-summary" id="consentSummary">
+            <h3>📊 Resumo dos seus consentimentos:</h3>
+            <ul id="summaryList"></ul>
+        </div>
+
+        <!-- Botões de Ação -->
+        <div class="consent-actions">
+            <button type="button" class="btn-consent btn-accept-all" id="btnAcceptAll">
+                ✓ Aceitar Todos
+            </button>
+            <button type="submit" class="btn-consent btn-accept-selected" id="btnAcceptSelected">
+                → Continuar com Selecionados
+            </button>
+            <button type="button" class="btn-consent btn-reject-all" id="btnRejectAll">
+                ✗ Rejeitar Opcionais
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Gerenciamento de consentimentos
+    const form = document.getElementById('consentForm');
+    const btnAcceptAll = document.getElementById('btnAcceptAll');
+    const btnRejectAll = document.getElementById('btnRejectAll');
+    const consentSummary = document.getElementById('consentSummary');
+    const summaryList = document.getElementById('summaryList');
+    const dataSharing = document.getElementById('consent_data_sharing');
+    const specificPartnerships = document.querySelectorAll('.specific-partnership');
+
+    // Aceitar todos os consentimentos opcionais
+    btnAcceptAll.addEventListener('click', function() {
+        document.querySelectorAll('input[type="checkbox"]:not([disabled])').forEach(cb => {
+            cb.checked = true;
+        });
+        updateSummary();
+    });
+
+    // Rejeitar todos os consentimentos opcionais
+    btnRejectAll.addEventListener('click', function() {
+        document.querySelectorAll('input[type="checkbox"]:not([disabled])').forEach(cb => {
+            cb.checked = false;
+        });
+        updateSummary();
+    });
+
+    // Sincronizar compartilhamento geral com específicos
+    dataSharing.addEventListener('change', function() {
+        if (this.checked) {
+            specificPartnerships.forEach(cb => cb.checked = true);
+        }
+        updateSummary();
+    });
+
+    // Atualizar compartilhamento geral quando específicos mudam
+    specificPartnerships.forEach(cb => {
+        cb.addEventListener('change', function() {
+            const allChecked = Array.from(specificPartnerships).every(c => c.checked);
+            const anyChecked = Array.from(specificPartnerships).some(c => c.checked);
+            
+            if (allChecked) {
+                dataSharing.checked = true;
+            } else if (!anyChecked) {
+                dataSharing.checked = false;
+            }
+            updateSummary();
+        });
+    });
+
+    // Atualizar resumo quando qualquer checkbox mudar
+    document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        cb.addEventListener('change', updateSummary);
+    });
+
+    // Função para atualizar o resumo
+    function updateSummary() {
+        const consents = [];
+        
+        if (document.querySelector('input[name="consent_analytics"]').checked) {
+            consents.push('Análise de Dados e Melhorias');
+        }
+        if (document.querySelector('input[name="consent_marketing"]').checked) {
+            consents.push('Comunicações de Marketing');
+        }
+        if (document.querySelector('input[name="consent_data_sharing"]').checked) {
+            consents.push('Compartilhamento Geral de Dados');
+        }
+        if (document.querySelector('input[name="consent_partnership_consorcio"]').checked) {
+            consents.push('Compartilhamento com Consórcios');
+        }
+        if (document.querySelector('input[name="consent_partnership_corretora"]').checked) {
+            consents.push('Compartilhamento com Corretoras');
+        }
+        if (document.querySelector('input[name="consent_partnership_banco"]').checked) {
+            consents.push('Compartilhamento com Bancos');
+        }
+
+        if (consents.length > 0) {
+            summaryList.innerHTML = consents.map(c => `<li>${c}</li>`).join('');
+            consentSummary.classList.add('show');
+        } else {
+            consentSummary.classList.remove('show');
+        }
+    }
+
+    // Validação do formulário
+    form.addEventListener('submit', function(e) {
+        const termsChecked = document.querySelector('input[name="consent_terms"]').checked;
+        const privacyChecked = document.querySelector('input[name="consent_privacy"]').checked;
+
+        if (!termsChecked || !privacyChecked) {
+            e.preventDefault();
+            alert('⚠️ Você precisa aceitar os Termos de Uso e a Política de Privacidade para continuar.');
+        }
+    });
+
+    // Inicializar resumo
+    updateSummary();
+</script>
+{% endblock %}

@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block head_title %}Política de Privacidade - ImobCalc{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-lg border-0 rounded-3">
+                <div class="card-header bg-primary text-white p-4 rounded-top-3" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <h1 class="h3 mb-0 fw-bold"><i class="fas fa-shield-alt me-2"></i>Política de Privacidade</h1>
+                    <p class="mb-0 opacity-75 small">Última atualização: 01/02/2026 • Versão 1.0</p>
+                </div>
+                <div class="card-body p-5">
+                    
+                    <section class="mb-5">
+                        <h2 class="h5 fw-bold text-primary mb-3">1. Introdução</h2>
+                        <p class="text-muted">O <strong>ImobCalc</strong> ("nós", "nosso") valoriza sua privacidade e está comprometido em proteger seus dados pessoais. Esta Política de Privacidade explica como coletamos, usamos, armazenamos e protegemos suas informações, em conformidade com a Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018).</p>
+                    </section>
+
+                    <section class="mb-5">
+                        <h2 class="h5 fw-bold text-primary mb-3">2. Dados Coletados</h2>
+                        <p class="text-muted">Coletamos os seguintes tipos de dados para fornecer nossos serviços:</p>
+                        <ul class="text-muted">
+                            <li><strong>Dados Pessoais:</strong> Nome completo, e-mail, telefone, data de nascimento e CPF (quando necessário para simulações precisas).</li>
+                            <li><strong>Dados Financeiros:</strong> Renda mensal bruta, saldo de FGTS, valor de entrada disponível.</li>
+                            <li><strong>Dados de Navegação:</strong> Endereço IP, tipo de dispositivo, navegador e páginas acessadas (para segurança e melhoria do serviço).</li>
+                        </ul>
+                    </section>
+
+                    <section class="mb-5">
+                        <h2 class="h5 fw-bold text-primary mb-3">3. Finalidade do Tratamento</h2>
+                        <p class="text-muted">Utilizamos seus dados para:</p>
+                        <ul class="text-muted">
+                            <li>Realizar simulações financeiras personalizadas (Financiamento, Consórcio, etc.).</li>
+                            <li>Gerenciar sua conta e salvar suas simulações.</li>
+                            <li>Cumprir obrigações legais e regulatórias.</li>
+                            <li>Melhorar a segurança e prevenir fraudes.</li>
+                            <li>Enviar comunicações importantes sobre o serviço (se autorizado).</li>
+                        </ul>
+                    </section>
+
+                    <section class="mb-5">
+                        <h2 class="h5 fw-bold text-primary mb-3">4. Base Legal</h2>
+                        <p class="text-muted">O tratamento de seus dados é realizado com base nas seguintes hipóteses legais (Art. 7º da LGPD):</p>
+                        <ul class="text-muted">
+                            <li><strong>Consentimento:</strong> Quando você autoriza explicitamente o uso de seus dados.</li>
+                            <li><strong>Execução de Contrato:</strong> Para fornecer os serviços do simulador que você solicitou.</li>
+                            <li><strong>Legítimo Interesse:</strong> Para segurança e melhoria contínua da plataforma.</li>
+                        </ul>
+                    </section>
+
+                    <section class="mb-5">
+                        <h2 class="h5 fw-bold text-primary mb-3">5. Compartilhamento de Dados</h2>
+                        <p class="text-muted">Seus dados podem ser compartilhados apenas com seu consentimento explícito para:</p>
+                        <ul class="text-muted">
+                            <li><strong>Parceiros Financeiros:</strong> Bancos, administradoras de consórcio e corretoras (apenas se você solicitar propostas).</li>
+                            <li><strong>Prestadores de Serviço:</strong> Empresas de hospedagem e segurança de dados (sob contrato de confidencialidade).</li>
+                        </ul>
+                        <p class="text-muted small">Não vendemos seus dados pessoais para terceiros.</p>
+                    </section>
+
+                    <section class="mb-5">
+                        <h2 class="h5 fw-bold text-primary mb-3">6. Direitos do Titular</h2>
+                        <p class="text-muted">Você tem o direito de solicitar a qualquer momento:</p>
+                        <ul class="text-muted">
+                            <li>A confirmação da existência de tratamento.</li>
+                            <li>O acesso aos seus dados.</li>
+                            <li>A correção de dados incompletos, inexatos ou desatualizados.</li>
+                            <li>A portabilidade dos dados a outro fornecedor de serviço.</li>
+                            <li>A eliminação dos dados pessoais tratados com o consentimento.</li>
+                            <li>A revogação do consentimento.</li>
+                        </ul>
+                        <p class="text-muted">Gerencie seus direitos através do painel de <a href="{% url 'privacy_settings' %}">Configurações de Privacidade</a>.</p>
+                    </section>
+
+                    <section class="mb-5">
+                        <h2 class="h5 fw-bold text-primary mb-3">7. Segurança</h2>
+                        <p class="text-muted">Adotamos medidas técnicas robustas para proteger seus dados, incluindo:</p>
+                        <ul class="text-muted">
+                            <li>Criptografia avançada (Fernet/AES-128) para dados sensíveis no banco de dados.</li>
+                            <li>Protocolo HTTPS para transmissão de dados.</li>
+                            <li>Logs de auditoria para monitorar o acesso aos dados.</li>
+                            <li>Controle de acesso restrito aos servidores.</li>
+                        </ul>
+                    </section>
+
+                    <section class="mb-5">
+                        <h2 class="h5 fw-bold text-primary mb-3">8. Cookies</h2>
+                        <p class="text-muted">Utilizamos cookies essenciais para o funcionamento do site (sessão de login) e cookies analíticos (anônimos) para entender como o site é utilizado. Você pode gerenciar os cookies nas configurações do seu navegador.</p>
+                    </section>
+
+                    <section class="mb-5">
+                        <h2 class="h5 fw-bold text-primary mb-3">9. Alterações nesta Política</h2>
+                        <p class="text-muted">Podemos atualizar esta política periodicamente. Notificaremos sobre mudanças significativas através do e-mail cadastrado ou aviso na plataforma.</p>
+                    </section>
+
+                    <section class="mb-0">
+                        <h2 class="h5 fw-bold text-primary mb-3">10. Contato (DPO)</h2>
+                        <p class="text-muted">Para exercer seus direitos ou tirar dúvidas sobre esta política, entre em contato com nosso Encarregado de Proteção de Dados (DPO):</p>
+                        <div class="alert alert-light border d-inline-block">
+                            <i class="fas fa-envelope me-2 text-primary"></i> <strong>E-mail:</strong> dpo@imobcalc.com.br
+                        </div>
+                    </section>
+
+                </div>
+                <div class="card-footer bg-light p-4 text-center border-top-0 rounded-bottom-3">
+                    <a href="javascript:history.back()" class="btn btn-outline-secondary px-4 rounded-pill">
+                        <i class="fas fa-arrow-left me-2"></i>Voltar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

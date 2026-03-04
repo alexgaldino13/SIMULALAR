@@ -1,0 +1,238 @@
+<!-- 
+EXEMPLO DE COMO SERÁ EXIBIDO NO WIZARD_RESULTADOS.HTML
+Mostra o breakdown completo da parcela do consórcio para o usuário
+-->
+
+<div class="cenario-consorcio">
+  <h3>📊 CONSÓRCIO IMOBILIÁRIO</h3>
+  
+  <!-- ANTES DO BUG FIX (O QUE MOSTRAVA) -->
+  <div class="bug-example">
+    <h4>❌ ANTES (Informação Incompleta)</h4>
+    <div class="parcela-display">
+      <div class="valor-grande">R$ 3.500/mês</div>
+      <small>Parcela mensal de 0.7%</small>
+    </div>
+    <p class="warning">⚠️ Usuário não sabia que estava faltando taxa de administração e fundo de reserva</p>
+  </div>
+
+  <!-- DEPOIS DO BUG FIX (O QUE MOSTRA AGORA) -->
+  <div class="fix-example">
+    <h4>✅ DEPOIS (Informação Transparente)</h4>
+    
+    <div class="parcela-breakdown">
+      <table class="parcela-table">
+        <tr>
+          <td><strong>Parcela Base (0.7%)</strong></td>
+          <td class="align-right">R$ 3.500,00</td>
+        </tr>
+        <tr>
+          <td>Taxa de Administração (1.5% a.a.)</td>
+          <td class="align-right">R$ 625,00</td>
+        </tr>
+        <tr>
+          <td>Fundo de Reserva (0.5% a.a.)</td>
+          <td class="align-right">R$ 208,33</td>
+        </tr>
+        <tr class="total-row">
+          <td><strong>PARCELA MENSAL TOTAL</strong></td>
+          <td class="align-right"><strong>R$ 4.333,33</strong></td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="parcela-display">
+      <div class="valor-grande">R$ 4.333,33/mês</div>
+      <small>Valor real que você vai pagar</small>
+    </div>
+
+    <p class="info">✓ Inclui taxa de administração e fundo de reserva</p>
+  </div>
+
+  <!-- IMPACTO DO VALOR TOTAL -->
+  <div class="impacto-total">
+    <h4>💰 Impacto no Custo Total</h4>
+    
+    <div class="cenario-timeline">
+      <div class="prazo-box">
+        <h5>180 meses (15 anos)</h5>
+        <p>Antes: R$ 630.000</p>
+        <p>Depois: R$ 780.000</p>
+        <p class="diferenca">Diferença: <strong>+R$ 150.000</strong></p>
+      </div>
+
+      <div class="prazo-box">
+        <h5>360 meses (30 anos)</h5>
+        <p>Antes: R$ 1.260.000</p>
+        <p>Depois: R$ 1.560.000</p>
+        <p class="diferenca">Diferença: <strong>+R$ 300.000</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- DETALHE IMPORTANTE -->
+  <div class="info-box">
+    <h4>ℹ️ Por que esses custos existem?</h4>
+    <ul>
+      <li><strong>Taxa de Administração (1.5%/ano):</strong> Cobre operação da administradora, sorteios, sistema digital, etc.</li>
+      <li><strong>Fundo de Reserva (0.5%/ano):</strong> Garantia contra inadimplência (regulado pela Lei nº 4.591/64)</li>
+      <li><strong>Parcela Base (0.7%/mês):</strong> Valor que vai pro fundo comum para contemplação</li>
+    </ul>
+  </div>
+
+  <!-- COMPARAÇÃO COM OUTROS CENÁRIOS -->
+  <div class="comparativo">
+    <h4>📈 Comparação com Outros Cenários</h4>
+    
+    <table class="cenarios-table">
+      <thead>
+        <tr>
+          <th>Cenário</th>
+          <th>Valor Imóvel</th>
+          <th>Prazo</th>
+          <th>Parcela Mensal</th>
+          <th>Total Pago</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="consorcio">
+          <td><strong>Consórcio (CORRIGIDO)</strong></td>
+          <td>R$ 500.000</td>
+          <td>180 meses</td>
+          <td><strong>R$ 4.333,33</strong></td>
+          <td>R$ 780.000</td>
+        </tr>
+        <tr>
+          <td>Consórcio com Lance (Melhor)</td>
+          <td>R$ 500.000</td>
+          <td>60 meses</td>
+          <td>R$ 4.333,33</td>
+          <td>R$ 260.000</td>
+        </tr>
+        <tr>
+          <td>PRICE (7% a.a., 360 meses)</td>
+          <td>R$ 500.000</td>
+          <td>360 meses</td>
+          <td>R$ 3.328</td>
+          <td>R$ 1.198.080</td>
+        </tr>
+        <tr>
+          <td>SAC (7% a.a., 360 meses)</td>
+          <td>R$ 500.000</td>
+          <td>360 meses</td>
+          <td>R$ 3.657-1.805</td>
+          <td>R$ 1.010.000</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- CSS STYLING SUGERIDO -->
+<style>
+  .cenario-consorcio {
+    padding: 20px;
+    border-left: 4px solid #2196F3;
+    margin: 20px 0;
+  }
+
+  .parcela-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+  }
+
+  .parcela-table tr {
+    border-bottom: 1px solid #ddd;
+  }
+
+  .parcela-table tr.total-row {
+    background-color: #f5f5f5;
+    font-weight: bold;
+  }
+
+  .parcela-table td {
+    padding: 12px;
+  }
+
+  .parcela-table td.align-right {
+    text-align: right;
+    color: #2196F3;
+    font-weight: 500;
+  }
+
+  .valor-grande {
+    font-size: 32px;
+    font-weight: bold;
+    color: #2196F3;
+    margin: 15px 0;
+  }
+
+  .diferenca {
+    color: #FF5722;
+    font-weight: bold;
+    margin-top: 10px;
+  }
+
+  .info-box {
+    background-color: #e3f2fd;
+    border-left: 4px solid #2196F3;
+    padding: 15px;
+    margin: 20px 0;
+    border-radius: 4px;
+  }
+
+  .warning {
+    color: #FF9800;
+  }
+
+  .bug-example,
+  .fix-example {
+    margin: 20px 0;
+    padding: 15px;
+    border-radius: 4px;
+  }
+
+  .bug-example {
+    background-color: #ffebee;
+    border-left: 4px solid #F44336;
+  }
+
+  .fix-example {
+    background-color: #e8f5e9;
+    border-left: 4px solid #4CAF50;
+  }
+
+  .cenarios-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+  }
+
+  .cenarios-table th {
+    background-color: #2196F3;
+    color: white;
+    padding: 12px;
+    text-align: left;
+  }
+
+  .cenarios-table td {
+    padding: 12px;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .cenarios-table tr.consorcio {
+    background-color: #e8f5e9;
+    font-weight: bold;
+  }
+
+  .prazo-box {
+    display: inline-block;
+    width: 45%;
+    margin: 10px;
+    padding: 15px;
+    border: 1px solid #2196F3;
+    border-radius: 4px;
+  }
+</style>

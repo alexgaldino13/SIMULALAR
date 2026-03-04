@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block head_title %}Bem-vindo ao ImobCalc{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+
+            <div class="mb-5">
+                <h1 class="display-4 fw-bold text-primary mb-3">
+                    <i class="fas fa-home me-2"></i>ImobCalc
+                </h1>
+                <p class="lead text-muted">
+                    O simulador de financiamento imobiliário mais completo e inteligente.
+                    Compare SAC, Price, Consórcio e Investimentos em um só lugar.
+                </p>
+            </div>
+
+            <div class="row justify-content-center g-4">
+
+                <!-- Card Nova Simulação -->
+                <div class="col-md-6">
+                    <div class="card h-100 shadow-sm border-primary border-2">
+                        <div class="card-body py-5">
+                            <div class="display-1 text-primary mb-3">
+                                <i class="fas fa-plus-circle"></i>
+                            </div>
+                            <h3 class="card-title fw-bold">Nova Simulação</h3>
+                            <p class="card-text text-muted mb-4">
+                                Comece do zero. Descubra a melhor opção para comprar seu imóvel hoje.
+                            </p>
+                            <a href="{% url 'wizard_v2_reset' %}"
+                                class="btn btn-primary btn-lg w-100 rounded-pill fw-bold">
+                                Iniciar Agora <i class="fas fa-arrow-right ms-2"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Continuar (se houver sessão) -->
+                {% if tem_sessao_ativa %}
+                <div class="col-md-6">
+                    <div class="card h-100 shadow-sm border-0 bg-light">
+                        <div class="card-body py-5">
+                            <div class="display-1 text-secondary mb-3">
+                                <i class="fas fa-history"></i>
+                            </div>
+                            <h3 class="card-title fw-bold">Continuar</h3>
+                            <p class="card-text text-muted mb-4">
+                                Identificamos uma simulação em andamento. Deseja continuar de onde parou?
+                            </p>
+                            <a href="{% url 'wizard_v2' %}"
+                                class="btn btn-outline-secondary btn-lg w-100 rounded-pill fw-bold">
+                                Retomar Simulação <i class="fas fa-play ms-2"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+            </div>
+
+            <div class="mt-5 text-muted small">
+                <p>
+                    <i class="fas fa-shield-alt me-1"></i> Seus dados estão seguros.
+                    <a href="{% url 'privacy_policy' %}" class="text-decoration-none">Política de Privacidade</a>
+                </p>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

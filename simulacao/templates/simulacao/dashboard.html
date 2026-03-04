@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - ImobCalc{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h1>Bem-vindo ao seu Dashboard, {{ user.username }}!</h1>
+    <p>Aqui você pode gerenciar suas simulações e configurações.</p>
+
+    <div class="dashboard-links">
+        <a href="/simulacoes/" class="btn btn-primary">Minhas Simulações</a>
+        <a href="/configuracoes/" class="btn btn-secondary">Configurações</a>
+        <a href="/accounts/logout/" class="btn btn-danger">Sair</a>
+    </div>
+</div>
+
+<style>
+    .dashboard-container {
+        max-width: 800px;
+        margin: 0 auto;
+        text-align: center;
+        padding: 20px;
+    }
+
+    .dashboard-links {
+        margin-top: 20px;
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        text-decoration: none;
+        color: white;
+        border-radius: 5px;
+        font-weight: bold;
+    }
+
+    .btn-primary {
+        background-color: #4CAF50;
+    }
+
+    .btn-secondary {
+        background-color: #2196F3;
+    }
+
+    .btn-danger {
+        background-color: #f44336;
+    }
+</style>
+{% endblock %}

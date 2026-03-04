@@ -1,5 +1,209 @@
 # simulacao/models.py
 from django.db import models
+from django.contrib.auth.models import AbstractUser
+from django.conf import settings
+import json
+
+# ======================================================================
+# MODELOS DE AUTENTICAÇÃO E USUÁRIO
+# ======================================================================
+
+class CustomUser(AbstractUser):
+    """
+    Modelo de usuário customizado que estende o User padrão do Django.
+    Permite adicionar campos extras conforme necessário.
+    """
+    # Campos adicionais além dos padrões (username, email, password, etc.)
+    telefone = models.CharField(max_length=20, blank=True, null=True, verbose_name="Telefone")
+    data_nascimento = models.DateField(blank=True, null=True, verbose_name="Data de Nascimento")
+    
+    # Tipo de conta
+    TIPO_CONTA_CHOICES = [
+        ('FREE', 'Gratuita'),
+        ('PREMIUM', 'Premium'),
+    ]
+    tipo_conta = models.CharField(
+        max_length=10,
+        choices=TIPO_CONTA_CHOICES,
+        default='FREE',
+        verbose_name="Tipo de Conta"
+    )
+    
+    # Data de expiração da assinatura premium (se aplicável)
+    premium_expira_em = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name="Premium Expira em"
+    )
+    
+    # Aceite de termos e políticas
+    aceitou_termos = models.BooleanField(default=False, verbose_name="Aceitou Termos de Uso")
+    aceitou_privacidade = models.BooleanField(default=False, verbose_name="Aceitou Política de Privacidade")
+    
+    # Metadados
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Usuário"
+        verbose_name_plural = "Usuários"
+    
+    def __str__(self):
+        return self.email or self.username
+    
+    @property
+    def is_premium(self):
+        """Verifica se o usuário tem conta premium ativa."""
+        if self.tipo_conta != 'PREMIUM':
+            return False
+        
+        if self.premium_expira_em is None:
+            return True  # Premium vitalicio
+        
+        from django.utils import timezone
+        return self.premium_expira_em > timezone.now()
+
+
+class UserProfile(models.Model):
+    """
+    Perfil estendido do usuário com informações adicionais.
+    """
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='profile'
+    )
+    
+    # Informações pessoais
+    cpf = models.CharField(max_length=14, blank=True, null=True, verbose_name="CPF")
+    renda_mensal = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        verbose_name="Renda Mensal"
+    )
+    
+    # Preferências
+    receber_notificacoes = models.BooleanField(default=True, verbose_name="Receber Notificações")
+    receber_emails_marketing = models.BooleanField(default=False, verbose_name="Receber E-mails de Marketing")
+    
+    # Avatar
+    avatar = models.ImageField(
+        upload_to='avatars/',
+        blank=True,
+        null=True,
+        verbose_name="Avatar"
+    )
+    
+    # Metadados
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Perfil de Usuário"
+        verbose_name_plural = "Perfis de Usuários"
+    
+    def __str__(self):
+        return f"Perfil de {self.user.username}"
+
+
+# ======================================================================
+# MODELOS DE SIMULAÇÕES SALVAS
+# ======================================================================
+
+class SavedSimulation(models.Model):
+    """
+    Armazena simulações completas realizadas pelos usuários.
+    Permite que usuários salvem e recuperem suas simulações.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='simulacoes_salvas'
+    )
+    
+    # Identificação
+    titulo = models.CharField(
+        max_length=200,
+        verbose_name="Título da Simulação",
+        help_text="Ex: 'Apartamento Centro - 300k'"
+    )
+    
+    # Dados da simulação (armazenados como JSON)
+    dados_wizard = models.JSONField(
+        verbose_name="Dados do Wizard",
+        help_text="Todos os dados coletados nas 5 etapas do wizard"
+    )
+    
+    # Resultados calculados (também em JSON para flexibilidade)
+    resultados = models.JSONField(
+        verbose_name="Resultados da Simulação",
+        help_text="Resultados calculados para todos os cenários"
+    )
+    
+    # Metadados
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+    
+    # Favorito
+    is_favorito = models.BooleanField(default=False, verbose_name="Favorito")
+    
+    # Notas do usuário
+    notas = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Notas",
+        help_text="Anotações pessoais sobre esta simulação"
+    )
+    
+    class Meta:
+        verbose_name = "Simulação Salva"
+        verbose_name_plural = "Simulações Salvas"
+        ordering = ['-criado_em']
+    
+    def __str__(self):
+        return f"{self.titulo} - {self.user.username}"
+
+
+class SimulationShare(models.Model):
+    """
+    Permite que usuários compartilhem suas simulações via link.
+    """
+    simulacao = models.ForeignKey(
+        SavedSimulation,
+        on_delete=models.CASCADE,
+        related_name='compartilhamentos'
+    )
+    
+    # Token único para compartilhamento
+    token = models.CharField(
+        max_length=64,
+        unique=True,
+        verbose_name="Token de Compartilhamento"
+    )
+    
+    # Controle de acesso
+    ativo = models.BooleanField(default=True, verbose_name="Ativo")
+    expira_em = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name="Expira em"
+    )
+    
+    # Estatísticas
+    visualizacoes = models.IntegerField(default=0, verbose_name="Visualizações")
+    
+    # Metadados
+    criado_em = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Compartilhamento de Simulação"
+        verbose_name_plural = "Compartilhamentos de Simulações"
+    
+    def __str__(self):
+        return f"Compartilhamento: {self.simulacao.titulo}"
+
 
 # ======================================================================
 # 1. MODELOS DE USUÁRIO E SIMULAÇÃO (Versão Simples) - MANTIDOS
@@ -33,10 +237,9 @@ class Simulacao(models.Model):
     def __str__(self):
         return f"Simulação de {self.valor_imovel} por {self.usuario.nome}"
 
-# Trecho de código corrigido para o seu simulacao/models.py
 
 # ======================================================================
-# 2. NOVOS CAMPOS PARA DESPESAS DE TRANSAÇÃO - ADICIONADOS À SIMULAÇÃO
+# 2. NOVOS CAMPOS PARA DESPESAS DE TRANSAÇÃO
 # ======================================================================
 
 class Financiamento(models.Model):
@@ -53,34 +256,14 @@ class Financiamento(models.Model):
     taxa_juros_anual = models.DecimalField(max_digits=5, decimal_places=3, verbose_name="Taxa de Juros Anual (%)")
     prazo_meses = models.IntegerField(verbose_name="Prazo Total em Meses")
     
-    # NOVOS CAMPOS PARA DESPESAS DE TRANSAÇÃO
+    # Campos para despesas de transação
     valor_despesas = models.DecimalField(
         max_digits=15,
         decimal_places=2,
         default=0.00,
-        verbose_name="Total de Despesas de Transação (ITBI, Cartório, Avaliação, etc.)"
-    ) # <--- 1. CORREÇÃO PRINCIPAL: Parênteses de fechamento adicionado aqui.
-    
-    # 2. CAMPO NOVO: O checkbox precisa ser um BooleanField no modelo
-    incorporar_despesas = models.BooleanField(
-        default=False, 
-        verbose_name="Incorporar despesas ao financiamento"
+        verbose_name="Total de Despesas de Transação"
     )
-
-    @property # <--- O decorador agora está no lugar correto
-    def principal_financiado(self):
-        """Calcula o Principal Financiado (Base de cálculo do SAC/PRICE)."""
-        
-        # 3. CORREÇÃO DE TYPO: Usando self.entrada (nome correto do campo)
-        principal_base = self.valor_imovel - self.entrada
-
-        if self.incorporar_despesas:
-            # Se Sim, soma as despesas ao valor que o banco financia
-            return principal_base + self.valor_despesas
-        else:
-            # Se Não, o Principal é só o valor do imóvel menos a entrada
-            return principal_base
-# Não há parênteses extra aqui.
+    
     incorporar_despesas = models.BooleanField(
         default=True,
         verbose_name="Incorporar Despesas no Financiamento?"
@@ -92,11 +275,6 @@ class Financiamento(models.Model):
     def principal_financiado(self):
         """
         Calcula o Principal Financiado (Base de cálculo do SAC/PRICE).
-        
-        Fórmula:
-        - Principal Base = Valor do Imóvel - Entrada
-        - Se incorporar_despesas: Principal = Principal Base + Despesas
-        - Senão: Principal = Principal Base
         """
         principal_base = self.valor_imovel - self.entrada
         
@@ -114,13 +292,12 @@ class Financiamento(models.Model):
 
 
 # ======================================================================
-# 3. MODELOS PARA COMPARAÇÃO DE MÚltIPLOS CENÁRIOS (Versão Completa) - NOVO
+# 3. MODELOS PARA COMPARAÇÃO DE MÚLTIPLOS CENÁRIOS
 # ======================================================================
 
 class CenarioComparativo(models.Model):
     """
-    Armazena o conjunto de dados iniciais para uma rodada de comparação 
-    (Valor do imóvel, entrada, etc.), sendo o 'pai' de múltiplos resultados.
+    Armazena o conjunto de dados iniciais para uma rodada de comparação.
     """
     usuario = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True, blank=True)
     
@@ -135,8 +312,7 @@ class CenarioComparativo(models.Model):
 
 class ResultadoComparacao(models.Model):
     """
-    Armazena o resultado final de um método específico (Price, SAC, Consórcio, Renda)
-    dentro de um CenarioComparativo.
+    Armazena o resultado final de um método específico.
     """
     METODO_CHOICES = [
         ('PRICE', 'Tabela Price'),
@@ -153,7 +329,7 @@ class ResultadoComparacao(models.Model):
     total_pago = models.DecimalField(max_digits=15, decimal_places=2)
     total_juros_ou_custo = models.DecimalField(max_digits=15, decimal_places=2)
     
-    # Detalhes adicionais (como a taxa, que varia por método)
+    # Detalhes adicionais
     taxa_juros_anual = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     
     def __str__(self):

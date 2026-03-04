@@ -81,3 +81,55 @@ class FinanciamentoForm(forms.Form):
     )
 
     # ... Você pode adicionar outros campos aqui como FGTS, etc.
+
+class InvestidorImobiliarioForm(forms.Form):
+    valor_imovel = forms.DecimalField(
+        max_digits=15, 
+        decimal_places=2, 
+        label="Valor do Imóvel (R$)", 
+        required=True
+    )
+    entrada = forms.DecimalField(
+        max_digits=15, 
+        decimal_places=2, 
+        label="Valor da Entrada (R$)", 
+        required=True
+    )
+    taxa_juros_anual = forms.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        label="Taxa de Juros Anual (%)", 
+        required=True
+    )
+    prazo_anos = forms.IntegerField(
+        label="Prazo (anos)", 
+        required=True
+    )
+    sistema_amortizacao = forms.ChoiceField(
+        choices=[('SAC', 'SAC'), ('PRICE', 'PRICE')], 
+        label="Sistema de Amortização", 
+        required=True
+    )
+    imovel_sera_alugado = forms.BooleanField(
+        label="O imóvel será alugado?", 
+        required=False, 
+        initial=True
+    )
+    valor_aluguel_mensal = forms.DecimalField(
+        max_digits=10, decimal_places=2, label="Valor do Aluguel Mensal (R$)", required=False
+    )
+    usar_aluguel_para_prestacao = forms.BooleanField(
+        label="Usar aluguel para pagar prestação?", required=False, initial=True
+    )
+    taxa_administracao = forms.DecimalField(
+        max_digits=5, decimal_places=2, label="Taxa de Administração (%)", initial=Decimal('8.00'), required=False
+    )
+    taxa_vacancia = forms.DecimalField(
+        max_digits=5, decimal_places=2, label="Taxa de Vacância (%)", initial=Decimal('5.00'), required=False
+    )
+    iptu_mensal = forms.DecimalField(
+        max_digits=10, decimal_places=2, label="IPTU Mensal (R$)", required=False, initial=Decimal('0.00')
+    )
+    condominio_mensal = forms.DecimalField(
+        max_digits=10, decimal_places=2, label="Condomínio Mensal (R$)", required=False, initial=Decimal('0.00')
+    )

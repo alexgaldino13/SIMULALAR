@@ -115,8 +115,10 @@
         switch(q.type){
           case 'choice':
             input = document.createElement('select');
-            for(const opt of q.options||[]){
-              const o = document.createElement('option'); o.value = opt; o.textContent = opt; input.appendChild(o);
+            if(q.options){
+              for(const opt of q.options){
+                const o = document.createElement('option'); o.value = opt; o.textContent = opt; input.appendChild(o);
+              }
             }
             break;
           case 'bool':
@@ -129,14 +131,34 @@
           default:
             input = document.createElement('input');
             input.type = 'number';
-            input.step = 'any';
+            // apply sensible step for percent/money/int
+            if(q.type === 'int') input.step = '1';
+            else if(q.type === 'percent') input.step = (q.step || 0.1).toString();
+            else input.step = (q.step || 0.01).toString();
             if(q.default!==undefined) input.value = q.default;
+            if(q.placeholder!==undefined) input.placeholder = q.placeholder;
+            if(q.min!==undefined) input.min = q.min;
+            if(q.max!==undefined) input.max = q.max;
+        }
+
+        // apply required attribute when present in metadata
+        if(q.required){
+          input.required = true;
         }
 
         input.id = 'q_'+q.key;
         container.appendChild(input);
 
         if(q.help){const h=document.createElement('div');h.style.marginTop='6px';h.style.fontSize='13px';h.style.color='#666';h.textContent=q.help;container.appendChild(h)}
+        // validation message placeholder
+        const valMsg = document.createElement('div');
+        valMsg.id = 'val_'+q.key;
+        valMsg.className = 'validation-message';
+        valMsg.style.color = '#b00020';
+        valMsg.style.fontSize = '13px';
+        valMsg.style.marginTop = '6px';
+        valMsg.style.minHeight = '18px';
+        container.appendChild(valMsg);
 
         root.appendChild(container);
 
@@ -144,6 +166,11 @@
         if(answers[q.key] !== undefined){
           if(input.tagName === 'SELECT') input.value = answers[q.key]; else input.value = answers[q.key];
         }
+        // clear validation on input
+        input.addEventListener('input', ()=>{
+          const vm = document.getElementById('val_'+q.key);
+          if(vm) vm.textContent = '';
+        });
         // update navigation buttons
         prevBtn.disabled = findPrevVisible(idx-1) === -1;
         nextBtn.textContent = (findNextVisible(idx+1) === -1) ? 'Finalizar →' : 'Próximo →';
@@ -166,10 +193,26 @@
       nextBtn.addEventListener('click', async ()=>{
         const q = questions[idx];
         const el = document.getElementById('q_'+q.key);
-        if(el) answers[q.key] = el.value;
+        if(!el){ alert('Elemento não encontrado'); return }
 
-        // simple validation: required
-        if((el.value===''||el.value===undefined) && (el.type==='number' || el.tagName==='INPUT')){ alert('Preencha o valor'); return }
+        // HTML5 validation using metadata set above
+        if(!el.checkValidity()){
+          // show friendly message inline
+          const msg = el.validationMessage || 'Valor inválido';
+          const vm = document.getElementById('val_'+q.key);
+          if(vm) vm.textContent = msg;
+          el.focus();
+          return;
+        }
+
+        // normalize and save value
+        let val = el.value;
+        if(el.tagName === 'SELECT' && q.type === 'bool'){
+          val = (val === 'true');
+        } else if(el.type === 'number'){
+          if(val === '') val = null; else val = Number(val);
+        }
+        answers[q.key] = val;
 
         // find next visible
         const next = findNextVisible(idx+1);

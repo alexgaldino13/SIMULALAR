@@ -20,42 +20,54 @@ WIZARD_QUESTIONS = [
         'type': 'choice',
         'options': ['Comprar imóvel', 'Consórcio', 'Investir e alugar', 'Pesquisar só'],
         'default': 'Comprar imóvel',
-        'help': 'Ajuda a priorizar cenários e linguagem.'
+        'required': True,
+        'help': 'Escolha o cenário que melhor descreve seu objetivo principal.'
     },
     {
         'key': 'valor_imovel',
         'label': 'Valor do imóvel (R$)',
         'type': 'money',
         'default': 300000,
-        'help': 'Valor total do bem que você pretende comprar.'
+        'required': True,
+        'min': 10000,
+        'max': 20000000,
+        'placeholder': '300000',
+        'help': 'Valor total do imóvel. Use apenas números, sem pontos ou vírgulas.'
     },
     {
         'key': 'entrada',
         'label': 'Valor da entrada (R$)',
         'type': 'money',
         'default': 60000,
-        'help': 'Valor que você já tem para dar de entrada.'
+        'min': 0,
+        'max': 20000000,
+        'placeholder': '60000',
+        'help': 'Valor que pretende dar de entrada. Deixe 0 se não houver entrada.'
     },
     {
         'key': 'fgts_saldo',
         'label': 'Saldo FGTS disponível (R$)',
         'type': 'money',
         'default': 0,
-        'help': 'Se pretende usar FGTS para amortizar, informe o saldo.'
+        'min': 0,
+        'placeholder': '0',
+        'help': 'Informe o saldo disponível no FGTS se pretende utilizá-lo.'
     },
     {
         'key': 'paga_aluguel',
         'label': 'Você paga aluguel hoje?',
         'type': 'bool',
         'default': True,
-        'help': 'Usado para priorizar o cenário aluguel+investimento.'
+        'help': 'Se você atualmente paga aluguel, o sistema considerará o cenário aluguel vs compra.'
     },
     {
         'key': 'aluguel_inicial',
         'label': 'Aluguel mensal atual (R$)',
         'type': 'money',
         'default': 1500,
-        'help': 'Se você paga aluguel atualmente, informe o valor.',
+        'min': 0,
+        'placeholder': '1500',
+        'help': 'Valor do aluguel que você paga atualmente.',
         'visible_if': {'paga_aluguel': True}
     },
     {
@@ -63,20 +75,26 @@ WIZARD_QUESTIONS = [
         'label': 'Renda Familiar Bruta Mensal (R$)',
         'type': 'money',
         'default': 8000,
-        'help': 'Usado para calcular depósitos de FGTS e limite de dívida.'
+        'min': 0,
+        'placeholder': '8000',
+        'help': 'Renda bruta total da família por mês. Usada em simulações de capacidade de pagamento.'
     },
     {
         'key': 'prazo_anos',
         'label': 'Prazo desejado (anos)',
         'type': 'int',
         'default': 30,
-        'help': 'Prazo do financiamento/consórcio em anos.'
+        'min': 1,
+        'max': 40,
+        'help': 'Número de anos do financiamento ou horizonte de investimento.'
     },
     {
         'key': 'prazo_anos_consorcio',
         'label': 'Prazo do consórcio (anos)',
         'type': 'int',
         'default': 15,
+        'min': 5,
+        'max': 25,
         'help': 'Prazo típico do consórcio (10-20 anos).',
         'visible_if': {'objetivo': 'Consórcio'}
     },
@@ -85,14 +103,19 @@ WIZARD_QUESTIONS = [
         'label': 'Taxa de juros anual (%)',
         'type': 'percent',
         'default': 8.5,
-        'help': 'Juros anuais esperados para financiamento.'
+        'min': 0,
+        'max': 30,
+        'step': 0.1,
+        'help': 'Taxa anual em porcentagem. Use ponto como separador decimal se necessário.'
     },
     {
         'key': 'taxa_adm',
         'label': 'Taxa de administração anual do consórcio (%)',
         'type': 'percent',
         'default': 1.5,
-        'help': 'Taxa de administração típica para consórcios.',
+        'min': 0,
+        'max': 10,
+        'help': 'Percentual cobrado de administração pelo consórcio.',
         'visible_if': {'objetivo': 'Consórcio'}
     },
     {
@@ -100,7 +123,9 @@ WIZARD_QUESTIONS = [
         'label': 'Fundo de reserva (%)',
         'type': 'percent',
         'default': 0.5,
-        'help': 'Percentual reservado em consórcio.',
+        'min': 0,
+        'max': 5,
+        'help': 'Percentual destinado ao fundo de reserva no consórcio.',
         'visible_if': {'objetivo': 'Consórcio'}
     },
     {
@@ -108,7 +133,8 @@ WIZARD_QUESTIONS = [
         'label': 'Valor do lance com FGTS (R$)',
         'type': 'money',
         'default': 0,
-        'help': 'Se pretende usar FGTS como lance para antecipar contemplação.',
+        'min': 0,
+        'help': 'Valor a ser oferecido como lance usando FGTS (se aplicável).',
         'visible_if': {'objetivo': 'Consórcio'}
     },
     {
@@ -117,14 +143,17 @@ WIZARD_QUESTIONS = [
         'type': 'choice',
         'options': ['renda', 'investimento'],
         'default': 'investimento',
-        'help': 'Indica se o aluguel deve ser considerado custo ou retirada do investimento.'
+        'help': 'Escolha se o valor do aluguel será interpretado como custo ou destinado a investimento.'
     },
     {
         'key': 'taxa_investimento',
         'label': 'Rendimento anual esperado do investimento (%)',
         'type': 'percent',
         'default': 6.0,
-        'help': 'Taxa média anual esperada para investimentos (usada no cenário guardar dinheiro).',
+        'min': 0,
+        'max': 50,
+        'step': 0.1,
+        'help': 'Rendimento anual esperado para investimentos.',
         'visible_if': {'objetivo': ['Investir e alugar', 'Pesquisar só']}
     },
     {
@@ -132,7 +161,9 @@ WIZARD_QUESTIONS = [
         'label': 'Aporte mensal disponível (R$)',
         'type': 'money',
         'default': 0,
-        'help': 'Valor que pode ser investido mensalmente.',
+        'min': 0,
+        'placeholder': '0',
+        'help': 'Valor disponível para investir a cada mês.',
         'visible_if': {'objetivo': ['Investir e alugar', 'Pesquisar só']}
     },
     {
@@ -140,7 +171,8 @@ WIZARD_QUESTIONS = [
         'label': 'Aporte anual disponível (R$)',
         'type': 'money',
         'default': 0,
-        'help': 'Valor extra anual (13º, PL) destinado a amortização/investimento.'
+        'min': 0,
+        'help': 'Valor extra anual (ex: 13º) que pode ser usado para amortização ou investimento.'
     }
 ]
 

@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block head_title %}Logs de Auditoria - ImobCalc{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 class="fw-bold text-primary"><i class="fas fa-history me-2"></i>Logs de Auditoria</h2>
+            <p class="text-muted">Histórico de acesso e manipulação dos seus dados pessoais.</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <a href="{% url 'privacy_settings' %}" class="btn btn-outline-secondary rounded-pill">
+                <i class="fas fa-cog me-2"></i>Configurações de Privacidade
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-3">
+        <div class="card-header bg-white py-3">
+            <form method="get" class="row g-3 align-items-center">
+                <div class="col-auto">
+                    <label for="type" class="col-form-label fw-bold text-muted small">Filtrar por:</label>
+                </div>
+                <div class="col-auto">
+                    <select name="type" id="type" class="form-select form-select-sm rounded-pill" onchange="this.form.submit()">
+                        <option value="">Todos os tipos</option>
+                        {% for code, name in access_types %}
+                            <option value="{{ code }}" {% if request.GET.type == code %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light text-muted small text-uppercase">
+                        <tr>
+                            <th class="ps-4 py-3">Data/Hora</th>
+                            <th class="py-3">Ação</th>
+                            <th class="py-3">Tipo de Dado</th>
+                            <th class="py-3">Descrição</th>
+                            <th class="pe-4 py-3 text-end">IP</th>
+                        </tr>
+                    </thead>
+                    <tbody class="border-top-0">
+                        {% for log in page_obj %}
+                        <tr>
+                            <td class="ps-4 text-nowrap text-muted small">
+                                {{ log.timestamp|date:"d/m/Y H:i:s" }}
+                            </td>
+                            <td>
+                                <span class="badge rounded-pill 
+                                    {% if log.access_type == 'READ' %}bg-info
+                                    {% elif log.access_type == 'CREATE' %}bg-success
+                                    {% elif log.access_type == 'UPDATE' %}bg-warning text-dark
+                                    {% elif log.access_type == 'DELETE' %}bg-danger
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ log.get_access_type_display }}
+                                </span>
+                            </td>
+                            <td class="fw-bold text-dark small">{{ log.data_type }}</td>
+                            <td class="text-muted small">{{ log.description }}</td>
+                            <td class="pe-4 text-end text-muted small font-monospace">{{ log.ip_address|default:"-" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <i class="fas fa-search fa-2x mb-3 d-block opacity-25"></i>
+                                Nenhum registro encontrado.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        {% if page_obj.has_other_pages %}
+        <div class="card-footer bg-white py-3">
+            <nav aria-label="Navegação de logs">
+                <ul class="pagination justify-content-center mb-0 pagination-sm">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item"><a class="page-link rounded-start-pill" href="?page={{ page_obj.previous_page_number }}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}">Anterior</a></li>
+                    {% endif %}
+                    
+                    <li class="page-item disabled"><span class="page-link border-start-0 border-end-0">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
+                    
+                    {% if page_obj.has_next %}
+                        <li class="page-item"><a class="page-link rounded-end-pill" href="?page={{ page_obj.next_page_number }}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}">Próxima</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

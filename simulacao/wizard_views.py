@@ -95,6 +95,10 @@ def wizard_view(request, step=None):
             wizard_data[step_info['name']] = cleaned_data_serializable
             request.session['wizard_data'] = wizard_data
             
+            # Salvar o valor do campo 'recebe_fgts_regular' na sessão
+            if 'recebe_fgts_regular' in cleaned_data:
+                wizard_data['recebe_fgts_regular'] = cleaned_data['recebe_fgts_regular']
+            
             # Verifica se deve pular etapas baseado nas escolhas
             next_step = _get_next_step(current_step, wizard_data)
             request.session['wizard_current_step'] = next_step
@@ -197,6 +201,7 @@ def wizard_resultados(request):
     dados_comparacao['valor_imovel'] = float(imovel_data.get('valor_imovel', 0))
     dados_comparacao['entrada'] = float(imovel_data.get('entrada', 0))
     dados_comparacao['fgts_saldo'] = float(imovel_data.get('fgts_saldo', 0))
+    dados_comparacao['renda_familiar_bruta'] = float(imovel_data.get('renda_familiar_bruta', 8000.0))
     dados_comparacao['valor_despesas'] = 0  # Pode adicionar depois
     dados_comparacao['incorporar_despesas'] = False
     
@@ -248,7 +253,7 @@ def wizard_resultados(request):
         dados_comparacao['taxa_inflacao'] = float(aluguel_data.get('taxa_inflacao_anual', 4.5))
         dados_comparacao['valorizacao_imovel'] = float(aluguel_data.get('valorizacao_imovel_anual', 5.0))
         dados_comparacao['opcao_pagamento_aluguel'] = 'renda'
-        dados_comparacao['renda_familiar_bruta'] = dados_comparacao['aluguel_inicial'] * 3  # Estimativa
+        # renda_familiar_bruta já foi capturada dos dados do imóvel
         dados_comparacao['fgts_mensal_percent'] = 8.0  # 8% padrão
         dados_comparacao['rendimento_fgts'] = 3.0  # Taxa FGTS padrão
     else:
@@ -256,7 +261,7 @@ def wizard_resultados(request):
         dados_comparacao['taxa_inflacao'] = 4.5
         dados_comparacao['valorizacao_imovel'] = 5.0
         dados_comparacao['opcao_pagamento_aluguel'] = 'renda'
-        dados_comparacao['renda_familiar_bruta'] = 4500
+        # Mantém renda_familiar_bruta do imóvel
         dados_comparacao['fgts_mensal_percent'] = 8.0
         dados_comparacao['rendimento_fgts'] = 3.0
     
@@ -309,6 +314,21 @@ def wizard_api_submit(request):
     resumo = comparar_cenarios_e_formatar(dados_form)
 
     return JsonResponse({'resumo': resumo})
+
+
+def api_cidades(request):
+    """
+    API para retornar uma lista de cidades com base no texto digitado.
+    """
+    if request.method == 'GET':
+        query = request.GET.get('q', '').lower()
+        cidades = [
+            'São Paulo', 'Rio de Janeiro', 'Belo Horizonte', 'Curitiba', 'Porto Alegre',
+            'Salvador', 'Fortaleza', 'Brasília', 'Recife', 'Manaus', 'Santos'
+        ]
+        resultados = [cidade for cidade in cidades if query in cidade.lower()]
+        return JsonResponse({'results': resultados})
+    return JsonResponse({'results': []})
 
 
 def _get_next_step(current_step, wizard_data):
@@ -560,6 +580,15 @@ def _gerar_comparacao_simplificada(dados, metodos_selecionados):
         )
         if resultado:
             total_pago_cons = Decimal(str(dados['valor_imovel'])) + Decimal(str(resultado['total_custo']))
+            
+            # Detalhamento dos custos do consórcio
+            detalhes_consorcio = [
+                f'Parcela Base (0.7%): {formatacao.formatar_moeda_brl(resultado.get("parcela_base", 0))}',
+                f'Taxa de Administração: {formatacao.formatar_moeda_brl(resultado.get("taxa_adm_mensal", 0))}/mês ({dados["taxa_adm"]:.2f}% a.a.)',
+                f'Fundo de Reserva: {formatacao.formatar_moeda_brl(resultado.get("fundo_reserva_mensal", 0))}/mês ({dados["fundo_reserva"]:.2f}%)',
+                f'Contemplação Estimada: Mês {resultado.get("mes_contemplacao_estimado", "N/A")}',
+            ]
+            
             resultados.append({
                 'metodo': 'Consórcio',
                 'parcela_inicial': formatacao.formatar_moeda_brl(resultado['parcela_fixa']),
@@ -567,6 +596,57 @@ def _gerar_comparacao_simplificada(dados, metodos_selecionados):
                 'total_pago': formatacao.formatar_moeda_brl(float(total_pago_cons)),
                 'prazo_final': formatacao.formatar_meses_anos(prazo_consorcio),
                 'prazo_final_meses': prazo_consorcio,
+                'detalhes_consorcio': detalhes_consorcio,
+            })
+    
+    # Guardar Dinheiro (Poupança)
+    if metodos_selecionados.get('guardar_dinheiro', False):
+        valor_mensal_guardar = dados.get('valor_mensal_guardar', 1000.0)
+        taxa_rendimento_poupanca = dados.get('taxa_rendimento_poupanca', 6.0)  # 6% a.a. padrão (0.5% a.m.)
+        valor_aluguel = dados.get('aluguel_inicial', 0.0)
+        taxa_inflacao = dados.get('taxa_inflacao', 6.0)  # 6% a.a.
+        
+        resultado = utils.guardar_dinheiro(
+            valor_imovel=float(dados['valor_imovel']),
+            valor_entrada_inicial=float(dados['entrada']),
+            valor_mensal_guardar=valor_mensal_guardar,
+            valor_aluguel=valor_aluguel,
+            taxa_rendimento_mensal=taxa_rendimento_poupanca / 100 / 12,
+            prazo_meses=prazo_meses,
+            taxa_reajuste_aluguel_anual=taxa_inflacao / 100,
+            fgts_saldo_inicial=dados.get('fgts_saldo', 0.0),
+            renda_familiar_bruta=dados.get('renda_familiar_bruta', 0.0),
+            fgts_mensal_percent=8.0
+        )
+        
+        if resultado:
+            if resultado['viavel']:
+                tempo_compra = f"{resultado['tempo_para_comprar_anos']} anos e {resultado['tempo_para_comprar_meses']} meses"
+                status_message = f"✅ Viável! Você conseguiria juntar para comprar em {tempo_compra}"
+            else:
+                tempo_compra = f"Mais de {dados['prazo_anos']} anos"
+                status_message = f"⚠️ Difícil alcançar a meta no prazo de {dados['prazo_anos']} anos"
+            
+            detalhes_guardar = [
+                f'Poupança mensal: {formatacao.formatar_moeda_brl(valor_mensal_guardar)}',
+                f'Rendimento: {taxa_rendimento_poupanca:.2f}% a.a.',
+                f'Tempo para juntar entrada: {tempo_compra}',
+                f'Total gasto com aluguel: {formatacao.formatar_moeda_brl(resultado["total_aluguel_pago"])}',
+                f'Capital final acumulado: {formatacao.formatar_moeda_brl(resultado["capital_final"])}',
+                f'  - Poupança: {formatacao.formatar_moeda_brl(resultado["poupanca_final"])}',
+                f'  - FGTS: {formatacao.formatar_moeda_brl(resultado["fgts_final"])}',
+            ]
+            
+            resultados.append({
+                'metodo': 'Guardar Dinheiro',
+                'parcela_inicial': formatacao.formatar_moeda_brl(valor_mensal_guardar),
+                'total_custo': formatacao.formatar_moeda_brl(resultado['total_aluguel_pago']),
+                'total_pago': formatacao.formatar_moeda_brl(resultado['total_aluguel_pago'] + resultado['custo_cartorio_registro']),
+                'prazo_final': tempo_compra,
+                'prazo_final_meses': resultado.get('meses_para_comprar', prazo_meses),
+                'status_viabilidade': status_message,
+                'detalhes_guardar': detalhes_guardar,
+                'capital_final': formatacao.formatar_moeda_brl(resultado['capital_final']),
             })
     
     return resultados

@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -322,5 +323,31 @@
             </form>
         </div>
     </div>
+    
+    <!-- Importa o script de formatação de moeda (separador de milhar em tempo real) -->
+    <script src="{% static 'js/currency-formatter.js' %}"></script>
+    <script>
+        // Ativa formatação de moeda em TODOS os inputs numéricos (form-control ou number)
+        document.addEventListener('DOMContentLoaded', function() {
+            // Seleciona: input[type="number"] E inputs com class "form-control"
+            const currencyInputs = document.querySelectorAll('input[type="number"]');
+            currencyInputs.forEach(input => {
+                // Verifica se é um campo de moeda/dinheiro (não percentage ou outros)
+                const name = input.name.toLowerCase();
+                const id = input.id.toLowerCase();
+                const label = document.querySelector(`label[for="${input.id}"]`) || {};
+                const labelText = label.textContent.toLowerCase();
+                
+                // Ativa para campos que mencionem: valor, preço, entrada, imovel, fgts, guardado, renda, aluguel, lance, custo
+                const currencyKeywords = ['valor', 'preço', 'entrada', 'imovel', 'fgts', 'guardado', 'renda', 'aluguel', 'lance', 'custo', 'pago', 'saldo'];
+                const isCurrencyField = currencyKeywords.some(kw => name.includes(kw) || id.includes(kw) || labelText.includes(kw));
+                
+                if (isCurrencyField) {
+                    input.classList.add('currency-input');
+                    input.dataset.currency = 'true';
+                }
+            });
+        });
+    </script>
 </body>
 </html>

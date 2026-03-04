@@ -1,0 +1,685 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ step_title }} - ImobCalc</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .wizard-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 600px;
+            padding: 40px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: {{ progress }}%;
+            transition: width 0.3s ease;
+        }
+        
+        .step-info {
+            margin-bottom: 30px;
+        }
+        
+        .step-number {
+            color: #667eea;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .step-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #2d3748;
+            margin-top: 8px;
+        }
+        
+        .form-group {
+            margin-bottom: 24px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .form-group input[type="text"],
+        .form-group input[type="email"],
+        .form-group input[type="number"],
+        .form-group input[type="date"],
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+            font-family: inherit;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .form-group input[type="radio"],
+        .form-group input[type="checkbox"] {
+            margin-right: 8px;
+        }
+        
+        .checkbox-group,
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .checkbox-item,
+        .radio-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .checkbox-item:hover,
+        .radio-item:hover {
+            background: #f7fafc;
+            border-color: #cbd5e0;
+        }
+        
+        .checkbox-item input[type="checkbox"]:checked,
+        .radio-item input[type="radio"]:checked {
+            accent-color: #667eea;
+        }
+        
+        .checkbox-item input[type="checkbox"]:checked + label,
+        .radio-item input[type="radio"]:checked + label {
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        .checkbox-item label,
+        .radio-item label {
+            flex: 1;
+            margin: 0;
+            cursor: pointer;
+        }
+        
+        .form-group.checkbox-item,
+        .form-group.radio-item {
+            margin-bottom: 12px;
+        }
+        
+        .form-group input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e2e8f0;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .form-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .form-group input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .range-value {
+            text-align: center;
+            color: #667eea;
+            font-weight: 600;
+            font-size: 18px;
+            margin-top: 8px;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 40px;
+            flex-wrap: wrap; /* Permite quebrar linha se necessário */
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #2d3748;
+        }
+        
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+        
+        .btn-secondary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .help-text {
+            font-size: 13px;
+            color: #718096;
+            margin-top: 6px;
+        }
+        
+        .error-message {
+            color: #e53e3e;
+            font-size: 14px;
+            margin-top: 6px;
+        }
+        
+        .currency-input {
+            position: relative;
+        }
+        
+        .currency-input::before {
+            content: 'R$';
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #a0aec0;
+            font-weight: 600;
+            pointer-events: none;
+        }
+        
+        .currency-input input {
+            padding-left: 32px;
+        }
+        
+        @media (max-width: 600px) {
+            .wizard-container {
+                padding: 24px;
+            }
+            
+            .step-title {
+                font-size: 22px;
+            }
+            
+            .buttons {
+                flex-direction: column;
+                gap: 15px; /* Mais espaço entre botões no mobile */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="wizard-container">
+        <div class="progress-bar">
+            <div class="progress-fill"></div>
+        </div>
+        
+        <div class="step-info">
+            <div class="step-number">Etapa {{ current_step }} de {{ total_steps }}</div>
+            <div class="step-title">{{ step_title }}</div>
+        </div>
+        
+        <form method="POST" class="wizard-form">
+            {% csrf_token %}
+            
+            {% for field in form %}
+                {% if field.widget.input_type == "checkbox" %}
+                    <div class="form-group checkbox-item">
+                        {{ field }}
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {% if field.errors %}
+                            <div class="error-message">{{ field.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                {% elif field.widget.input_type == "radio" %}
+                    <div class="form-group">
+                        <label>{{ field.label }}</label>
+                        {% if field.help_text %}
+                            <div class="help-text">{{ field.help_text|safe }}</div>
+                        {% endif %}
+                        <div class="radio-group">
+                            {% for choice_value, choice_label in field.field.choices %}
+                                <div class="radio-item">
+                                    <input type="radio" name="{{ field.name }}" value="{{ choice_value }}" id="{{ field.id }}_{{ forloop.counter }}" {% if field.value == choice_value %}checked{% endif %}>
+                                    <label for="{{ field.id }}_{{ forloop.counter }}">{{ choice_label }}</label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% if field.errors %}
+                            <div class="error-message">{{ field.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <div class="form-group">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                            <div class="help-text">{{ field.help_text|safe }}</div>
+                        {% endif %}
+                        {% if field.errors %}
+                            <div class="error-message">{{ field.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+            
+            <div class="buttons">
+                {% if can_go_back %}
+                    <a href="{% url 'wizard_novo' %}{{ current_step|add:'-1' }}" class="btn btn-secondary">← Voltar</a>
+                {% endif %}
+                <button type="submit" class="btn btn-primary">
+                    {% if is_last_step %}
+                        Ver Resultados →
+                    {% else %}
+                        Próximo →
+                    {% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <script src="{% static 'js/currency-formatter.js' %}"></script>
+    
+    <datalist id="cidades-lista">
+        <option value="São Paulo - SP">
+        <option value="Rio de Janeiro - RJ">
+        <option value="Belo Horizonte - MG">
+        <option value="Brasília - DF">
+        <option value="Salvador - BA">
+        <option value="Fortaleza - CE">
+        <option value="Manaus - AM">
+        <option value="Curitiba - PR">
+        <option value="Recife - PE">
+        <option value="Porto Alegre - RS">
+        <option value="Goiânia - GO">
+        <option value="Belém - PA">
+        <option value="Guarulhos - SP">
+        <option value="Campinas - SP">
+        <option value="Santo André - SP">
+        <option value="São Bernardo do Campo - SP">
+        <option value="Osasco - SP">
+        <option value="Mauá - SP">
+        <option value="Sorocaba - SP">
+        <option value="Jundiaí - SP">
+        <option value="Santos - SP">
+        <option value="Ribeirão Preto - SP">
+        <option value="Piracicaba - SP">
+        <option value="Araraquara - SP">
+        <option value="Bauru - SP">
+        <option value="Botucatu - SP">
+        <option value="Marília - SP">
+        <option value="São José dos Campos - SP">
+        <option value="Praia Grande - SP">
+        <option value="Cubatão - SP">
+        <option value="Diadema - SP">
+        <option value="Carapicuíba - SP">
+        <option value="Itapevi - SP">
+        <option value="Taboão da Serra - SP">
+        <option value="Embu das Artes - SP">
+        <option value="Itaquaquecetuba - SP">
+        <option value="Suzano - SP">
+        <option value="Niterói - RJ">
+        <option value="Duque de Caxias - RJ">
+        <option value="Nova Iguaçu - RJ">
+        <option value="São Gonçalo - RJ">
+        <option value="Volta Redonda - RJ">
+        <option value="Petrópolis - RJ">
+        <option value="Teresópolis - RJ">
+        <option value="Itaboraí - RJ">
+        <option value="Mesquita - RJ">
+        <option value="Nilópolis - RJ">
+        <option value="Seropédica - RJ">
+        <option value="Queimados - RJ">
+        <option value="Maricá - RJ">
+        <option value="Rio das Ostras - RJ">
+        <option value="Cabo Frio - RJ">
+        <option value="Araruama - RJ">
+        <option value="Macaé - RJ">
+        <option value="Campos dos Goytacazes - RJ">
+        <option value="Contagem - MG">
+        <option value="Betim - MG">
+        <option value="Montes Claros - MG">
+        <option value="Juiz de Fora - MG">
+        <option value="Uberlândia - MG">
+        <option value="Divinópolis - MG">
+        <option value="Ipatinga - MG">
+        <option value="Governador Valadares - MG">
+        <option value="Viçosa - MG">
+        <option value="Uberaba - MG">
+        <option value="Sete Lagoas - MG">
+        <option value="Teófilo Otoni - MG">
+        <option value="Barbacena - MG">
+        <option value="Patos de Minas - MG">
+        <option value="Poços de Caldas - MG">
+        <option value="Varginha - MG">
+        <option value="Três Corações - MG">
+        <option value="Lavras - MG">
+        <option value="São João del Rei - MG">
+        <option value="Feira de Santana - BA">
+        <option value="Vitória da Conquista - BA">
+        <option value="Camaçari - BA">
+        <option value="Jequié - BA">
+        <option value="Ilhéus - BA">
+        <option value="Itabuna - BA">
+        <option value="Lauro de Freitas - BA">
+        <option value="Barreiras - BA">
+        <option value="Caucaia - CE">
+        <option value="Maracanaú - CE">
+        <option value="Maranguape - CE">
+        <option value="Sobral - CE">
+        <option value="Juazeiro do Norte - CE">
+        <option value="Crato - CE">
+        <option value="Iguatu - CE">
+        <option value="Quixadá - CE">
+        <option value="Itapipoca - CE">
+        <option value="Ananindeua - PA">
+        <option value="Santarém - PA">
+        <option value="Marabá - PA">
+        <option value="Castanhal - PA">
+        <option value="Bragança - PA">
+        <option value="Tucuruí - PA">
+        <option value="Parauapebas - PA">
+        <option value="Itacoatiara - AM">
+        <option value="Parintins - AM">
+        <option value="Coari - AM">
+        <option value="Maués - AM">
+        <option value="Londrina - PR">
+        <option value="Maringá - PR">
+        <option value="Cascavel - PR">
+        <option value="Ponta Grossa - PR">
+        <option value="Guarapuava - PR">
+        <option value="Paranaguá - PR">
+        <option value="Apucarana - PR">
+        <option value="Araçatuba - PR">
+        <option value="Cambé - PR">
+        <option value="Cornélio Procópio - PR">
+        <option value="Jaboatão dos Guararapes - PE">
+        <option value="Olinda - PE">
+        <option value="Caruaru - PE">
+        <option value="Petrolina - PE">
+        <option value="Paulista - PE">
+        <option value="Goiana - PE">
+        <option value="Vitória de Santo Antão - PE">
+        <option value="Garanhuns - PE">
+        <option value="São Lourenço da Mata - PE">
+        <option value="Caxias do Sul - RS">
+        <option value="Pelotas - RS">
+        <option value="Santa Maria - RS">
+        <option value="Gravataí - RS">
+        <option value="Viamão - RS">
+        <option value="Novo Hamburgo - RS">
+        <option value="São Leopoldo - RS">
+        <option value="Sapucaia do Sul - RS">
+        <option value="Alvorada - RS">
+        <option value="Cachoeirinha - RS">
+        <option value="Esteio - RS">
+        <option value="Campo Bom - RS">
+        <option value="Dois Irmãos - RS">
+        <option value="Igrejinha - RS">
+        <option value="Aparecida de Goiânia - GO">
+        <option value="Anápolis - GO">
+        <option value="Abadia de Goiás - GO">
+        <option value="Novo Gama - GO">
+        <option value="Senador Canedo - GO">
+        <option value="Formosa - GO">
+        <option value="Cidade Ocidental - GO">
+        <option value="Planaltina - GO">
+        <option value="Vila Velha - ES">
+        <option value="Serra - ES">
+        <option value="Cariacica - ES">
+        <option value="Linhares - ES">
+        <option value="Cachoeiro de Itapemirim - ES">
+        <option value="Colatina - ES">
+        <option value="Aracruz - ES">
+        <option value="Marataízes - ES">
+        <option value="Conceição da Barra - ES">
+        <option value="Joinville - SC">
+        <option value="Blumenau - SC">
+        <option value="Florianópolis - SC">
+        <option value="Brusque - SC">
+        <option value="Itajaí - SC">
+        <option value="Chapecó - SC">
+        <option value="Criciúma - SC">
+        <option value="Lages - SC">
+        <option value="Jaraguá do Sul - SC">
+        <option value="Camboriú - SC">
+        <option value="Balneário Camboriú - SC">
+        <option value="Cuiabá - MT">
+        <option value="Várzea Grande - MT">
+        <option value="Rondonópolis - MT">
+        <option value="Sinop - MT">
+        <option value="Lucas do Rio Verde - MT">
+        <option value="Tangará da Serra - MT">
+        <option value="Cáceres - MT">
+        <option value="Barra do Garças - MT">
+        <option value="Campo Grande - MS">
+        <option value="Dourados - MS">
+        <option value="Três Lagoas - MS">
+        <option value="Corumbá - MS">
+        <option value="Maracaju - MS">
+        <option value="Ponta Porã - MS">
+        <option value="Aquidauana - MS">
+        <option value="Nova Andradina - MS">
+        <option value="Palmas - TO">
+        <option value="Araguaína - TO">
+        <option value="Gurupi - TO">
+        <option value="Porto Velho - RO">
+        <option value="Ariquemes - RO">
+        <option value="Jaru - RO">
+        <option value="Vilhena - RO">
+        <option value="Rio Branco - AC">
+        <option value="Cruzeiro do Sul - AC">
+        <option value="Boa Vista - RR">
+        <option value="Rorainópolis - RR">
+        <option value="Macapá - AP">
+        <option value="Santana - AP">
+        <option value="Maceió - AL">
+        <option value="Arapiraca - AL">
+        <option value="Rio Largo - AL">
+        <option value="Penedo - AL">
+        <option value="Aracaju - SE">
+        <option value="Nossa Senhora do Socorro - SE">
+        <option value="Lagarto - SE">
+        <option value="João Pessoa - PB">
+        <option value="Campina Grande - PB">
+        <option value="Patos - PB">
+        <option value="Sousa - PB">
+        <option value="Guarabira - PB">
+        <option value="Bayeux - PB">
+        <option value="Teresina - PI">
+        <option value="Parnaíba - PI">
+        <option value="Picos - PI">
+        <option value="Oeiras - PI">
+        <option value="Floriano - PI">
+        <option value="Campo Maior - PI">
+        <option value="São Luís - MA">
+        <option value="Imperatriz - MA">
+        <option value="Caxias - MA">
+        <option value="Timon - MA">
+        <option value="Codó - MA">
+        <option value="Balsas - MA">
+    </datalist>
+
+        <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                                    const ondeMoraRadios = document.querySelectorAll('input[name="onde_mora_atualmente"]');
+                                                ondeMoraRadios.forEach(radio => {
+                                                                    radio.addEventListener('change', function() { toggleAluguelField(this.value); });
+                                                                                    if (radio.checked) toggleAluguelField(radio.value);
+                                                });
+                                                            function toggleAluguelField(value) {
+                                                                                const aluguelLabel = document.querySelector('[for="id_aluguel_atual"]');
+                                                                                                const aluguelContainer = aluguelLabel ? aluguelLabel.closest('.form-group') : null;
+                                                                                                                const aluguelInput = document.querySelector('#id_aluguel_atual');
+                                                                                                                                if (aluguelContainer && aluguelInput) {
+                                                                                                                                                        if (value === 'aluga') {
+                                                                                                                                                                                    aluguelContainer.style.display = 'block';
+                                                                                                                                                                                                            aluguelInput.required = true;
+                                                                                                                                                        } else {
+                                                                                                                                                                                    aluguelContainer.style.display = 'none';
+                                                                                                                                                                                                            aluguelInput.required = false;
+                                                                                                                                                                                                                                    aluguelInput.value = '';
+                                                                                                                                                        }
+                                                                                                                                                    }
+                                                                                                                                                }
+
+                                                                                                                                                            const temDependentesRadios = document.querySelectorAll('input[name="tem_dependentes"]');
+                                                                                                                                                                        temDependentesRadios.forEach(radio => {
+                                                                                                                                                                                            radio.addEventListener('change', function() { toggleNumDependentesField(this.value); });
+                                                                                                                                                                                                            if (radio.checked) toggleNumDependentesField(radio.value);
+                                                                                                                                                                        });
+                                                                                                                                                                                    function toggleNumDependentesField(value) {
+                                                                                                                                                                                                        const numDependentesLabel = document.querySelector('[for="id_num_dependentes"]');
+                                                                                                                                                                                                                        const numDependentesContainer = numDependentesLabel ? numDependentesLabel.closest('.form-group') : null;
+                                                                                                                                                                                                                                        const numDependentesInput = document.querySelector('#id_num_dependentes');
+                                                                                                                                                                                                                                                        if (numDependentesContainer && numDependentesInput) {
+                                                                                                                                                                                                                                                                                if (value === '1') {
+                                                                                                                                                                                                                                                                                                            numDependentesContainer.style.display = 'block';
+                                                                                                                                                                                                                                                                                                                                    numDependentesInput.required = true;
+                                                                                                                                                                                                                                                                                } else {
+                                                                                                                                                                                                                                                                                                            numDependentesContainer.style.display = 'none';
+                                                                                                                                                                                                                                                                                                                                    numDependentesInput.required = false;
+                                                                                                                                                                                                                                                                                                                                                            numDependentesInput.value = '';
+                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                                                        }
+
+                                                                                                                                                                                                                                                                                    const recebe13Radios = document.querySelectorAll('input[name="recebe_13_salario"]');
+                                                                                                                                                                                                                                                                                                recebe13Radios.forEach(radio => {
+                                                                                                                                                                                                                                                                                                                    radio.addEventListener('change', function() { toggleValor13Field(this.value); });
+                                                                                                                                                                                                                                                                                                                                    if (radio.checked) toggleValor13Field(radio.value);
+                                                                                                                                                                                                                                                                                                });
+                                                                                                                                                                                                                                                                                                            function toggleValor13Field(value) {
+                                                                                                                                                                                                                                                                                                                                const valor13Label = document.querySelector('[for="id_valor_13_estimado"]');
+                                                                                                                                                                                                                                                                                                                                                const valor13Container = valor13Label ? valor13Label.closest('.form-group') : null;
+                                                                                                                                                                                                                                                                                                                                                                const valor13Input = document.querySelector('#id_valor_13_estimado');
+                                                                                                                                                                                                                                                                                                                                                                                if (valor13Container && valor13Input) {
+                                                                                                                                                                                                                                                                                                                                                                                                        if (value === '1') {
+                                                                                                                                                                                                                                                                                                                                                                                                                                    valor13Container.style.display = 'block';
+                                                                                                                                                                                                                                                                                                                                                                                                                                                            valor13Input.required = true;
+                                                                                                                                                                                                                                                                                                                                                                                                        } else {
+                                                                                                                                                                                                                                                                                                                                                                                                                                    valor13Container.style.display = 'none';
+                                                                                                                                                                                                                                                                                                                                                                                                                                                            valor13Input.required = false;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    valor13Input.value = '';
+                                                                                                                                                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                                                                                                                            });
+                                                                                                                                                                                                                                                                                                                                                                                        </script>
+                                                                                                                                                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                                                                                })
+                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                    }
+                                                                                                                                                                        })
+                                                                                                                                                        }
+                                                                                                                                                        }
+                                                                                                                                }
+                                                            }
+                                                })
+                    })
+
+    <script>
+        // Add currency formatting to all monetary fields
+        document.addEventListener('DOMContentLoaded', function() {
+            const monetaryFields = [
+                'aluguel_atual',
+                'valor_imovel_proprio',
+                'saldo_dinheiro_guardado',
+                'saldo_fgts',
+                'valor_13_estimado',
+                'valor_imovel_desejado',
+                'renda_familiar_bruta',
+                'outras_despesas_mensais'
+            ];
+
+            monetaryFields.forEach(fieldName => {
+                const input = document.getElementById('id_' + fieldName);
+                if (input) {
+                    input.classList.add('currency-input');
+                    input.type = 'text'; // Change from number to text for formatting
+                }
+            });
+        });
+    </script>
+</body>
+</html>

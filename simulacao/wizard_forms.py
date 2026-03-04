@@ -113,9 +113,81 @@ class WizardImovelForm(forms.Form):
         widget=forms.NumberInput(attrs={
             'step': '0.01',
             'min': '0',
-            'class': 'form-control'
+            'class': 'form-control',
+            'placeholder': '0'
         }),
-        help_text="Saldo disponível no FGTS (pode usar na entrada ou como lance)"
+        help_text="💡 Consulte seu saldo em www.caixa.gov.br (Trabalhador CLT)"
+    )
+    
+    # SUBPERGUNTA 1: Valor Guardado Além da Entrada
+    valor_guardado = forms.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        label="Valor Guardado / Reserva (R$)",
+        required=False,
+        initial=Decimal('0.00'),
+        widget=forms.NumberInput(attrs={
+            'step': '0.01',
+            'min': '0',
+            'class': 'form-control',
+            'placeholder': '0'
+        }),
+        help_text="💰 Dinheiro que você tem guardado em poupança, CDB, etc. (além da entrada)"
+    )
+    
+    # SUBPERGUNTA 2: Como Pretende Usar o Valor Guardado (MÚLTIPLA ESCOLHA)
+    uso_valor_guardado = forms.MultipleChoiceField(
+        choices=[
+            ('entrada', 'Usar para aumentar a entrada'),
+            ('parcelas', 'Usar para pagar parcelas/financiamento'),
+            ('lance', 'Usar como lance no consórcio'),
+            ('emergencia', 'Manter como reserva de emergência'),
+            ('investir', 'Investir paralelamente'),
+        ],
+        label="Como Pretende Usar o Valor Guardado? (Pode marcar mais de uma opção)",
+        required=False,
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
+        help_text="💡 Você pode combinar opções (ex: guardar emergência + investir paralelamente)"
+    )
+    
+    # SUBPERGUNTA 3: Recebe FGTS Regular (CLT)
+    recebe_fgts_regular = forms.BooleanField(
+        label="Você recebe FGTS regular? (CLT)",
+        required=False,
+        initial=False,
+        help_text="✓ Marque se contribui mensalmente ao FGTS (trabalhador com carteira assinada)"
+    )
+    
+    # SUBPERGUNTA 4: Estimativa de FGTS Mensal (se CLT)
+    fgts_mensal_estimado = forms.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        label="FGTS Mensal Estimado (R$)",
+        required=False,
+        initial=Decimal('0.00'),
+        widget=forms.NumberInput(attrs={
+            'step': '0.01',
+            'min': '0',
+            'class': 'form-control',
+            'placeholder': '~8% do salário'
+        }),
+        help_text="💡 Aprox. 8% do seu salário. Usado para lance futuro no consórcio."
+    )
+    
+    # SUBPERGUNTA 5: Renda Familiar Bruta
+    renda_familiar_bruta = forms.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        label="Renda Familiar Bruta Mensal (R$)",
+        required=False,
+        initial=Decimal('8000.00'),
+        widget=forms.NumberInput(attrs={
+            'step': '0.01',
+            'min': '0',
+            'class': 'form-control',
+            'placeholder': '8000'
+        }),
+        help_text="💡 Renda bruta total da família. Usada para análise de capacidade de pagamento."
     )
 
 
@@ -290,14 +362,15 @@ class WizardConsorcioForm(forms.Form):
         decimal_places=2,
         label="Taxa de Administração Anual (%)",
         required=True,
-        initial=Decimal('1.20'),
+        initial=Decimal('2.0'),
         widget=forms.NumberInput(attrs={
             'step': '0.01',
             'min': '0.5',
             'max': '3.0',
-            'class': 'form-control'
+            'class': 'form-control',
+            'placeholder': '2.0'
         }),
-        help_text="Taxa anual cobrada sobre a carta de crédito (geralmente 0,5% a 2%)"
+        help_text="💡 Padrão de mercado: 1.5% a 2.5% ao ano. Verifique com o consórcio."
     )
     
     fundo_reserva = forms.DecimalField(
@@ -305,14 +378,15 @@ class WizardConsorcioForm(forms.Form):
         decimal_places=2,
         label="Fundo de Reserva (%)",
         required=True,
-        initial=Decimal('0.50'),
+        initial=Decimal('0.8'),
         widget=forms.NumberInput(attrs={
             'step': '0.01',
             'min': '0',
             'max': '2.0',
-            'class': 'form-control'
+            'class': 'form-control',
+            'placeholder': '0.8'
         }),
-        help_text="Percentual do fundo de reserva (geralmente 0,5% a 1,5%)"
+        help_text="💡 Padrão de mercado: 0.5% a 1.0%. Protege inadimplências do grupo."
     )
     
     lance_fgts = forms.DecimalField(
@@ -350,12 +424,13 @@ class WizardConsorcioForm(forms.Form):
         required=False,
         initial=Decimal('0.00'),
         widget=forms.NumberInput(attrs={
-            'step': '0.01',
+            'step': '1',
             'min': '0',
             'max': '50',
-            'class': 'form-control'
+            'class': 'form-control',
+            'placeholder': '5'
         }),
-        help_text="Percentual sobre a carta de crédito que será usado como lance mensal (ex: 5%)"
+        help_text="💡 Incremente de 1% em 1%. Exemplo: 5% significa 5% da carta como lance mensal"
     )
 
 

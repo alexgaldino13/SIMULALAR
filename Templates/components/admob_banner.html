@@ -1,0 +1,52 @@
+{% comment %}
+Componente de Banner AdMob
+Uso: {% include 'components/admob_banner.html' with position='top' %}
+Posições: top, middle, bottom, sidebar
+{% endcomment %}
+
+{% if not user.assinatura_ativa %}
+<div class="admob-banner-container admob-banner-{{ position|default:'middle' }} my-3" 
+     data-position="{{ position|default:'middle' }}">
+    <!-- O anúncio será inserido aqui pelo JavaScript -->
+    <div class="text-center text-muted small py-2">
+        <i class="fas fa-ad me-1"></i> Anúncio
+    </div>
+</div>
+
+<style>
+.admob-banner-container {
+    min-height: 90px;
+    background: #f8f9fa;
+    border: 1px dashed #dee2e6;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.admob-banner-top {
+    margin-bottom: 20px;
+}
+
+.admob-banner-middle {
+    margin: 20px 0;
+}
+
+.admob-banner-bottom {
+    margin-top: 20px;
+}
+
+.admob-banner-sidebar {
+    position: sticky;
+    top: 20px;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+    .admob-banner-container {
+        min-height: 60px;
+    }
+}
+</style>
+{% endif %}

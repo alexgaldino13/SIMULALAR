@@ -521,3 +521,269 @@ def comparar_cenarios_e_formatar(dados_form):
     })
     
     return resumo
+
+
+
+
+def calcular_investidor_imobiliario(dados_form):
+    """
+    Cenário 6: Investidor Imobiliário
+    Calcula a viabilidade de comprar um imóvel para investimento com aluguel.
+    """
+    from decimal import Decimal, ROUND_HALF_UP
+    
+    # 1. DADOS DO IMÓVEL
+    valor_imovel = float(dados_form.get('valor_imovel', 0))
+    valor_entrada = float(dados_form.get('valor_entrada', 0))
+    
+    # 2. DADOS DO FINANCIAMENTO
+    prazo_meses = int(dados_form.get('prazo_meses', 360))
+    taxa_juros_anual = float(dados_form.get('taxa_juros_anual', 10.0))
+    sistema_amortizacao = dados_form.get('sistema_amortizacao', 'SAC')
+    
+    # 3. DADOS DO ALUGUEL
+    valor_aluguel_mensal = float(dados_form.get('valor_aluguel_mensal', 0))
+    usar_estimativa_aluguel = dados_form.get('usar_estimativa_aluguel', False)
+    
+    # Se não forneceu aluguel e quer estimativa, usar 0.5% do valor do imóvel
+    if usar_estimativa_aluguel or valor_aluguel_mensal == 0:
+        valor_aluguel_mensal = valor_imovel * 0.005
+    
+    # 4. ESTRATÉGIA DE USO DO ALUGUEL
+    usar_aluguel_para_prestacao = dados_form.get('usar_aluguel_para_prestacao', True)
+    
+    # 5. CUSTOS ADICIONAIS
+    taxa_administracao_pct = float(dados_form.get('taxa_administracao_pct', 8.0))
+    iptu_anual = float(dados_form.get('iptu_anual', 0))
+    condominio_mensal = float(dados_form.get('condominio_mensal', 0))
+    
+    # 6. INVESTIMENTO ALTERNATIVO
+    taxa_investimento_anual = float(dados_form.get('taxa_investimento_anual', 12.0))
+    
+    # CÁLCULOS
+    valor_financiado = valor_imovel - valor_entrada
+    taxa_juros_mensal = taxa_juros_anual / 12 / 100
+    taxa_investimento_mensal = taxa_investimento_anual / 12 / 100
+    
+    # Calcular financiamento (SAC ou PRICE)
+    if sistema_amortizacao == 'SAC':
+        amortizacao_mensal = valor_financiado / prazo_meses
+        tabela_financiamento = []
+        saldo_devedor = valor_financiado
+        
+        for mes in range(1, prazo_meses + 1):
+            juros = saldo_devedor * taxa_juros_mensal
+            prestacao = amortizacao_mensal + juros
+            saldo_devedor -= amortizacao_mensal
+            
+            tabela_financiamento.append({
+                'mes': mes,
+                'prestacao': round(prestacao, 2),
+                'juros': round(juros, 2),
+                'amortizacao': round(amortizacao_mensal, 2),
+                'saldo_devedor': round(max(0, saldo_devedor), 2)
+            })
+    else:
+        if taxa_juros_mensal > 0:
+            prestacao_fixa = valor_financiado * (taxa_juros_mensal * (1 + taxa_juros_mensal)**prazo_meses) / ((1 + taxa_juros_mensal)**prazo_meses - 1)
+        else:
+            prestacao_fixa = valor_financiado / prazo_meses
+            
+        tabela_financiamento = []
+        saldo_devedor = valor_financiado
+        
+        for mes in range(1, prazo_meses + 1):
+            juros = saldo_devedor * taxa_juros_mensal
+            amortizacao = prestacao_fixa - juros
+            saldo_devedor -= amortizacao
+            
+            tabela_financiamento.append({
+                'mes': mes,
+                'prestacao': round(prestacao_fixa, 2),
+                'juros': round(juros, 2),
+                'amortizacao': round(amortizacao, 2),
+                'saldo_devedor': round(max(0, saldo_devedor), 2)
+            })
+    
+    # Calcular custos mensais do imóvel
+    taxa_administracao = valor_aluguel_mensal * (taxa_administracao_pct / 100)
+    iptu_mensal = iptu_anual / 12
+    custo_mensal_imovel = taxa_administracao + iptu_mensal + condominio_mensal
+    aluguel_liquido = valor_aluguel_mensal - custo_mensal_imovel
+    
+    # CENÁRIO A: Sem aluguel
+    total_pago_a = sum([p['prestacao'] for p in tabela_financiamento])
+    custo_total_a = valor_entrada + total_pago_a + (custo_mensal_imovel * prazo_meses)
+    
+    # CENÁRIO B: Aluguel usado para pagar prestação
+    fluxo_caixa_b = []
+    saldo_investido_b = 0
+    
+    for mes_data in tabela_financiamento:
+        prestacao = mes_data['prestacao']
+        diferenca = aluguel_liquido - prestacao
+        
+        if diferenca >= 0:
+            saldo_investido_b = saldo_investido_b * (1 + taxa_investimento_mensal) + diferenca
+            desembolso_mensal = 0
+        else:
+            desembolso_mensal = abs(diferenca)
+            saldo_investido_b = saldo_investido_b * (1 + taxa_investimento_mensal)
+        
+        fluxo_caixa_b.append({
+            'mes': mes_data['mes'],
+            'aluguel_liquido': round(aluguel_liquido, 2),
+            'prestacao': round(prestacao, 2),
+            'diferenca': round(diferenca, 2),
+            'desembolso': round(desembolso_mensal, 2),
+            'saldo_investido': round(saldo_investido_b, 2)
+        })
+    
+    total_desembolsado_b = valor_entrada + sum([f['desembolso'] for f in fluxo_caixa_b])
+    patrimonio_final_b = valor_imovel + saldo_investido_b
+    
+    # CENÁRIO C: Aluguel totalmente investido
+    saldo_investido_c = 0
+    for mes in range(1, prazo_meses + 1):
+        saldo_investido_c = saldo_investido_c * (1 + taxa_investimento_mensal) + aluguel_liquido
+    
+    total_desembolsado_c = valor_entrada + total_pago_a
+    patrimonio_final_c = valor_imovel + saldo_investido_c
+    
+    # INDICADORES
+    yield_bruto = (valor_aluguel_mensal * 12 / valor_imovel) * 100
+    yield_liquido = (aluguel_liquido * 12 / valor_imovel) * 100
+    roi_b = ((patrimonio_final_b - total_desembolsado_b) / total_desembolsado_b) * 100 if total_desembolsado_b > 0 else 0
+    roi_c = ((patrimonio_final_c - total_desembolsado_c) / total_desembolsado_c) * 100 if total_desembolsado_c > 0 else 0
+    
+    payback_meses_b = 0
+    acumulado = 0
+    for f in fluxo_caixa_b:
+        acumulado += f['diferenca']
+        if acumulado >= valor_entrada:
+            payback_meses_b = f['mes']
+            break
+    
+    resultado = {
+        'dados_entrada': {
+            'valor_imovel': valor_imovel,
+            'valor_entrada': valor_entrada,
+            'valor_financiado': valor_financiado,
+            'prazo_meses': prazo_meses,
+            'taxa_juros_anual': taxa_juros_anual,
+            'sistema_amortizacao': sistema_amortizacao,
+            'valor_aluguel_mensal': valor_aluguel_mensal,
+            'aluguel_estimado': usar_estimativa_aluguel,
+        },
+        'custos_mensais': {
+            'taxa_administracao': round(taxa_administracao, 2),
+            'iptu_mensal': round(iptu_mensal, 2),
+            'condominio': round(condominio_mensal, 2),
+            'total_custos': round(custo_mensal_imovel, 2),
+            'aluguel_liquido': round(aluguel_liquido, 2),
+        },
+        'financiamento': {
+            'primeira_prestacao': tabela_financiamento[0]['prestacao'],
+            'ultima_prestacao': tabela_financiamento[-1]['prestacao'],
+            'total_juros': round(sum([p['juros'] for p in tabela_financiamento]), 2),
+            'total_pago': round(total_pago_a, 2),
+        },
+        'cenario_a_sem_aluguel': {
+            'descricao': 'Imóvel vazio (sem aluguel)',
+            'custo_total': round(custo_total_a, 2),
+            'patrimonio_final': round(valor_imovel, 2),
+        },
+        'cenario_b_aluguel_prestacao': {
+            'descricao': 'Aluguel usado para pagar prestação',
+            'total_desembolsado': round(total_desembolsado_b, 2),
+            'saldo_investido_final': round(saldo_investido_b, 2),
+            'patrimonio_final': round(patrimonio_final_b, 2),
+            'lucro': round(patrimonio_final_b - total_desembolsado_b, 2),
+            'roi_percentual': round(roi_b, 2),
+        },
+        'cenario_c_aluguel_investido': {
+            'descricao': 'Aluguel totalmente investido',
+            'total_desembolsado': round(total_desembolsado_c, 2),
+            'saldo_investido_final': round(saldo_investido_c, 2),
+            'patrimonio_final': round(patrimonio_final_c, 2),
+            'lucro': round(patrimonio_final_c - total_desembolsado_c, 2),
+            'roi_percentual': round(roi_c, 2),
+        },
+        'indicadores': {
+            'yield_bruto': round(yield_bruto, 2),
+            'yield_liquido': round(yield_liquido, 2),
+            'payback_meses': payback_meses_b if payback_meses_b > 0 else 'Não recupera',
+            'payback_anos': round(payback_meses_b / 12, 1) if payback_meses_b > 0 else 'N/A',
+        },
+        'melhor_cenario': 'B' if patrimonio_final_b > patrimonio_final_c else 'C',
+        'tabela_financiamento': tabela_financiamento[:12],
+        'fluxo_caixa_b': fluxo_caixa_b[:12],
+    }
+    
+    return resultado
+
+
+# FUNÇÃO MCMV (Minha Casa Minha Vida)
+def calcular_mcmv(valor_imovel, renda_familiar_mensal, valor_entrada, prazo_meses, usa_fgts=False, valor_fgts_disponivel=0):
+    """
+    Calcula simulação do programa MCMV.
+    Retorna dicionário com resultado da simulação.
+    """
+    from decimal import Decimal
+    
+    # Determinar faixa MCMV baseado na renda
+    renda_anual = renda_familiar_mensal * 12
+    
+    subsidio = Decimal('0')
+    if renda_familiar_mensal <= 2640:
+        faixa = 'faixa1'
+        taxa_juros = Decimal('0.04')  # 4% ao ano
+        subsidio_percent = Decimal('0.90')  # até 90% de subsídio
+    elif renda_familiar_mensal <= 4400:
+        faixa = 'faixa2'
+        taxa_juros = Decimal('0.045')  # 4.5% ao ano
+        subsidio_percent = Decimal('0.50')
+    elif renda_familiar_mensal <= 8000:
+        faixa = 'faixa3'
+        taxa_juros = Decimal('0.075')  # 7.5% ao ano
+        subsidio_percent = Decimal('0.0')
+    else:
+        return {
+            'qualificado': False,
+            'erro': 'Renda familiar acima do limite do MCMV (R$ 8.000)'
+        }
+    
+    # Calcular subsídio
+        subsidio = Decimal(str(valor_imovel)) * subsidio_percent
+        if subsidio > Decimal('55000'):
+            subsidio = Decimal('55000')    
+    # Valor financiado
+    valor_financiado = Decimal(str(valor_imovel)) - Decimal(str(valor_entrada)) - subsidio
+    if usa_fgts:
+        valor_financiado -= valor_fgts_disponivel
+    
+    if valor_financiado <= 0:
+        valor_financiado = 0
+        parcela_media = 0
+        custo_total = valor_entrada
+    else:
+        # Calcular parcela (SAC simplificado)
+        taxa_mensal = float(taxa_juros) / 12
+        parcela_media = valor_financiado * (taxa_mensal * (1 + taxa_mensal)**prazo_meses) / ((1 + taxa_mensal)**prazo_meses - 1)
+        custo_total = parcela_media * prazo_meses + valor_entrada
+    
+    return {
+        'qualificado': True,
+        'faixa': faixa,
+        'metodo': f'MCMV - Faixa {faixa[-1]}',
+        'taxa_juros_anual': float(taxa_juros) * 100,
+        'subsidio': round(subsidio, 2),
+        'valor_financiado': round(valor_financiado, 2),
+        'parcela_inicial': round(parcela_media * 1.1, 2),
+        'parcela_media': round(parcela_media, 2),
+        'parcela_final': round(parcela_media * 0.9, 2),
+        'custo_total': round(custo_total, 2),
+        'patrimonio_final': valor_imovel
+    }
+
+    

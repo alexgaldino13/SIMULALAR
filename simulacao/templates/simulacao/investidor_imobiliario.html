@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cenário 6: Investidor Imobiliário - ImobCalc</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f7f9; }
+        .container { max-width: 900px; margin: auto; padding: 30px; background-color: #fff; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); border-radius: 10px; }
+        h1 { color: #0056b3; text-align: center; margin-bottom: 10px; }
+        h2 { color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 30px; }
+        .subtitle { text-align: center; color: #666; margin-bottom: 30px; }
+        form p { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
+        input[type="text"], input[type="number"], select {
+            width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box;
+            border: 1px solid #ccc; border-radius: 4px; font-size: 16px;
+        }
+        .form-row { display: flex; gap: 20px; flex-wrap: wrap; }
+        .form-group { flex: 1; min-width: 200px; }
+        button { 
+            background-color: #0056b3; color: white; padding: 15px 30px; 
+            border: none; border-radius: 5px; cursor: pointer; font-size: 18px;
+            width: 100%; margin-top: 20px;
+        }
+        button:hover { background-color: #004494; }
+        #resultado-container { display: none; margin-top: 30px; }
+        .resultado { background-color: #e8f5e9; padding: 20px; border-radius: 8px; margin-bottom: 15px; }
+        .resultado h3 { color: #2e7d32; margin-top: 0; }
+        .resultado h4 { color: #1565c0; margin-bottom: 10px; }
+        .resultado p { margin: 8px 0; }
+        .positivo { color: #2e7d32; font-weight: bold; }
+        .negativo { color: #c62828; font-weight: bold; }
+        .indicador { background-color: #fff3e0; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .indicador span { font-size: 1.2em; font-weight: bold; color: #e65100; }
+        .cenario-card { background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #1976d2; }
+        .melhor-cenario { border-left-color: #4caf50; background-color: #e8f5e9; }
+        a.voltar { display: inline-block; margin-top: 20px; color: #0056b3; text-decoration: none; }
+        a.voltar:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Cenário 6: Investidor Imobiliário</h1>
+        <p class="subtitle">Análise de viabilidade para compra de imóvel como investimento</p>
+        
+        <form id="form-investidor" method="post">
+            {% csrf_token %}
+            
+            <h2>Dados do Imóvel</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="valor_imovel">Valor do Imóvel (R$)</label>
+                    <input type="number" id="valor_imovel" name="valor_imovel" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="entrada">Valor da Entrada (R$)</label>
+                    <input type="number" id="entrada" name="entrada" step="0.01" required>
+                </div>
+            </div>
+            
+            <h2>Dados do Financiamento</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="prazo_anos">Prazo (anos)</label>
+                    <input type="number" id="prazo_anos" name="prazo_anos" value="30" required>
+                </div>
+                <div class="form-group">
+                    <label for="taxa_juros_anual">Taxa de Juros Anual (%)</label>
+                    <input type="number" id="taxa_juros_anual" name="taxa_juros_anual" step="0.01" value="10.0" required>
+                </div>
+                <div class="form-group">
+                    <label for="sistema_amortizacao">Sistema de Amortização</label>
+                    <select id="sistema_amortizacao" name="sistema_amortizacao">
+                        <option value="SAC">SAC</option>
+                        <option value="PRICE">PRICE</option>
+                    </select>
+                </div>
+            </div>
+            
+            <h2>Dados do Aluguel</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="valor_aluguel_mensal">Valor do Aluguel Mensal (R$)</label>
+                    <input type="number" id="valor_aluguel_mensal" name="valor_aluguel_mensal" step="0.01" placeholder="Deixe vazio para estimar">
+                </div>
+                <div class="form-group">
+                    <label for="taxa_administracao">Taxa de Administração (%)</label>
+                    <input type="number" id="taxa_administracao" name="taxa_administracao" step="0.01" value="10.0">
+                </div>
+            </div>
+            
+            <h2>Custos Mensais</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="iptu_mensal">IPTU Mensal (R$)</label>
+                    <input type="number" id="iptu_mensal" name="iptu_mensal" step="0.01" value="0">
+                </div>
+                <div class="form-group">
+                    <label for="condominio_mensal">Condomínio Mensal (R$)</label>
+                    <input type="number" id="condominio_mensal" name="condominio_mensal" step="0.01" value="0">
+                </div>
+            </div>
+            
+            <button type="submit">Calcular Análise de Investimento</button>
+        </form>
+        
+        <div id="resultado-container">
+            <div class="resultado">
+                <h3>Resultado da Análise</h3>
+                <div id="resultado-content"></div>
+            </div>
+        </div>
+        
+        <a href="{% url 'dashboard' %}" class="voltar">Voltar ao Menu Principal</a>
+    </div>
+    
+    <script>
+        document.getElementById('form-investidor').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            fetch('{% url "investidor_imobiliario" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.erro) {
+                    alert('Erro: ' + data.erro);
+                    return;
+                }
+                
+                let html = '<div class="resultado">';
+                html += '<h3>Resultado da Analise</h3>';
+                
+                // Dados do Financiamento
+                html += '<h4>Dados do Financiamento</h4>';
+                html += '<p>Valor Financiado: R$ ' + (data.dados_entrada.valor_financiado || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</p>';
+                html += '<p>Primeira Prestacao: R$ ' + (data.financiamento.primeira_prestacao || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</p>';
+                html += '<p>Ultima Prestacao: R$ ' + (data.financiamento.ultima_prestacao || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</p>';
+                html += '<p>Total Pago: R$ ' + (data.financiamento.total_pago || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</p>';
+                
+                // Analise de Aluguel
+                if (data.custos_mensais && data.custos_mensais.aluguel_liquido !== undefined) {
+                    html += '<h4>Analise de Aluguel</h4>';
+                    html += '<p>Aluguel Bruto: R$ ' + (data.dados_entrada.valor_aluguel_mensal || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '/mes</p>';
+                    html += '<p>Aluguel Liquido: R$ ' + (data.custos_mensais.aluguel_liquido || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '/mes</p>';
+                    html += '<p>Custos Mensais: R$ ' + (data.custos_mensais.total_custos || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '/mes</p>';
+                }
+                
+                // Indicadores
+                if (data.indicadores) {
+                    html += '<h4>Indicadores de Investimento</h4>';
+                    html += '<div class="indicador"><span>Yield Bruto: ' + (data.indicadores.yield_bruto || 0).toFixed(2) + '% ao ano</span></div>';
+                    html += '<div class="indicador"><span>Yield Liquido: ' + (data.indicadores.yield_liquido || 0).toFixed(2) + '% ao ano</span></div>';
+                    if (data.indicadores.payback_anos && data.indicadores.payback_anos !== 'N/A') {
+                        html += '<div class="indicador"><span>Payback: ' + data.indicadores.payback_anos + ' anos</span></div>';
+                    }
+                }
+                
+                // Cenarios
+                html += '<h4>Comparativo de Cenarios</h4>';
+                
+                if (data.cenario_a_sem_aluguel) {
+                    html += '<div class="cenario-card">';
+                    html += '<strong>Cenario A: ' + data.cenario_a_sem_aluguel.descricao + '</strong>';
+                    html += '<p>Custo Total: R$ ' + (data.cenario_a_sem_aluguel.custo_total || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</p>';
+                    html += '<p>Patrimonio Final: R$ ' + (data.cenario_a_sem_aluguel.patrimonio_final || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</p>';
+                    html += '</div>';
+                }
+                
+                if (data.cenario_b_aluguel_prestacao) {
+                    const isMelhorB = data.melhor_cenario === 'B';
+                    html += '<div class="cenario-card' + (isMelhorB ? ' melhor-cenario' : '') + '">';
+                    html += '<strong>Cenario B: ' + data.cenario_b_aluguel_prestacao.descricao + '</strong>';
+                    if (isMelhorB) html += ' - Melhor Opcao';
+                    html += '<p>Total Desembolsado: R$ ' + (data.cenario_b_aluguel_prestacao.total_desembolsado || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</p>';
+                    html += '<p>Patrimonio Final: R$ ' + (data.cenario_b_aluguel_prestacao.patrimonio_final || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</p>';
+                    html += '<p>Lucro: R$ ' + (data.cenario_b_aluguel_prestacao.lucro || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</p>';
+                    html += '</div>';
+                }
+                
+                if (data.cenario_c_aluguel_investido) {
+                    const isMelhorC = data.melhor_cenario === 'C';
+                    html += '<div class="cenario-card' + (isMelhorC ? ' melhor-cenario' : '') + '">';
+                    html += '<strong>Cenario C: ' + data.cenario_c_aluguel_investido.descricao + '</strong>';
+                    if (isMelhorC) html += ' - Melhor Opcao';
+                    html += '<p>Total Desembolsado: R$ ' + (data.cenario_c_aluguel_investido.total_desembolsado || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</p>';
+                    html += '<p>Patrimonio Final: R$ ' + (data.cenario_c_aluguel_investido.patrimonio_final || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</p>';
+                    html += '<p>Lucro: R$ ' + (data.cenario_c_aluguel_investido.lucro || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</p>';
+                    html += '</div>';
+                }
+                
+                html += '</div>';
+                
+                document.getElementById('resultado-content').innerHTML = html;
+                document.getElementById('resultado-container').style.display = 'block';
+                document.getElementById('resultado-container').scrollIntoView({behavior: 'smooth'});
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao processar a solicitacao.');
+            });
+        });
+    </script>
+</body>
+</html>

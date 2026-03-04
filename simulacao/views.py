@@ -1,8 +1,13 @@
 from django.shortcuts import render, redirect
+from django.http import JsonResponse
 from django.contrib import messages
-from .forms import FinanciamentoForm
+from .forms import FinanciamentoForm, InvestidorImobiliarioForm
 from . import utils
+from .calculadora_financeira import calcular_investidor_imobiliario
 from decimal import Decimal 
+from django.contrib.auth.decorators import login_required
+from .models import SavedSimulation
+from .lgpd_views import audit_log
 
 def simulacao_view(request):
     """
@@ -42,10 +47,8 @@ def simulacao_view(request):
                 metodo=metodo,
                 valor_principal=float(saldo_devedor),
                 taxa_anual=float(taxa_anual_percentual),
-                prazo_meses=int(prazo_meses),
-                seguro_mensal=float(data.get('seguro_mensal', 0.03)),
-            )
-            
+                prazo_meses=int(prazo_meses)
+            )       
             if resultado and resultado.get('tabela'):
                 # Extrai a tabela do resultado
                 tabela_final = resultado['tabela']
@@ -59,3 +62,69 @@ def simulacao_view(request):
             context['resultado_final'] = "Erro! Verifique os dados do formulário."
     
     return render(request, 'simulacao/index.html', context)
+
+@login_required
+@audit_log('READ', 'DASHBOARD', 'Usuário acessou dashboard')
+def dashboard(request):
+    # Busca as simulações do usuário logado, ordenadas da mais recente para a mais antiga
+    simulacoes = SavedSimulation.objects.filter(user=request.user).order_by('-criado_em')
+    return render(request, 'dashboard.html', {'simulacoes': simulacoes})
+
+def investidor_imobiliario_view(request):
+    """
+    View para o Cenário 6: Investidor Imobiliário.
+    Recebe dados via POST e retorna JSON com a análise de viabilidade.
+    """
+    if request.method == 'POST':
+        form = InvestidorImobiliarioForm(request.POST)
+        if form.is_valid():
+            data = form.cleaned_data
+            
+            # Mapeia os dados do formulário para o formato esperado pela calculadora
+            dados_calc = {
+                'valor_imovel': data['valor_imovel'],
+                'valor_entrada': data['entrada'],
+                'prazo_meses': data['prazo_anos'] * 12,
+                'taxa_juros_anual': data['taxa_juros_anual'],
+                'sistema_amortizacao': data['sistema_amortizacao'],
+                'valor_aluguel_mensal': data.get('valor_aluguel_mensal') or 0,
+                'usar_aluguel_para_prestacao': data['usar_aluguel_para_prestacao'],
+                'taxa_administracao_pct': data['taxa_administracao'] or 0,
+                'iptu_anual': (data.get('iptu_mensal') or 0) * 12,
+                'condominio_mensal': data.get('condominio_mensal') or 0,
+            }
+            
+            resultado = calcular_investidor_imobiliario(dados_calc)
+            return JsonResponse(resultado)
+        else:
+            return JsonResponse({'errors': form.errors}, status=400)
+    
+    form = InvestidorImobiliarioForm()
+    return render(request, 'simulacao/investidor_imobiliario.html', {'form': form})
+
+def comparador_investimentos_view(request):
+    """
+    View para o Cenário 7: Comparador de Investimentos.
+    Permite comparar múltiplos investimentos e visualizar qual é mais vantajoso.
+    """
+    if request.method == 'POST':
+        # Processar dados do formulário
+        investimentos = []
+        i = 1
+        while f'nome_{i}' in request.POST:
+            investimento = {
+                'nome': request.POST.get(f'nome_{i}', ''),
+                'tipo': request.POST.get(f'tipo_{i}', ''),
+                'valor_inicial': float(request.POST.get(f'valor_inicial_{i}', 0)),
+                'taxa_juros': float(request.POST.get(f'taxa_juros_{i}', 0)),
+                'prazo_meses': int(request.POST.get(f'prazo_meses_{i}', 0)),
+            }
+            investimentos.append(investimento)
+            i += 1
+        
+        # Calcular comparação
+        resultado = calcular_comparador_investimentos(investimentos)
+        return JsonResponse(resultado)
+    else:
+        # Renderizar formulário
+        return render(request, 'simulacao/comparador_investimentos.html')

@@ -1,0 +1,212 @@
+﻿[AVISO] Django setup error: No module named 'jwt'
+   Continuando sem Django ORM...
+
+
++========================================================================================+
+|                  TESTE COMPLETO DE 10 PERFIS DE USUARIOS - SISTEMA FI                  |
+|                     Jornadas Completas com Validacao de Resultados                     |
++========================================================================================+
+
+==========================================================================================
+                     PERFIL 1: MCMV - Programa Minha Casa Minha Vida                      
+==========================================================================================
+
+  [DADOS] CENARIO:
+     - Renda Familiar: R$ 4.500/mes (Faixa 3 do MCMV)
+     - Imovel desejado: R$ 220.000
+     - FGTS disponivel: R$ 15.000
+     - Objetivo: Qualificar para subsidio + taxa reduzida
+
+
+  [INFO] SIMULACAO DO MCMV
+  -------------------------------------------------------------------------------------
+     Qualificado.......................................             Sim
+     Faixa MCMV........................................            3.00
+     Subsidio Concedido................................         R$ 29.000,00
+     Taxa de Juros.....................................         7.91%
+     Valor Maximo Imovel...............................        R$ 350.000,00
+     Parcela Inicial...................................          R$ 1.535,98
+     Total de Juros....................................        R$ 201.457,13
+     Prazo Final.......................................          360.00
+
+  [INFO] VALIDACOES
+  -------------------------------------------------------------------------------------
+  [OK] PASSOU Usuario qualificado para MCMV
+  [ERRO] Erro na execucao: 'charmap' codec can't encode characters in position 6-7: character maps to <undefined>
+
+
+==========================================================================================
+                    PERFIL 2: ALUGUEL vs COMPRA - Analise Comparativa                     
+==========================================================================================
+
+  [DADOS] CENARIO:
+     - Aluguel inicial: R$ 3.000/mes
+     - Imovel para compra: R$ 500.000
+     - Entrada disponivel: R$ 100.000
+     - Taxa investimento: 12% aa (CDI)
+     - Prazo analise: 30 anos (360 meses)
+
+
+  [INFO] SIMULACAO: CENARIO ALUGUEL + INVESTIMENTO
+  -------------------------------------------------------------------------------------
+     Capital Final (Aluguel)...........................          R$ 3.000,00
+     Total Gasto Aluguel...............................      R$ 2.019.057,76
+     Valor FGTS Final..................................      R$ 1.310.301,63
+     Valor Imovel (se comprado)........................      R$ 1.178.282,75
+
+  [INFO] SIMULACAO: CENARIO COMPRA COM FINANCIAMENTO
+  -------------------------------------------------------------------------------------
+     Parcela Mensal (Compra)...........................          R$ 2.946,86
+     Total de Juros (Compra)...........................        R$ 606.868,89
+     Custo Total Financiamento.........................      R$ 1.060.868,89
+
+  [INFO] VALIDACOES
+  -------------------------------------------------------------------------------------
+  [OK] PASSOU Simulacao de aluguel completada
+  [ERRO] Erro na execucao: 'charmap' codec can't encode characters in position 6-7: character maps to <undefined>
+
+
+==========================================================================================
+                     PERFIL 3: POUPADOR - Juntar para Comprar a Vista                     
+==========================================================================================
+
+  [DADOS] CENARIO:
+     - Imovel desejado: R$ 400.000
+     - Aporte mensal: R$ 2.000
+     - Taxa rendimento: 0.75% am (Poupanca ~9% aa)
+     - Aluguel: R$ 2.000/mes
+     - FGTS inicial: R$ 10.000
+
+
+  [INFO] SIMULACAO: GUARDAR DINHEIRO
+  -------------------------------------------------------------------------------------
+     Total Guardado....................................        R$ 240.000,00
+     Total Aluguel Pago................................        R$ 240.432,46
+     Saldo Final (Poupanca)............................        R$ 308.674,17
+     FGTS Final........................................         R$ 67.600,00
+     Meses para Comprar................................           30.00
+     Viavel............................................             Sim
+
+  [INFO] VALIDACOES
+  -------------------------------------------------------------------------------------
+  [OK] PASSOU Conseguiu juntar para compra
+  [ERRO] Erro na execucao: 'charmap' codec can't encode characters in position 6-7: character maps to <undefined>
+
+
+==========================================================================================
+                     PERFIL 4: INVESTIDOR - Imovel como Investimento                      
+==========================================================================================
+
+  [OK] PASSOU Fluxo de caixa positivo
+  [ERRO] Erro: 'charmap' codec can't encode characters in position 6-7: character maps to <undefined>
+
+
+==========================================================================================
+                    PERFIL 5: UPGRADE - Venda + Compra de Imovel Maior                    
+==========================================================================================
+
+  [OK] PASSOU LTV dentro do padrao (<80%)
+  [ERRO] Erro: 'charmap' codec can't encode characters in position 6-7: character maps to <undefined>
+
+
+==========================================================================================
+                      PERFIL 6: CONSORCIADO - Consorcio Imobiliario                       
+==========================================================================================
+
+  [OK] PASSOU Parcela dentro do padrao (0.6-0.9%)
+  [ERRO] Erro: 'charmap' codec can't encode characters in position 6-7: character maps to <undefined>
+
+
+==========================================================================================
+                  PERFIL 7: EMPRESARIO - Imovel Comercial de Alto Valor                   
+==========================================================================================
+
+  [OK] PASSOU SAC reduz juros vs Price
+  [ERRO] Erro: 'charmap' codec can't encode characters in position 6-7: character maps to <undefined>
+
+
+==========================================================================================
+                      PERFIL 8: AUTONOMO - Prazo Curto, Entrada 50%                       
+==========================================================================================
+
+  [OK] PASSOU Prazo curto economiza juros
+  [ERRO] Erro: 'charmap' codec can't encode characters in position 6-7: character maps to <undefined>
+
+
+==========================================================================================
+                PERFIL 9: CUSTO OPORTUNIDADE - Financiar vs Pagar a Vista                 
+==========================================================================================
+
+[INFO] Analise VPL: Financiar vs Pagar a Vista
+
+     Opcao 1 (Pagar a vista)...........................      R$ 5.991.984,42
+     Opcao 2 (Financiar + investir)....................     R$ 29.959.922,12
+
+  [INFO] VALIDACOES
+  -------------------------------------------------------------------------------------
+  [OK] PASSOU Analise de custo oportunidade
+  [ERRO] Erro: 'charmap' codec can't encode characters in position 6-7: character maps to <undefined>
+
+
+==========================================================================================
+                   PERFIL 10: MIGRACAO - Comparar Taxas de Institucoes                    
+==========================================================================================
+
+[DADOS] Comparativo de Instituicoes:
+
+  Instituicao               Taxa     Parcela            Total Juros
+  ---------------------------------------------------------------------------
+  Banco do Brasil              8.5%        R$ 4.025,20      R$ 487.249,09
+  Caixa Economica              9.0%        R$ 4.168,77      R$ 521.704,03
+  Itau Unibanco               10.0%        R$ 4.462,60      R$ 592.223,38
+  ---------------------------------------------------------------------------
+
+  [INFO] VALIDACOES
+  -------------------------------------------------------------------------------------
+  [OK] PASSOU Analise de portabilidade
+  [ERRO] Erro: 'charmap' codec can't encode characters in position 6-7: character maps to <undefined>
+
+
+
+
+==========================================================================================
+                            RESUMO FINAL - TESTE DE 10 PERFIS                             
+==========================================================================================
+
+[OK] PERFIS TESTADOS:
+
+  1. [OK] MCMV
+  2. [OK] Aluguel vs Compra
+  3. [OK] Poupador
+  4. [OK] Investidor
+  5. [OK] Upgrade
+  6. [OK] Consorciado
+  7. [OK] Empresario
+  8. [OK] Autonomo
+  9. [OK] Custo Oportunidade
+  10. [OK] Migracao
+
+
+[ANALISE] VALIDACOES POR CATEGORIA:
+
+  [OK] Calculos Matematicos: PASSOU
+     - Decimal precision: OK
+     - Juros compostos: OK
+     - Amortizacao: OK
+     - FGTS acumulado: OK
+
+  [ALERTA] Variaveis Faltantes (CRITICAS):
+     - TR (Taxa Referencial): NAO IMPLEMENTADA
+     - IOF: NAO IMPLEMENTADA
+     - IPTU/Condominio: NAO IMPLEMENTADA
+     - IR: NAO IMPLEMENTADA
+
+  [ERRO] Bugs Identificados:
+     1. Consorcio: Parcela pode estar baixa
+     2. MCMV: Funciona, mas precisa validacao
+     3. Aluguel vs Compra: Falta despesas
+
+==========================================================================================
+                                       FIM DO TESTE                                       
+==========================================================================================
+

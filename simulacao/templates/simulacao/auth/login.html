@@ -1,0 +1,42 @@
+{% extends 'simulacao/auth/base_auth.html' %}
+
+{% block title %}Login - ImobCalc{% endblock %}
+
+{% block content %}
+<h2 style="text-align: center; color: #222; margin-bottom: 30px; font-size: 26px; font-weight: 700;">Entrar na sua conta</h2>
+
+<form method="post" action="{% url 'login' %}{% if next %}?next={{ next }}{% endif %}">
+    {% csrf_token %}
+    <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" placeholder="seu@email.com" required autofocus>
+    </div>
+    <div class="form-group">
+        <label for="password">Senha</label>
+        <input type="password" id="password" name="password" placeholder="••••••••" required>
+    </div>
+    <button type="submit" class="btn btn-primary" style="margin-bottom: 10px;">Entrar</button>
+</form>
+
+<div class="divider">
+    <span>ou</span>
+</div>
+
+<a href="/accounts/google/login/" class="btn btn-google" style="margin-bottom: 10px;">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M19.8 10.2273C19.8 9.51818 19.7364 8.83636 19.6182 8.18182H10.2V12.05H15.5818C15.3364 13.3 14.5909 14.3591 13.4727 15.0682V17.5773H16.7636C18.7182 15.8364 19.8 13.2727 19.8 10.2273Z" fill="#4285F4"/>
+        <path d="M10.2 20C12.9 20 15.1727 19.1045 16.7636 17.5773L13.4727 15.0682C12.5318 15.6682 11.3409 16.0227 10.2 16.0227C7.59545 16.0227 5.38182 14.2636 4.54091 11.9H1.14545V14.4909C2.72727 17.6318 6.20909 20 10.2 20Z" fill="#34A853"/>
+        <path d="M4.54091 11.9C4.32727 11.3 4.20455 10.6591 4.20455 10C4.20455 9.34091 4.32727 8.7 4.54091 8.1V5.50909H1.14545C0.418182 6.95909 0 8.43182 0 10C0 11.5682 0.418182 13.0409 1.14545 14.4909L4.54091 11.9Z" fill="#FBBC05"/>
+        <path d="M10.2 3.97727C11.4591 3.97727 12.5864 4.40909 13.4682 5.24545L16.3818 2.33182C15.1682 1.19091 12.8955 0 10.2 0C6.20909 0 2.72727 2.36818 1.14545 5.50909L4.54091 8.1C5.38182 5.73636 7.59545 3.97727 10.2 3.97727Z" fill="#EA4335"/>
+    </svg>
+    Entrar com Google
+</a>
+
+<div class="auth-footer">
+    <a href="{% url 'password_reset_request' %}">🔑 Esqueceu sua senha?</a>
+</div>
+
+<div class="auth-footer" style="margin-top: 15px;">
+    Não tem uma conta? <a href="{% url 'register' %}">Cadastre-se</a>
+</div>
+{% endblock %}

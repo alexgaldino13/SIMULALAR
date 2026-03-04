@@ -1,0 +1,268 @@
+﻿[AVISO] Django setup error: No module named 'jwt'
+   Continuando sem Django ORM...
+
+
++========================================================================================+
+|                  TESTE COMPLETO DE 10 PERFIS DE USUARIOS - SISTEMA FI                  |
+|                     Jornadas Completas com Validacao de Resultados                     |
++========================================================================================+
+
+==========================================================================================
+                     PERFIL 1: MCMV - Programa Minha Casa Minha Vida                      
+==========================================================================================
+
+  [DADOS] CENARIO:
+     - Renda Familiar: R$ 4.500/mes (Faixa 3 do MCMV)
+     - Imovel desejado: R$ 220.000
+     - FGTS disponivel: R$ 15.000
+     - Objetivo: Qualificar para subsidio + taxa reduzida
+
+
+  [INFO] SIMULACAO DO MCMV
+  -------------------------------------------------------------------------------------
+     Qualificado.......................................             Sim
+     Faixa MCMV........................................            3.00
+     Subsidio Concedido................................         R$ 29.000,00
+     Taxa de Juros.....................................         7.91%
+     Valor Maximo Imovel...............................        R$ 350.000,00
+     Parcela Inicial...................................          R$ 1.535,98
+     Total de Juros....................................        R$ 201.457,13
+     Prazo Final.......................................          360.00
+
+  [INFO] VALIDACOES
+  -------------------------------------------------------------------------------------
+  [OK] PASSOU Usuario qualificado para MCMV
+      ÔööÔöÇ Renda R$ 4.500,00/mes enquadra em Faixa 3
+  [OK] PASSOU Subsidio foi concedido
+      ÔööÔöÇ Valor: R$ 29.000,00
+  [OK] PASSOU Taxa de juros reduzida
+      ÔööÔöÇ MCMV: 7.91% aa vs Mercado: 8.5% aa
+
+  [INFO] SUGESTOES DE MELHORIA NO WIZARD
+  -------------------------------------------------------------------------------------
+  [IDEA] 1. Incluir calculadora visual de economia (subsidio)
+  [IDEA] 2. Alertar sobre faixas de renda e documentacao necessaria
+  [IDEA] 3. Mostrar comparativo vs Price/SAC tradicional
+  [IDEA] 4. Integrar validacao de TR (Taxa Referencial) para juros
+
+  [OK] Perfil 1 CONCLUIDO
+
+
+==========================================================================================
+                    PERFIL 2: ALUGUEL vs COMPRA - Analise Comparativa                     
+==========================================================================================
+
+  [DADOS] CENARIO:
+     - Aluguel inicial: R$ 3.000/mes
+     - Imovel para compra: R$ 500.000
+     - Entrada disponivel: R$ 100.000
+     - Taxa investimento: 12% aa (CDI)
+     - Prazo analise: 30 anos (360 meses)
+
+
+  [INFO] SIMULACAO: CENARIO ALUGUEL + INVESTIMENTO
+  -------------------------------------------------------------------------------------
+     Capital Final (Aluguel)...........................          R$ 3.000,00
+     Total Gasto Aluguel...............................      R$ 2.019.057,76
+     Valor FGTS Final..................................      R$ 1.310.301,63
+     Valor Imovel (se comprado)........................      R$ 1.178.282,75
+
+  [INFO] SIMULACAO: CENARIO COMPRA COM FINANCIAMENTO
+  -------------------------------------------------------------------------------------
+     Parcela Mensal (Compra)...........................          R$ 2.946,86
+     Total de Juros (Compra)...........................        R$ 606.868,89
+     Custo Total Financiamento.........................      R$ 1.060.868,89
+
+  [INFO] VALIDACOES
+  -------------------------------------------------------------------------------------
+  [OK] PASSOU Simulacao de aluguel completada
+      ÔööÔöÇ Capital final: R$ 3.000,00
+  [OK] PASSOU Inflacao do aluguel simulada
+      ÔööÔöÇ Total com reajuste: R$ 2.019.057,76
+  [OK] PASSOU FGTS acumulado corretamente
+      ÔööÔöÇ FGTS final: R$ 1.310.301,63
+
+  [INFO] SUGESTOES DE MELHORIA NO WIZARD
+  -------------------------------------------------------------------------------------
+  [IDEA] 1. Incluir grafico de projecao (aluguel vs patrimonio)
+  [IDEA] 2. Adicionar despesas do imovel (IPTU, condominio, seguro)
+  [IDEA] 3. Alertar sobre valorizacao imobiliaria
+  [IDEA] 4. Permitir ajuste de %CDI para investimentos
+  [IDEA] 5. FALTA: Calculo de IR sobre rendimentos
+
+  [OK] Perfil 2 CONCLUIDO
+
+
+==========================================================================================
+                     PERFIL 3: POUPADOR - Juntar para Comprar a Vista                     
+==========================================================================================
+
+  [DADOS] CENARIO:
+     - Imovel desejado: R$ 400.000
+     - Aporte mensal: R$ 2.000
+     - Taxa rendimento: 0.75% am (Poupanca ~9% aa)
+     - Aluguel: R$ 2.000/mes
+     - FGTS inicial: R$ 10.000
+
+
+  [INFO] SIMULACAO: GUARDAR DINHEIRO
+  -------------------------------------------------------------------------------------
+     Total Guardado....................................        R$ 240.000,00
+     Total Aluguel Pago................................        R$ 240.432,46
+     Saldo Final (Poupanca)............................        R$ 308.674,17
+     FGTS Final........................................         R$ 67.600,00
+     Meses para Comprar................................           30.00
+     Viavel............................................             Sim
+
+  [INFO] VALIDACOES
+  -------------------------------------------------------------------------------------
+  [OK] PASSOU Conseguiu juntar para compra
+      ÔööÔöÇ Em 30 meses
+  [OK] PASSOU Rendimento foi aplicado
+      ÔööÔöÇ Rendimentos: R$ 198.674,17
+  [OK] PASSOU FGTS acumulado (minimo)
+      ÔööÔöÇ FGTS final: R$ 67.600,00
+
+  [INFO] SUGESTOES DE MELHORIA NO WIZARD
+  -------------------------------------------------------------------------------------
+  [IDEA] 1. Mostrar projecao mes-a-mes em grafico
+  [IDEA] 2. Permitir multiplos aportes (mensal + 13┬║ + bonus)
+  [IDEA] 3. Comparar diferentes taxas (Poupanca vs CDI vs LCI)
+  [IDEA] 4. FALTA: Calculo de IR sobre rendimentos LCI
+
+  [OK] Perfil 3 CONCLUIDO
+
+
+==========================================================================================
+                     PERFIL 4: INVESTIDOR - Imovel como Investimento                      
+==========================================================================================
+
+  [OK] PASSOU Fluxo de caixa positivo
+      ÔööÔöÇ Aluguel R$ 1.800,00 - Parcela R$ 1.568,35 = R$ 231,65
+
+  [OK] Perfil 4 CONCLUIDO
+
+
+==========================================================================================
+                    PERFIL 5: UPGRADE - Venda + Compra de Imovel Maior                    
+==========================================================================================
+
+  [OK] PASSOU LTV dentro do padrao (<80%)
+      ÔööÔöÇ LTV: 50.0%
+
+  [OK] Perfil 5 CONCLUIDO
+
+
+==========================================================================================
+                      PERFIL 6: CONSORCIADO - Consorcio Imobiliario                       
+==========================================================================================
+
+  [OK] PASSOU Parcela dentro do padrao (0.6-0.9%)
+      ÔööÔöÇ 0.70%
+  [ALERTA] CRITICO: Parcela 0.7% pode estar baixa
+
+
+  [OK] Perfil 6 CONCLUIDO
+
+
+==========================================================================================
+                  PERFIL 7: EMPRESARIO - Imovel Comercial de Alto Valor                   
+==========================================================================================
+
+  [OK] PASSOU SAC reduz juros vs Price
+      ÔööÔöÇ Economia: R$ 748.524,68
+
+  [OK] Perfil 7 CONCLUIDO
+
+
+==========================================================================================
+                      PERFIL 8: AUTONOMO - Prazo Curto, Entrada 50%                       
+==========================================================================================
+
+  [OK] PASSOU Prazo curto economiza juros
+      ÔööÔöÇ Economia: R$ 148.202,67
+
+  [OK] Perfil 8 CONCLUIDO
+
+
+==========================================================================================
+                PERFIL 9: CUSTO OPORTUNIDADE - Financiar vs Pagar a Vista                 
+==========================================================================================
+
+[INFO] Analise VPL: Financiar vs Pagar a Vista
+
+     Opcao 1 (Pagar a vista)...........................      R$ 5.991.984,42
+     Opcao 2 (Financiar + investir)....................     R$ 29.959.922,12
+
+  [INFO] VALIDACOES
+  -------------------------------------------------------------------------------------
+  [OK] PASSOU Analise de custo oportunidade
+      ÔööÔöÇ Diferenca: R$ 23.967.937,70
+
+  [OK] Perfil 9 CONCLUIDO
+
+
+==========================================================================================
+                   PERFIL 10: MIGRACAO - Comparar Taxas de Institucoes                    
+==========================================================================================
+
+[DADOS] Comparativo de Instituicoes:
+
+  Instituicao               Taxa     Parcela            Total Juros
+  ---------------------------------------------------------------------------
+  Banco do Brasil              8.5%        R$ 4.025,20      R$ 487.249,09
+  Caixa Economica              9.0%        R$ 4.168,77      R$ 521.704,03
+  Itau Unibanco               10.0%        R$ 4.462,60      R$ 592.223,38
+  ---------------------------------------------------------------------------
+
+  [INFO] VALIDACOES
+  -------------------------------------------------------------------------------------
+  [OK] PASSOU Analise de portabilidade
+      ÔööÔöÇ Tres instituicoes comparadas
+
+  [OK] Perfil 10 CONCLUIDO
+
+
+
+
+==========================================================================================
+                            RESUMO FINAL - TESTE DE 10 PERFIS                             
+==========================================================================================
+
+[OK] PERFIS TESTADOS:
+
+  1. [OK] MCMV
+  2. [OK] Aluguel vs Compra
+  3. [OK] Poupador
+  4. [OK] Investidor
+  5. [OK] Upgrade
+  6. [OK] Consorciado
+  7. [OK] Empresario
+  8. [OK] Autonomo
+  9. [OK] Custo Oportunidade
+  10. [OK] Migracao
+
+
+[ANALISE] VALIDACOES POR CATEGORIA:
+
+  [OK] Calculos Matematicos: PASSOU
+     - Decimal precision: OK
+     - Juros compostos: OK
+     - Amortizacao: OK
+     - FGTS acumulado: OK
+
+  [ALERTA] Variaveis Faltantes (CRITICAS):
+     - TR (Taxa Referencial): NAO IMPLEMENTADA
+     - IOF: NAO IMPLEMENTADA
+     - IPTU/Condominio: NAO IMPLEMENTADA
+     - IR: NAO IMPLEMENTADA
+
+  [ERRO] Bugs Identificados:
+     1. Consorcio: Parcela pode estar baixa
+     2. MCMV: Funciona, mas precisa validacao
+     3. Aluguel vs Compra: Falta despesas
+
+==========================================================================================
+                                       FIM DO TESTE                                       
+==========================================================================================
+

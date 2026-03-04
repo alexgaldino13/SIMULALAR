@@ -1,0 +1,254 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ step_title }} - Simulador Financeiro</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .wizard-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+        }
+        
+        .progress-bar {
+            background: #e0e0e0;
+            height: 8px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        
+        .step-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .step-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        
+        .step-number {
+            color: #999;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .step-title {
+            font-size: 32px;
+            color: #333;
+            font-weight: 700;
+            margin-top: 5px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+        
+        input[type="text"],
+        input[type="number"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .radio-option {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .radio-option:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+        
+        .radio-option input[type="radio"] {
+            margin-right: 10px;
+        }
+        
+        .help-text {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102,126,234,0.4);
+        }
+        
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #666;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="wizard-container">
+        <div class="progress-bar">
+            <div class="progress-fill" style="width: {{ progress_percent }}%"></div>
+        </div>
+        
+        <div class="step-header">
+            <div class="step-icon">{{ step_icon }}</div>
+            <div class="step-number">Etapa {{ current_step }} de {{ total_steps }}</div>
+            <h1 class="step-title">{{ step_title }}</h1>
+        </div>
+        
+        <form method="post">
+            {% csrf_token %}
+            
+            {% for field in form %}
+                <div class="form-group">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    
+                    {% if field.field.widget.input_type == 'radio' %}
+                        <div class="radio-group">
+                            {% for choice in field %}
+                                <label class="radio-option">
+                                    {{ choice.tag }}
+                                    <span>{{ choice.choice_label }}</span>
+                                </label>
+                            {% endfor %}
+                        </div>
+                    {% elif field.name == 'cidade' %}
+                        <input type="text" id="id_cidade" name="cidade" class="form-control" placeholder="Digite a cidade desejada">
+                        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+                        <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+                        <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+                        <script>
+                            $(function() {
+                                $("#id_cidade").autocomplete({
+                                    source: function(request, response) {
+                                        $.ajax({
+                                            url: "/api/cidades/",
+                                            data: { q: request.term },
+                                            success: function(data) {
+                                                response(data.results);
+                                            }
+                                        });
+                                    },
+                                    minLength: 2
+                                });
+                            });
+                        </script>
+                    {% else %}
+                        {{ field }}
+                    {% endif %}
+                    
+                    {% if field.help_text %}
+                        <div class="help-text">{{ field.help_text }}</div>
+                    {% endif %}
+                    
+                    {% if field.errors %}
+                        <div style="color: red; font-size: 14px; margin-top: 5px;">
+                            {{ field.errors }}
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            
+            <div class="button-group">
+                {% if can_go_back %}
+                    <a href="{% url 'wizard_v2_step' step=current_step|add:'-1' %}" class="btn btn-secondary">
+                        ← Voltar
+                    </a>
+                {% endif %}
+                
+                <button type="submit" class="btn btn-primary">
+                    {% if current_step == total_steps %}
+                        Ver Resultados →
+                    {% else %}
+                        Próximo →
+                    {% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

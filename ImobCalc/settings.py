@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize', # Adicionado para formatação de moeda no template
     
     # Seus Apps Locais
     'simulacao', # Seu App
@@ -40,19 +41,21 @@ INSTALLED_APPS = [
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
-    'allauth.socialaccount.providers.google',
+    'allauth.socialaccount.providers.google',  # OAuth Google
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    # Middleware do Allauth
-    'allauth.account.middleware.AccountMiddleware', 
+    'allauth.account.middleware.AccountMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Middlewares customizados para gerenciamento de sessão
+    'simulacao.middleware.SessionActivityMiddleware',
+    'simulacao.middleware.SessionSecurityMiddleware',
 ]
 
 ROOT_URLCONF = 'ImobCalc.urls'
@@ -60,7 +63,7 @@ ROOT_URLCONF = 'ImobCalc.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'simulacao/templates', BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -128,6 +131,9 @@ THOUSAND_SEPARATOR = '.'   # Ponto para milhar
 # ----------------------------------------------------------------------
 
 STATIC_URL = 'static/'
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -150,7 +156,7 @@ AUTHENTICATION_BACKENDS = (
 )
 
 # Redireciona para a raiz após o login
-LOGIN_REDIRECT_URL = '/' 
+LOGIN_REDIRECT_URL = '/dashboard/' 
 # Redireciona para a raiz após o logout
 ACCOUNT_LOGOUT_REDIRECT_URL = '/' 
 
@@ -162,7 +168,55 @@ ACCOUNT_SIGNUP_FIELDS = ['username', 'email*']
 ACCOUNT_LOGIN_METHODS = ["username", "email"] 
 
 # Define se a verificação de e-mail é obrigatória
-ACCOUNT_EMAIL_VERIFICATION = "mandatory" 
+ACCOUNT_EMAIL_VERIFICATION = "optional"  # Reativado para maior segurança
 
 # As configurações depreciadas (ACCOUNT_AUTHENTICATION_METHOD, ACCOUNT_EMAIL_REQUIRED, ACCOUNT_USERNAME_REQUIRED) 
 # foram removidas/são deduzidas das linhas acima para evitar warnings.
+
+# Configurações de Autenticação Customizada
+# ----------------------------------------------------------------------
+
+# Define o modelo de usuário customizado
+AUTH_USER_MODEL = 'simulacao.CustomUser'
+
+# URL de login
+LOGIN_URL = '/accounts/login/'
+
+# Configurações de Email (para desenvolvimento - console backend)
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# Configurações de Mídia (para uploads de avatar, etc.)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# Configurações de Sessão
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+SESSION_COOKIE_AGE = 1209600  # 14 dias em segundos
+SESSION_SAVE_EVERY_REQUEST = True  # Atualiza tempo de expiração a cada requisição
+SESSION_COOKIE_NAME = 'imobcalc_sessionid'
+SESSION_COOKIE_SECURE = False  # True em produção com HTTPS
+SESSION_COOKIE_HTTPONLY = True  # Previne acesso via JavaScript
+SESSION_COOKIE_SAMESITE = 'Lax'  # Proteção CSRF
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_AGE_REMEMBER_ME = 2592000  # 30 dias para "Manter-me conectado"
+
+
+# Configurações de OAuth Social (Google, Apple, etc.)
+# ----------------------------------------------------------------------
+SOCIALACCOUNT_PROVIDERS = {
+        'google': {
+                    'SCOPE': ['profile', 'email'],
+                            'AUTH_PARAMS': {'access_type': 'online'},
+                                    'APP': {
+                                                    'client_id': 'SEU_GOOGLE_CLIENT_ID',  # Substituir com credenciais reais
+                                                                'secret': 'SEU_GOOGLE_CLIENT_SECRET',  # Substituir com credenciais reais
+                                                                            'key': ''
+                                    }
+        }
+}
+
+SOCIALACCOUNT_AUTO_SIGNUP = True  # Cria conta automaticamente no primeiro login social
+SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'  # Email já verificado pelo provider
+
+# Habilitar login automático após o cadastro
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = False
