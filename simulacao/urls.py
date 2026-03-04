@@ -68,4 +68,8 @@ urlpatterns = [
     # Cenário 6: Investidor Imobiliário
     path('investidor-imobiliario/', views.investidor_imobiliario_view, name='investidor_imobiliario'),
         path('comparador-investimentos/', views.comparador_investimentos_view, name='comparador_investimentos'),
+            
+    # APIs para AdMob/Monetizacao
+    path('api/assinaturas/status/', views.api_assinatura_status, name='api_assinatura_status'),
+    path('api/monetizacao/ad-view/', views.api_registrar_ad_view, name='api_registrar_ad_view'),
 ]

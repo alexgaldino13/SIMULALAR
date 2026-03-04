@@ -3,6 +3,7 @@ from django.http import JsonResponse
 from django.contrib import messages
 from .forms import FinanciamentoForm, InvestidorImobiliarioForm
 from . import utils
+import json
 from .calculadora_financeira import calcular_investidor_imobiliario
 from decimal import Decimal 
 from django.contrib.auth.decorators import login_required
@@ -128,3 +129,63 @@ def comparador_investimentos_view(request):
     else:
         # Renderizar formulário
         return render(request, 'simulacao/comparador_investimentos.html')
+    
+
+
+def calcular_comparador_investimentos(investimentos):
+    """
+    Função para calcular o comparador de investimentos.
+    Recebe uma lista de investimentos e retorna uma análise comparativa.
+    """
+    resultados = []
+    for inv in investimentos:
+        valor_final = inv['valor_inicial'] * (1 + inv['taxa_juros'] / 100) ** (inv['prazo_meses'] / 12)
+        resultados.append({
+            'nome': inv['nome'],
+            'tipo': inv['tipo'],
+            'valor_final': round(valor_final, 2),
+            'rentabilidade': round((valor_final - inv['valor_inicial']) / inv['valor_inicial'] * 100, 2)
+        })
+    
+    # Ordenar por valor final decrescente
+    resultados.sort(key=lambda x: x['valor_final'], reverse=True)
+    
+    return {'resultados': resultados}
+
+
+# ============================================
+# APIs para AdMob/Monetizacao
+# ============================================
+
+def api_assinatura_status(request):
+    """
+    Retorna se o usuario atual tem assinatura premium ativa.
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({'is_premium': False})
+    
+    # Por enquanto, retorna False (implementar modelo de assinatura depois)
+    return JsonResponse({
+        'is_premium': False,
+        'plano': None
+    })
+
+
+def api_registrar_ad_view(request):
+    """
+    Registra visualizacao de anuncio para analytics.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Metodo nao permitido'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+        ad_type = data.get('ad_type', 'unknown')
+        page = data.get('page', 'unknown')
+        
+        # Log para analytics (pode ser expandido depois)
+        print(f"Ad view: {ad_type} on {page}")
+        
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
