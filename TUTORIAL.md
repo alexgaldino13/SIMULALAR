@@ -14,18 +14,24 @@
 | Item | Descrição | Arquivos | Status |
 |------|-----------|----------|--------|
 | **4.3** | Posicionamento de anúncios | `templates/` | 🔄 FAZER AGORA |
+| **4.4** | Integrar Google Play Billing | `subscription_models.py` | 🔄 FAZER AGORA |
 
 ### 📋 DETALHAMENTO DA TAREFA
 
 **Objetivo:** Inserir os banners e intersticiais nas páginas do sistema.
+**Objetivo:** Configurar produtos de assinatura e fluxo de pagamento.
 
 **Arquivos que serão modificados:**
 1. `D:\PROJETOS\FI\Templates\base.html` - Adicionar banner no rodapé
 2. `D:\PROJETOS\FI\simulacao\templates\simulacao\wizard_v2_resultados.html` - Adicionar intersticial
+1. `D:\PROJETOS\FI\simulacao\subscription_models.py` - Ajustar modelos se necessário
+2. `D:\PROJETOS\FI\simulacao\views.py` - Adicionar verificação de compra
 
 **Referências:**
 - Componente `admob_banner.html`
 - Frontend em `static/js/admob-integration.js`
+- Documentação Google Play Billing
+- `MONETIZACAO_SETUP.md`
 
 ---
 
@@ -34,7 +40,6 @@
 Quando abrir o Gemini no VS Code (`Alt+G`), cole EXATAMENTE isto:
 
 ```
-Gemini, preciso que você implemente duas APIs no projeto ImobCalc:
 
 CONTEXTO:
 - O frontend já tem um AdMobManager que chama /api/assinaturas/status/ e /api/monetizacao/ad-view/
@@ -115,10 +120,12 @@ Após implementar, execute o servidor e teste:
 ## 📅 ÚLTIMA ATUALIZAÇÃO
 
 **Data:** 03 de Março de 2026 - 15:45  
+**Data:** 03 de Março de 2026 - 16:00
+**Data:** 04 de Março de 2026 - 23:15
 **Desenvolvedor:** Galdino  
-**Progresso:** 51% (41 de 80 itens)  
-**Último item concluído:** ✅ Item 4.2 - APIs backend AdMob  
-**Próximo item:** 🔄 Item 4.3 - Posicionamento de anúncios
+**Progresso:** 53% (43 de 80 itens)
+**Último item concluído:** ✅ Item 4.4 - Integrar Google Play Billing
+**Próximo item:** ⬜ Item 4.5 - Lógica de assinatura Premium
 
 ---
 
@@ -126,6 +133,8 @@ Após implementar, execute o servidor e teste:
 
 | Data | Comando | Arquivos alterados | Status |
 |------|---------|-------------------|--------|
+| 04/03 | Integrar Google Play Billing | subscription_models.py, views.py, urls.py | ✅ Concluído |
+| 03/03 | Posicionamento de anúncios | base.html, wizard_v2_resultados.html | ✅ Concluído |
 | 03/03 | Criar APIs AdMob (status e tracking) | views.py, urls.py | ✅ Concluído |
 | 23/02 | Corrigir bugs wizard (pergunta duplicada, checkbox dependentes) | wizard_forms_v2.py, wizard_forms_novo.py, wizard_views_novo.py | ✅ Concluído |
 | 18/02 | Corrigir erro filtro 'mul' | templatetags/custom_filters.py, wizard_v2_resultados.html | ✅ Concluído |
@@ -157,6 +166,8 @@ Após implementar, execute o servidor e teste:
 | 4.2 | APIs backend AdMob | ✅ Concluído | - |
 | **4.3** | **Posicionamento de anúncios nas páginas** | 🔄 **FAZENDO** | **AGORA** |
 | 4.4 | Integrar Google Play Billing | ⏳ Pendente | - |
+| 4.3 | Posicionamento de anúncios nas páginas | ✅ Concluído | - |
+| **4.4** | **Integrar Google Play Billing** | 🔄 **FAZENDO** | **AGORA** |
 | 4.5 | Lógica de assinatura Premium | ⏳ Pendente | - |
 | 4.6 | Tela de upgrade para Premium | ⏳ Pendente | - |
 | 4.7 | Features exclusivas Premium | ⏳ Pendente | - |
