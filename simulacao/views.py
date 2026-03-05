@@ -9,6 +9,7 @@ from decimal import Decimal
 from django.contrib.auth.decorators import login_required
 from .models import SavedSimulation
 from .lgpd_views import audit_log
+from .subscription_models import Subscription
 
 def simulacao_view(request):
     """
@@ -164,7 +165,22 @@ def api_assinatura_status(request):
     if not request.user.is_authenticated:
         return JsonResponse({'is_premium': False})
     
-    # Por enquanto, retorna False (implementar modelo de assinatura depois)
+    # Verifica assinaturas ativas
+    active_sub = None
+    subscriptions = Subscription.objects.filter(usuario=request.user, status='ATIVA')
+    
+    for sub in subscriptions:
+        if sub.esta_ativa():
+            active_sub = sub
+            break
+            
+    if active_sub:
+        return JsonResponse({
+            'is_premium': True,
+            'plano': active_sub.plano.nome,
+            'dias_restantes': active_sub.dias_restantes()
+        })
+    
     return JsonResponse({
         'is_premium': False,
         'plano': None
