@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Upgrade para Premium - ImobCalc{% endblock %}
+
+{% block content %}
+<style>
+    .upgrade-container {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 4rem 2rem;
+        border-radius: 15px;
+        text-align: center;
+        margin-top: 2rem;
+    }
+    .upgrade-container h1 {
+        font-weight: 700;
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+    }
+    .upgrade-container p {
+        font-size: 1.2rem;
+        margin-bottom: 2.5rem;
+    }
+    .benefits-list {
+        list-style: none;
+        padding: 0;
+        margin: 2rem 0;
+        display: inline-block;
+        text-align: left;
+    }
+    .benefits-list li {
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+    }
+    .benefits-list li i {
+        color: #4dffb8; /* A vibrant green for checkmarks */
+        margin-right: 10px;
+    }
+    .planos-container {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        flex-wrap: wrap;
+    }
+    .plano {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        padding: 2rem;
+        width: 300px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .plano:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+    .plano h2 {
+        font-size: 1.8rem;
+        font-weight: 600;
+    }
+    .plano .preco {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 1rem 0;
+    }
+    .plano .preco span {
+        font-size: 1rem;
+        font-weight: 400;
+    }
+    .btn-comprar {
+        background-color: #4dffb8;
+        color: #333;
+        border: none;
+        padding: 0.8rem 2rem;
+        border-radius: 50px;
+        font-weight: 700;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+    .btn-comprar:hover {
+        background-color: #fff;
+    }
+</style>
+
+<div class="container">
+    <div class="upgrade-container">
+        <h1>✨ Torne-se Premium</h1>
+        <p>Desbloqueie todo o potencial do ImobCalc e planeje seu futuro sem limites.</p>
+
+        <ul class="benefits-list">
+            <li><i class="fas fa-check-circle"></i> Simulações ilimitadas</li>
+            <li><i class="fas fa-check-circle"></i> Sem anúncios</li>
+            <li><i class="fas fa-check-circle"></i> Exportação para PDF e Excel</li>
+            <li><i class="fas fa-check-circle"></i> Gráficos avançados de comparação</li>
+            <li><i class="fas fa-check-circle"></i> Salve e compartilhe seus cenários</li>
+            <li><i class="fas fa-check-circle"></i> Suporte prioritário</li>
+        </ul>
+
+        <hr style="border-color: rgba(255,255,255,0.3); margin: 3rem 0;">
+
+        <h2>Nossos Planos</h2>
+        <div class="planos-container mt-4">
+            {% for plano in planos %}
+            <div class="plano">
+                <h2>{{ plano.nome }}</h2>
+                <div class="preco">
+                    R$ {{ plano.preco|floatformat:2 }}
+                    <span>/{{ plano.get_duracao_display|lower }}</span>
+                </div>
+                <p>{{ plano.descricao }}</p>
+                <button class="btn btn-comprar" data-plan-id="{{ plano.id }}">Assinar Agora</button>
+            </div>
+            {% empty %}
+            <p>Nenhum plano de assinatura disponível no momento. Por favor, volte mais tarde.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Font Awesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const buttons = document.querySelectorAll('.btn-comprar');
+        buttons.forEach(button => {
+            button.addEventListener('click', function() {
+                const planId = this.getAttribute('data-plan-id');
+                if (planId) {
+                    // Redireciona para a view de checkout passando o ID do plano
+                    window.location.href = `/accounts/checkout/${planId}/`;
+                }
+            });
+        });
+    });
+</script>
+
+{% endblock %}

@@ -5,11 +5,11 @@ from .forms import FinanciamentoForm, InvestidorImobiliarioForm
 from . import utils
 import json
 from .calculadora_financeira import calcular_investidor_imobiliario
-from decimal import Decimal 
+from decimal import Decimal
 from django.contrib.auth.decorators import login_required
 from .models import SavedSimulation
 from .lgpd_views import audit_log
-from .subscription_models import Subscription
+from .subscription_models import Subscription, SubscriptionPlan
 
 def simulacao_view(request):
     """
@@ -131,6 +131,19 @@ def comparador_investimentos_view(request):
         # Renderizar formulário
         return render(request, 'simulacao/comparador_investimentos.html')
     
+@login_required
+def upgrade_premium_view(request):
+    """
+    Exibe a página de upgrade para planos Premium, mostrando os planos disponíveis.
+    """
+    # Busca todos os planos ativos e ordena pelo preço
+    planos = SubscriptionPlan.objects.filter(ativo=True).order_by('preco')
+    
+    context = {
+        'planos': planos
+    }
+    return render(request, 'simulacao/upgrade_premium.html', context)
+
 
 
 def calcular_comparador_investimentos(investimentos):

@@ -14,6 +14,7 @@ urlpatterns = [
     path('logout/', auth_views.logout_view, name='logout'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('profile/', auth_views.profile_view, name='profile'),
+    path('upgrade/', views.upgrade_premium_view, name='upgrade_premium'),
     
     # URLs de Recuperação de Senha
     path('password-reset/', auth_views.password_reset_request_view, name='password_reset_request'),
