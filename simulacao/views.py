@@ -8,6 +8,7 @@ from .calculadora_financeira import calcular_investidor_imobiliario
 from decimal import Decimal
 from django.contrib.auth.decorators import login_required
 from .models import SavedSimulation
+from .decorators import premium_required
 from .lgpd_views import audit_log
 from .subscription_models import Subscription, SubscriptionPlan
 
@@ -72,6 +73,8 @@ def dashboard(request):
     simulacoes = SavedSimulation.objects.filter(user=request.user).order_by('-criado_em')
     return render(request, 'dashboard.html', {'simulacoes': simulacoes})
 
+@login_required
+@premium_required
 def investidor_imobiliario_view(request):
     """
     View para o Cenário 6: Investidor Imobiliário.
@@ -104,6 +107,8 @@ def investidor_imobiliario_view(request):
     form = InvestidorImobiliarioForm()
     return render(request, 'simulacao/investidor_imobiliario.html', {'form': form})
 
+@login_required
+@premium_required
 def comparador_investimentos_view(request):
     """
     View para o Cenário 7: Comparador de Investimentos.
