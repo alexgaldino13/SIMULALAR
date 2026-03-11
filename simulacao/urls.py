@@ -72,6 +72,7 @@ urlpatterns = [
 
     # Exportação (Premium)
     path('exportar/excel/<int:sim_id>/', views.exportar_simulacao_excel, name='exportar_excel'),
+    path('exportar/pdf/<int:sim_id>/', views.exportar_simulacao_pdf, name='exportar_pdf'),
             
     # APIs para AdMob/Monetizacao
     path('api/assinaturas/status/', views.api_assinatura_status, name='api_assinatura_status'),

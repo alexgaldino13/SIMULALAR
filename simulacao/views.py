@@ -13,6 +13,11 @@ from .models import SavedSimulation
 from .decorators import premium_required
 from .lgpd_views import audit_log
 from .subscription_models import Subscription, SubscriptionPlan
+import io
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 
 def simulacao_view(request):
     """
@@ -274,4 +279,80 @@ def exportar_simulacao_excel(request, sim_id):
     response['Content-Disposition'] = f'attachment; filename="simulacao_{simulacao.nome.replace(" ", "_")}_{sim_id}.xlsx"'
     wb.save(response)
 
+    return response
+
+@login_required
+@premium_required
+def exportar_simulacao_pdf(request, sim_id):
+    """
+    Exporta os dados de uma simulação salva para um arquivo PDF com formatação profissional.
+    Feature exclusiva para usuários Premium.
+    """
+    try:
+        simulacao = SavedSimulation.objects.get(id=sim_id, user=request.user)
+    except SavedSimulation.DoesNotExist:
+        messages.error(request, "Simulação não encontrada ou não pertence a você.")
+        return redirect('dashboard')
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
+    elements = []
+    styles = getSampleStyleSheet()
+
+    # Título do Relatório
+    elements.append(Paragraph(f"Relatório de Simulação: {simulacao.nome}", styles['Title']))
+    elements.append(Spacer(1, 12))
+    
+    # Metadados
+    elements.append(Paragraph(f"<b>Data da Simulação:</b> {simulacao.criado_em.strftime('%d/%m/%Y %H:%M')}", styles['Normal']))
+    elements.append(Spacer(1, 24))
+
+    # Extração dos dados (mesma lógica do Excel)
+    resultados = simulacao.resultados or {}
+    tabela_amortizacao = resultados.get('price', {}).get('tabela') or resultados.get('sac', {}).get('tabela') or []
+
+    if tabela_amortizacao:
+        elements.append(Paragraph("Tabela de Amortização", styles['Heading2']))
+        elements.append(Spacer(1, 12))
+
+        # Cabeçalho da Tabela
+        data = [['Mês', 'Parcela', 'Juros', 'Amortização', 'Saldo Devedor']]
+        
+        # Dados
+        for linha in tabela_amortizacao:
+            data.append([
+                str(linha.get('mes', '')),
+                f"R$ {linha.get('parcela', 0):,.2f}",
+                f"R$ {linha.get('juros', 0):,.2f}",
+                f"R$ {linha.get('amortizacao', 0):,.2f}",
+                f"R$ {linha.get('saldo_devedor', 0):,.2f}"
+            ])
+
+        # Estilo Profissional da Tabela
+        table = Table(data, repeatRows=1)
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#667eea')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ALIGN', (1, 1), (-1, -1), 'RIGHT'),  # Alinhar valores numéricos à direita
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('ROWBACKGROUNDS', (1, 1), (-1, -1), [colors.whitesmoke, colors.white]),
+        ]))
+        elements.append(table)
+    else:
+        elements.append(Paragraph("Não há dados detalhados para exibir neste relatório.", styles['Normal']))
+
+    doc.build(elements)
+    buffer.seek(0)
+    
+    response = HttpResponse(content_type='application/pdf')
+    filename = f"simulacao_{simulacao.nome.replace(' ', '_')}_{sim_id}.pdf"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    response.write(buffer.getvalue())
+    
     return response
