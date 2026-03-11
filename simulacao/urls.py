@@ -69,6 +69,9 @@ urlpatterns = [
     # Cenário 6: Investidor Imobiliário
     path('investidor-imobiliario/', views.investidor_imobiliario_view, name='investidor_imobiliario'),
         path('comparador-investimentos/', views.comparador_investimentos_view, name='comparador_investimentos'),
+
+    # Exportação (Premium)
+    path('exportar/excel/<int:sim_id>/', views.exportar_simulacao_excel, name='exportar_excel'),
             
     # APIs para AdMob/Monetizacao
     path('api/assinaturas/status/', views.api_assinatura_status, name='api_assinatura_status'),

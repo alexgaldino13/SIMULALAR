@@ -71,9 +71,12 @@
                                     </div>
                                 </td>
                                 <td class="pe-4 text-end">
-                                    <button class="btn btn-sm btn-light rounded-pill text-muted" disabled title="Visualização em breve">
+                                    <a href="#" class="btn btn-sm btn-light rounded-pill text-muted" disabled title="Visualização em breve">
                                         <i class="fas fa-chevron-right"></i>
-                                    </button>
+                                    </a>
+                                    <a href="{% url 'exportar_excel' sim.id %}" class="btn btn-sm btn-outline-success rounded-pill" title="Exportar para Excel">
+                                        <i class="fas fa-file-excel"></i>
+                                    </a>
                                 </td>
                             </tr>
                             {% endfor %}

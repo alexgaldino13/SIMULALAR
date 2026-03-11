@@ -1,10 +1,12 @@
 from django.shortcuts import render, redirect
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.contrib import messages
 from .forms import FinanciamentoForm, InvestidorImobiliarioForm
 from . import utils
 import json
 from .calculadora_financeira import calcular_investidor_imobiliario
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment
 from decimal import Decimal
 from django.contrib.auth.decorators import login_required
 from .models import SavedSimulation
@@ -223,3 +225,53 @@ def api_registrar_ad_view(request):
         return JsonResponse({'success': True})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+
+@login_required
+@premium_required
+def exportar_simulacao_excel(request, sim_id):
+    """
+    Exporta os dados de uma simulação salva para um arquivo Excel.
+    Feature exclusiva para usuários Premium.
+    """
+    try:
+        simulacao = SavedSimulation.objects.get(id=sim_id, user=request.user)
+    except SavedSimulation.DoesNotExist:
+        messages.error(request, "Simulação não encontrada ou não pertence a você.")
+        return redirect('dashboard')
+
+    # Cria o workbook e a planilha
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Tabela de Amortização"
+
+    # Cabeçalho
+    headers = ["Mês", "Parcela", "Juros", "Amortização", "Saldo Devedor"]
+    ws.append(headers)
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+        cell.alignment = Alignment(horizontal="center")
+
+    # Dados da simulação (assumindo que os resultados estão em JSON)
+    # Acessa a tabela do cenário mais vantajoso, ou a primeira que encontrar
+    resultados = simulacao.resultados or {}
+    tabela_amortizacao = resultados.get('price', {}).get('tabela') or resultados.get('sac', {}).get('tabela') or []
+    
+    if not tabela_amortizacao:
+        messages.error(request, "Não há dados de tabela de amortização para exportar.")
+        return redirect('dashboard')
+
+    for linha in tabela_amortizacao:
+        ws.append([
+            linha.get('mes'),
+            linha.get('parcela'),
+            linha.get('juros'),
+            linha.get('amortizacao'),
+            linha.get('saldo_devedor')
+        ])
+
+    # Configura a resposta HTTP para download
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="simulacao_{simulacao.nome.replace(" ", "_")}_{sim_id}.xlsx"'
+    wb.save(response)
+
+    return response
