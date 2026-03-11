@@ -18,6 +18,9 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.graphics.shapes import Drawing
+from reportlab.graphics.charts.lineplots import LinePlot
+from reportlab.graphics.widgets.markers import makeMarker
 
 def simulacao_view(request):
     """
@@ -307,9 +310,30 @@ def exportar_simulacao_pdf(request, sim_id):
     elements.append(Paragraph(f"<b>Data da Simulação:</b> {simulacao.criado_em.strftime('%d/%m/%Y %H:%M')}", styles['Normal']))
     elements.append(Spacer(1, 24))
 
-    # Extração dos dados (mesma lógica do Excel)
+    # Extração dos dados
     resultados = simulacao.resultados or {}
-    tabela_amortizacao = resultados.get('price', {}).get('tabela') or resultados.get('sac', {}).get('tabela') or []
+    cenario_usado = 'price' if 'price' in resultados else 'sac'
+    cenario_resultado = resultados.get(cenario_usado, {})
+    tabela_amortizacao = cenario_resultado.get('tabela', [])
+
+    # Seção de Resumo da Simulação
+    elements.append(Paragraph("Resumo da Simulação", styles['Heading2']))
+    resumo_data = [
+        ['Sistema de Amortização:', cenario_usado.upper()],
+        ['Valor da Parcela Inicial:', f"R$ {cenario_resultado.get('parcela_inicial', 0):,.2f}"],
+        ['Total de Juros Pagos:', f"R$ {cenario_resultado.get('total_juros', 0):,.2f}"],
+        ['Custo Efetivo Total (CET):', f"{cenario_resultado.get('cet_anual', 0):.2f}% a.a." if cenario_resultado.get('cet_anual') else "N/A"],
+    ]
+    summary_table = Table(resumo_data, hAlign='LEFT', colWidths=[200, '*'])
+    summary_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.grey)
+    ]))
+    elements.append(summary_table)
+    elements.append(Spacer(1, 24))
 
     if tabela_amortizacao:
         elements.append(Paragraph("Tabela de Amortização", styles['Heading2']))
@@ -344,6 +368,42 @@ def exportar_simulacao_pdf(request, sim_id):
             ('ROWBACKGROUNDS', (1, 1), (-1, -1), [colors.whitesmoke, colors.white]),
         ]))
         elements.append(table)
+
+        # Gráfico de Evolução do Saldo Devedor
+        elements.append(Spacer(1, 24))
+        elements.append(Paragraph("Evolução do Saldo Devedor", styles['Heading2']))
+        elements.append(Spacer(1, 12))
+
+        drawing = Drawing(width=500, height=250)
+        chart_data = [(linha['mes'], linha['saldo_devedor']) for linha in tabela_amortizacao]
+        
+        lp = LinePlot()
+        lp.x = 50
+        lp.y = 50
+        lp.height = 180
+        lp.width = 420
+        lp.data = [chart_data]
+        lp.strokeColor = colors.HexColor('#667eea')
+        lp.lines[0].strokeWidth = 2
+        lp.lines.symbol = makeMarker('Circle', size=3, fillColor=colors.HexColor('#764ba2'))
+
+        # Eixo X (Meses)
+        lp.xValueAxis.valueMin = 0
+        lp.xValueAxis.valueMax = max(d[0] for d in chart_data) if chart_data else 1
+        lp.xValueAxis.valueStep = max(1, len(chart_data) // 10)
+        lp.xValueAxis.labels.fontName = 'Helvetica'
+        lp.xValueAxis.labels.fontSize = 7
+
+        # Eixo Y (Saldo Devedor)
+        lp.yValueAxis.valueMin = 0
+        lp.yValueAxis.valueMax = max(d[1] for d in chart_data) if chart_data else 1
+        lp.yValueAxis.labels.fontName = 'Helvetica'
+        lp.yValueAxis.labels.fontSize = 7
+        lp.yValueAxis.labelTextFormat = lambda v: f'R${v/1000:.0f}k'
+
+        drawing.add(lp)
+        elements.append(drawing)
+
     else:
         elements.append(Paragraph("Não há dados detalhados para exibir neste relatório.", styles['Normal']))
 

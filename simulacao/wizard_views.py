@@ -631,22 +631,22 @@ def _gerar_comparacao_simplificada(dados, metodos_selecionados):
                 f'Poupança mensal: {formatacao.formatar_moeda_brl(valor_mensal_guardar)}',
                 f'Rendimento: {taxa_rendimento_poupanca:.2f}% a.a.',
                 f'Tempo para juntar entrada: {tempo_compra}',
-                f'Total gasto com aluguel: {formatacao.formatar_moeda_brl(resultado["total_aluguel_pago"])}',
-                f'Capital final acumulado: {formatacao.formatar_moeda_brl(resultado["capital_final"])}',
-                f'  - Poupança: {formatacao.formatar_moeda_brl(resultado["poupanca_final"])}',
-                f'  - FGTS: {formatacao.formatar_moeda_brl(resultado["fgts_final"])}',
+                f'Total gasto com aluguel: {formatacao.formatar_moeda_brl(resultado.get("total_gasto_aluguel", 0))}',
+                f'Capital final acumulado: {formatacao.formatar_moeda_brl(resultado.get("saldo_total_final", 0))}',
+                f'  - Poupança: {formatacao.formatar_moeda_brl(resultado.get("saldo_poupanca_final", 0))}',
+                f'  - FGTS: {formatacao.formatar_moeda_brl(resultado.get("fgts_final", 0))}',
             ]
             
             resultados.append({
                 'metodo': 'Guardar Dinheiro',
                 'parcela_inicial': formatacao.formatar_moeda_brl(valor_mensal_guardar),
-                'total_custo': formatacao.formatar_moeda_brl(resultado['total_aluguel_pago']),
-                'total_pago': formatacao.formatar_moeda_brl(resultado['total_aluguel_pago'] + resultado['custo_cartorio_registro']),
+                'total_custo': formatacao.formatar_moeda_brl(resultado.get('total_gasto_aluguel', 0)),
+                'total_pago': formatacao.formatar_moeda_brl(resultado.get('total_gasto_aluguel', 0) + resultado.get('custo_cartorio_registro', 0)),
                 'prazo_final': tempo_compra,
                 'prazo_final_meses': resultado.get('meses_para_comprar', prazo_meses),
                 'status_viabilidade': status_message,
                 'detalhes_guardar': detalhes_guardar,
-                'capital_final': formatacao.formatar_moeda_brl(resultado['capital_final']),
+                'capital_final': formatacao.formatar_moeda_brl(resultado.get('saldo_total_final', 0)),
             })
     
     return resultados
