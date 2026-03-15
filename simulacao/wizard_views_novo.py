@@ -234,7 +234,7 @@ def calcular_cenarios_novo(wizard_data):
     renda_bruta = Decimal(str(renda_custos.get('renda_familiar_bruta', 8000)))
     aluguel_atual = Decimal(str(situacao.get('aluguel_atual', 0)))
     capital_guardado = Decimal(str(capital.get('saldo_dinheiro_guardado', 0)))
-    valor_imovel_proprio = Decimal(str(capital.get('valor_imovel_proprio', 0) or 0))
+    valor_imovel_atual = Decimal(str(capital.get('valor_imovel_atual', 0) or 0))
     objetivo_principal = objetivo.get('objetivo_principal', '')
 
     # Tratar valores vazios ou inválidos
@@ -251,7 +251,7 @@ def calcular_cenarios_novo(wizard_data):
     
     # Se o objetivo for trocar de imóvel, soma o valor do imóvel atual à entrada
     if objetivo_principal == 'trocar':
-        entrada += max(valor_imovel_proprio - Decimal(str(capital.get('divida_imovel_atual', 0) or 0)), Decimal('0'))
+        entrada += max(valor_imovel_atual - Decimal(str(capital.get('divida_imovel_atual', 0) or 0)), Decimal('0'))
 
     principal = valor_imovel - entrada
     

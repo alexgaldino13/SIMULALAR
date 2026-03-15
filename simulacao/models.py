@@ -334,3 +334,39 @@ class ResultadoComparacao(models.Model):
     
     def __str__(self):
         return f"{self.get_metodo_display()} para o Cenário #{self.cenario.id}"
+
+
+class LinkAfiliado(models.Model):
+    nome = models.CharField(max_length=100)  # Ex: "Caixa Economica", "Itau"
+    tipo = models.CharField(max_length=50, choices=[
+        ('banco', 'Banco'),
+        ('consorcio', 'Consorcio'),
+        ('corretora', 'Corretora'),
+        ('seguradora', 'Seguradora'),
+    ])
+    url_afiliado = models.URLField()  # Link com parametro de afiliado
+    codigo_afiliado = models.CharField(max_length=50, blank=True)
+    logo = models.ImageField(upload_to='afiliados/', blank=True, null=True)
+    ativo = models.BooleanField(default=True)
+    comissao_percentual = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    descricao = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Link Afiliado'
+        verbose_name_plural = 'Links Afiliados'
+
+    def __str__(self):
+        return f"{self.nome} ({self.tipo})"
+
+class CliqueAfiliado(models.Model):
+    link = models.ForeignKey(LinkAfiliado, on_delete=models.CASCADE)
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True)
+    pagina_origem = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Clique em Afiliado'
+        verbose_name_plural = 'Cliques em Afiliados'

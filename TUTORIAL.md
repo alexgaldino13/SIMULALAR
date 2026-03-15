@@ -7,30 +7,29 @@
 > - **NUNCA** peça para o Vercept codificar diretamente
 > - **SEMPRE** atualize este arquivo TUTORIAL.md com o progresso
 
-a
-## 🎯 PRÓXIMA TAREFA ESPECÍFICA (O QUE FAZER AGORA)
+## 🎯 PRÓXIMA TAREFA ESPECÍFICA
 
 | Item | Descrição | Arquivos | Status |
 |------|-----------|----------|--------|
-| **4.3** | Posicionamento de anúncios | `templates/` | 🔄 FAZER AGORA |
-| **4.4** | Integrar Google Play Billing | `subscription_models.py` | 🔄 FAZER AGORA |
+| **4.11** | Testar fluxo completo de monetização | `todos os arquivos` | ⏳ PENDENTE |
 
 ### 📋 DETALHAMENTO DA TAREFA
 
-**Objetivo:** Inserir os banners e intersticiais nas páginas do sistema.
-**Objetivo:** Configurar produtos de assinatura e fluxo de pagamento.
+**Objetivo:** Testar todo o fluxo de monetização implementado (AdMob + Assinaturas + Afiliados).
 
-**Arquivos que serão modificados:**
-1. `D:\PROJETOS\FI\Templates\base.html` - Adicionar banner no rodapé
-2. `D:\PROJETOS\FI\simulacao\templates\simulacao\wizard_v2_resultados.html` - Adicionar intersticial
-1. `D:\PROJETOS\FI\simulacao\subscription_models.py` - Ajustar modelos se necessário
-2. `D:\PROJETOS\FI\simulacao\views.py` - Adicionar verificação de compra
+**Testes a realizar:**
+1. Verificar exibição de banners AdMob
+2. Testar intersticial após simulação
+3. Testar bloqueio de features premium
+4. Testar redirecionamento de links afiliados
+5. Verificar tracking de cliques
 
-**Referências:**
-- Componente `admob_banner.html`
-- Frontend em `static/js/admob-integration.js`
-- Documentação Google Play Billing
-- `MONETIZACAO_SETUP.md`
+**Checklist:**
+- [ ] Banner aparece no rodapé
+- [ ] Intersticial aparece após resultados
+- [ ] Usuário não-premium é bloqueado em features exclusivas
+- [ ] Links afiliados redirecionam corretamente
+- [ ] Cliques são registrados no admin
 
 
 ## 🤖 COMANDO PRONTO PARA O GEMINI (copiar e colar)
@@ -38,102 +37,58 @@ a
 Quando abrir o Gemini no VS Code (`Alt+G`), cole EXATAMENTE isto:
 
 ```
+TAREFA: TESTE MANUAL DO FLUXO DE MONETIZAÇÃO
 
-CONTEXTO:
-- O frontend já tem um AdMobManager que chama /api/assinaturas/status/ e /api/monetizacao/ad-view/
-- Essas APIs ainda não existem
-- O modelo Subscription já existe em subscription_models.py
+Não há código para implementar nesta etapa. 
+Esta é uma tarefa de TESTE MANUAL que o desenvolvedor deve realizar:
 
-TAREFA 1 - API DE STATUS DE ASSINATURA:
-1. Abra o arquivo D:\PROJETOS\FI\simulacao\views.py
-2. Adicione no topo: from django.http import JsonResponse
-3. Adicione: import json
-4. Crie a seguinte função:
+1. Iniciar o servidor Django
+2. Acessar http://127.0.0.1:8000/
+3. Fazer uma simulação completa
+4. Verificar se os banners AdMob aparecem
+5. Verificar se o intersticial aparece após os resultados
+6. Tentar acessar features premium sem estar logado
+7. Criar um link afiliado no admin e testar o redirecionamento
+8. Verificar no admin se os cliques foram registrados
 
-def api_assinatura_status(request):
-    """
-    Retorna se o usuário atual tem assinatura premium ativa.
-    """
-    if not request.user.is_authenticated:
-        return JsonResponse({'is_premium': False})
-    
-    from .subscription_models import Subscription
-    from django.utils import timezone
-    
-    has_active = Subscription.objects.filter(
-        user=request.user,
-        ativo=True,
-        data_expiracao__gt=timezone.now()
-    ).exists()
-    
-    return JsonResponse({'is_premium': has_active})
-
-TAREFA 2 - API DE TRACKING DE ANÚNCIOS:
-1. No mesmo arquivo views.py, adicione:
-
-def api_registrar_ad_view(request):
-    """
-    Registra visualização de anúncio (banner, interstitial, rewarded).
-    """
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Método não permitido'}, status=405)
-    
-    try:
-        data = json.loads(request.body)
-        ad_type = data.get('ad_type', 'unknown')
-        
-        # Por enquanto só loga no console
-        user_info = f"usuário {request.user.id}" if request.user.is_authenticated else "visitante anônimo"
-        print(f"📊 AdMob - {ad_type} exibido para {user_info}")
-        
-        return JsonResponse({'status': 'logged', 'ad_type': ad_type})
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
-
-TAREFA 3 - ADICIONAR AS ROTAS:
-1. Abra o arquivo D:\PROJETOS\FI\simulacao\urls.py
-2. Adicione estas duas linhas no final do bloco urlpatterns:
-
-    path('api/assinaturas/status/', views.api_assinatura_status, name='api_assinatura_status'),
-    path('api/monetizacao/ad-view/', views.api_registrar_ad_view, name='api_registrar_ad_view'),
-
-TAREFA 4 - VERIFICAÇÃO:
-Após implementar, execute o servidor e teste:
-- Acesse http://127.0.0.1:8000/api/assinaturas/status/ (deve retornar JSON)
-- Use Postman ou Insomnia para testar POST em http://127.0.0.1:8000/api/monetizacao/ad-view/ com body: {"ad_type": "banner"}
+Após os testes, atualizar o TUTORIAL.md com os resultados.
 ```
 
 
 ## ✅ CHECKLIST DE TESTE (após implementar)
 
-- [ ] Acessar `/comparador-investimentos/` como usuário não-premium redireciona para a página de upgrade.
-- [ ] Acessar `/comparador-investimentos/` como usuário premium funciona normalmente.
-- [ ] Acessar `/investidor-imobiliario/` como usuário não-premium redireciona.
+- [ ] Banner AdMob aparece no rodapé de todas as páginas
+- [ ] Intersticial aparece após visualizar resultados da simulação
+- [ ] Acessar `/comparador-investimentos/` como usuário não-premium redireciona para a página de upgrade
+- [ ] Acessar `/comparador-investimentos/` como usuário premium funciona normalmente
+- [ ] Acessar `/investidor-imobiliario/` como usuário não-premium redireciona
+- [ ] Links afiliados redirecionam corretamente
+- [ ] Cliques em links afiliados são registrados no banco de dados
 
 
 ## 📅 ÚLTIMA ATUALIZAÇÃO
 
-**Data:** 10 de Março de 2026
+**Data:** 15 de Março de 2026 - 14:16
 **Desenvolvedor:** Galdino  
-**Progresso:** 57% (47 de 80 itens)
-**Último item concluído:** ✅ Item 4.9 - Sistema de geração PDF (melhorado com gráficos)
-**Próximo item:** ⬜ Item 4.3 - Posicionamento de anúncios
+**Progresso:** 60% (48 de 80 itens)
+**Último item concluído:** ✅ Item 4.10 - Sistema de Links Afiliados
+**Próximo item:** ⬜ Item 4.11 - Testar fluxo completo
 
 ## 📜 HISTÓRICO DE COMANDOS DADOS AO GEMINI
 
 | Data | Comando | Arquivos alterados | Status |
 |------|---------|-------------------|--------|
+| 15/03 | Implementar sistema de Links Afiliados (item 4.10) | models.py, views.py, urls.py, admin.py | ✅ Concluído |
 | 10/03 | Implementar sistema de geração Excel (item 4.8) | views.py, urls.py, dashboard.html | ✅ Concluído |
 | 10/03 | Implementar features exclusivas Premium (item 4.7) | views.py | ✅ Concluído |
+| 10/03 | Melhorar sistema PDF (Item 4.9) + corrigir KeyError | views.py, wizard_views.py | ✅ Concluído |
 | 06/03 | Criar tela de upgrade para Premium | views.py, urls.py, upgrade_premium.html | ✅ Concluído |
 | 05/03 | Lógica de assinatura Premium | subscription_models.py, views.py, decorators.py | ✅ Concluído |
 | 04/03 | Integrar Google Play Billing | subscription_models.py, views.py, urls.py | ✅ Concluído |
-| 03/03 | Posicionamento de anúncios | base.html, wizard_v2_resgit status
-ados.html | ✅ Concluído |
+| 03/03 | Posicionamento de anúncios | base.html, wizard_v2_resultados.html | ✅ Concluído |
 | 03/03 | Criar APIs AdMob (status e tracking) | views.py, urls.py | ✅ Concluído |
 | 23/02 | Corrigir bugs wizard (pergunta duplicada, checkbox dependentes) | wizard_forms_v2.py, wizard_forms_novo.py, wizard_views_novo.py | ✅ Concluído |
-| 18/02 | Corrigir erro filtro 'mul' | templatetags/custom_filters.py, 
-| 10/03 | Melhorar sistema PDF (Item 4.9) + corrigir KeyError | views.py, wizard_views.py | ✅ Concluído |wizard_v2_resultados.html | ✅ Concluído |
+| 18/02 | Corrigir erro filtro 'mul' | templatetags/custom_filters.py, wizard_v2_resultados.html | ✅ Concluído |
 
 ---
 
@@ -154,7 +109,7 @@ ados.html | ✅ Concluído |
 
 ## 📋 PRÓXIMOS PASSOS (fila de tarefas)
 
-### 🔄 FASE 4: Monetização (Em Andamento - 18%)
+### 🔄 FASE 4: Monetização (Em Andamento - 91%)
 
 | Item | Descrição | Status | Próximo |
 |------|-----------|--------|---------|
@@ -164,11 +119,11 @@ ados.html | ✅ Concluído |
 | 4.4 | Integrar Google Play Billing | ✅ Concluído | - |
 | 4.5 | Lógica de assinatura Premium | ✅ Concluído | - |
 | 4.6 | Tela de upgrade para Premium | ✅ Concluído | - |
-| **4.7** | **Features exclusivas Premium** | ✅ **Concluído** | - |
-| 4.8 | Sistema de geração Excel | ⏳ Pendente | ➡️ |
-| 4.9 | Sistema de geração PDF | ⏳ Pendente | |
-| 4.10 | Sistema de Links Afiliados | ⏳ Pendente | |
-| 4.11 | Testar fluxo completo | ⏳ Pendente | - |
+| 4.7 | Features exclusivas Premium | ✅ Concluído | - |
+| 4.8 | Sistema de geração Excel | ✅ Concluído | - |
+| 4.9 | Sistema de geração PDF | ✅ Concluído | - |
+| 4.10 | Sistema de Links Afiliados | ✅ Concluído | - |
+| **4.11** | **Testar fluxo completo** | ⏳ **Pendente** | ➡️ |
 
 
 ## 🚀 COMO INICIAR O PROJETO (sempre que abrir)
@@ -203,7 +158,7 @@ git push origin main
 4. **Faça commit** das alterações:
    ```bash
    git add .
-   git commit -m "feat: implementadas APIs AdMob (item 4.2)"
+   git commit -m "feat: implementado sistema de links afiliados (item 4.10)"
    ```
 5. **Avise:** "Pronto para próximo chat. O TUTORIAL.md está atualizado com o próximo item."
 
@@ -217,7 +172,7 @@ git push origin main
 - ✅ FASE 3: Parcerias (100%)
 
 **Fase em Andamento:**
-- 🔄 FASE 4: Monetização (18% - 2/11 itens)
+- 🔄 FASE 4: Monetização (91% - 10/11 itens)
 
 **Fases Futuras:**
 - ⏳ FASE 5: Design e UX (0%)
@@ -267,3 +222,44 @@ Você é o **Arquiteto de Soluções**. Sua função:
 ---
 
 **🚀 BOM DESENVOLVIMENTO!**
+
+
+---
+
+## ✅ ATUALIZAÇÃO - 15/03/2026 14:16
+
+### TAREFAS CONCLUÍDAS:
+
+**4.10 - Sistema de Links Afiliados** ✅
+- Modelos criados: `LinkAfiliado` e `CliqueAfiliado`
+- Views criadas: `redirecionar_afiliado` e `api_links_afiliados`
+- URLs configuradas: `/afiliado/<id>/` e `/api/afiliados/`
+- Admin configurado para gerenciar links e visualizar cliques
+- Migrations aplicadas com sucesso
+
+**BUG CORRIGIDO - Referência a auth.User** ✅
+- **Problema**: Erro `fields.E301` ao usar `'auth.User'` em projeto com usuário customizado
+- **Solução**: Alterado para `settings.AUTH_USER_MODEL` no modelo `CliqueAfiliado`
+
+### PRÓXIMOS PASSOS:
+
+**Item 4.11 - Testar fluxo completo de monetização**
+
+Checklist de testes:
+1. Iniciar servidor Django
+2. Verificar banners AdMob no rodapé
+3. Fazer simulação e verificar intersticial
+4. Testar bloqueio de features premium
+5. Criar link afiliado no admin
+6. Testar redirecionamento e tracking de cliques
+
+### ARQUIVOS MODIFICADOS:
+- `D:\PROJETOS\FI\simulacao\models.py` (+36 linhas)
+- `D:\PROJETOS\FI\simulacao\views.py` (+28 linhas)
+- `D:\PROJETOS\FI\simulacao\urls.py` (+3 linhas)
+- `D:\PROJETOS\FI\simulacao\admin.py` (+15 linhas)
+- `D:\PROJETOS\FI\simulacao\migrations\0003_linkafiliado_cliqueafiliado.py` (nova migration)
+
+### SERVIDOR:
+- Django pronto para rodar
+- Próximo: Testes manuais do fluxo completo

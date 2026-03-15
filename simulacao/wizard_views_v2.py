@@ -1,12 +1,17 @@
 """
 Wizard V2 - Views Reorganizadas com Inteligência de Recomendação
 """
-
-from django.shortcuts import render, redirect
+from django.http import HttpResponse
+from django.shortcuts import render, redirect, get_object_or_404
+from django.template.loader import get_template
 from decimal import Decimal
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from .models import SavedSimulation
 from . import wizard_forms_v2 as forms_v2
-from .utils import calcular_price_sac
+from .utils import calcular_price_sac, calcular_margem_credito, calcular_acumulo_fgts, calcular_cenario_80_porcento
 from .recomendacao_inteligente import analisar_perfil_e_recomendar
+from .calculadora_financeira import calcular_mcmv
 
 
 # Constantes
@@ -193,6 +198,7 @@ def wizard_v2_resultados(request):
     # Calcula cenários selecionados
     resultados = {}
     
+    # --- FINANCIAMENTOS TRADICIONAIS ---
     # PRICE
     if cenarios.get('comparar_financiamento_price'):
         resultado_price = _calcular_financiamento(
@@ -221,6 +227,7 @@ def wizard_v2_resultados(request):
         )
         resultados['sac'] = resultado_sac
     
+    # --- CONSÓRCIO ---
     # Consórcio (com detalhes)
     if cenarios.get('comparar_consorcio'):
         resultado_consorcio = _calcular_consorcio_detalhado(
@@ -234,18 +241,7 @@ def wizard_v2_resultados(request):
         )
         resultados['consorcio'] = resultado_consorcio
     
-    # Consórcio ANTIGO (simplificado) - REMOVIDO
-    # if cenarios.get('comparar_consorcio'):
-    #     parcela_consorcio = valor_imovel / (prazo_anos * 12)
-    #     resultados['consorcio'] = {
-    #         'metodo': 'Consórcio',
-    #         'parcela_inicial': float(parcela_consorcio),
-    #         'total_custo': float(valor_imovel),
-    #         'total_desembolso': float(valor_imovel + (aluguel_atual * prazo_meses)),
-    #         'prazo_final_anos': prazo_anos,
-    #         'patrimonio_final': float(valor_imovel),
-    #     }
-    
+    # --- GUARDAR DINHEIRO ---
     # Guardar Dinheiro
     if cenarios.get('comparar_guardar_dinheiro'):
         despesas_fixas = Decimal(str(financas.get('despesas_mensais_fixas', 0)))
@@ -264,6 +260,49 @@ def wizard_v2_resultados(request):
             
             if resultado_guardar:
                 resultados['guardar_dinheiro'] = resultado_guardar
+
+    # --- CENÁRIOS MIGRADOS ---
+    taxa_investimento = Decimal(str(cenarios.get('taxa_investimento_esperada', 9.5)))
+
+    # MCMV
+    if cenarios.get('comparar_mcmv'):
+        resultado_mcmv = calcular_mcmv(
+            valor_imovel=valor_imovel,
+            renda_familiar_mensal=renda_bruta,
+            valor_entrada=capital_guardado,
+            prazo_meses=prazo_meses,
+            usa_fgts=cenarios.get('usar_fgts', True),
+            valor_fgts_disponivel=fgts_saldo
+        )
+        if resultado_mcmv['qualificado']:
+            resultado_mcmv['metodo'] = f"MCMV - Faixa {resultado_mcmv['faixa']}"
+            resultado_mcmv['parcela_inicial'] = resultado_mcmv['parcela_media']
+            resultado_mcmv['total_desembolso'] = resultado_mcmv['custo_total'] + float(capital_guardado)
+            resultado_mcmv['patrimonio_final'] = float(valor_imovel)
+            resultados['mcmv'] = resultado_mcmv
+
+    # Aluguel + Investimento
+    if cenarios.get('comparar_aluguel_investimento'):
+        resultado_aluguel = _v2_calcular_aluguel_investimento(
+            aluguel_mensal=aluguel_atual,
+            capital_inicial=capital_guardado,
+            renda_bruta=renda_bruta,
+            taxa_investimento=taxa_investimento,
+            prazo_anos=prazo_anos,
+            valor_imovel_futuro=valor_imovel,
+        )
+        resultados['aluguel_investimento'] = resultado_aluguel
+
+    # Compra à Vista
+    if cenarios.get('comparar_compra_a_vista') and capital_guardado >= valor_imovel:
+        resultado_a_vista = _v2_calcular_compra_a_vista(
+            valor_imovel=valor_imovel,
+            capital_disponivel=capital_guardado,
+            taxa_investimento=taxa_investimento,
+            prazo_anos=prazo_anos,
+        )
+        if resultado_a_vista:
+            resultados['compra_a_vista'] = resultado_a_vista
     
     # Gera recomendação inteligente
     analise = analisar_perfil_e_recomendar(wizard_data, resultados)
@@ -290,6 +329,82 @@ def wizard_v2_resultados(request):
     }
     
     return render(request, 'simulacao/wizard_v2_resultados.html', context)
+
+
+def _v2_calcular_aluguel_investimento(aluguel_mensal, capital_inicial, renda_bruta,
+                                   taxa_investimento, prazo_anos, valor_imovel_futuro):
+    """
+    (MIGRADO) Calcula cenário de aluguel contínuo + investimento da diferença.
+    """
+    prazo_meses = prazo_anos * 12
+    custo_aluguel_total = aluguel_mensal * Decimal(prazo_meses)
+    renda_disponivel = renda_bruta - (aluguel_mensal + Decimal('2000'))
+    aporte_mensal = max(renda_disponivel * Decimal('0.1'), Decimal('0'))
+    total_aportes = aporte_mensal * Decimal(prazo_meses)
+    taxa_mensal = (taxa_investimento / 100) / 12
+    montante_investido = capital_inicial
+    
+    for mes in range(prazo_meses):
+        montante_investido = montante_investido * (1 + taxa_mensal) + aporte_mensal
+    
+    ganho_investimento = montante_investido - capital_inicial - total_aportes
+    pode_comprar = montante_investido >= valor_imovel_futuro
+    patrimonio_final = montante_investido
+    
+    comprometimento = (aluguel_mensal / renda_bruta) * 100 if renda_bruta > 0 else Decimal('0')
+
+    return {
+        'metodo': 'Aluguel + Investimento',
+        'aluguel_mensal': float(aluguel_mensal),
+        'total_aluguel_gasto': float(custo_aluguel_total),
+        'aporte_mensal_investimento': float(aporte_mensal),
+        'total_aportes': float(total_aportes),
+        'capital_inicial': float(capital_inicial),
+        'taxa_investimento': float(taxa_investimento),
+        'montante_final_investimento': float(montante_investido),
+        'ganho_com_investimento': float(ganho_investimento),
+        'pode_comprar_imovel': pode_comprar,
+        'valor_imovel_alvo': float(valor_imovel_futuro),
+        'sobra_apos_compra': float(montante_investido - valor_imovel_futuro) if pode_comprar else 0.0,
+        'patrimonio_final_total': float(montante_investido),
+        'total_custo': float(custo_aluguel_total),
+        'total_desembolso': float(custo_aluguel_total),
+        'patrimonio_final': float(patrimonio_final),
+        'resumo_explicativo': f'💸 Continue alugando e invista a diferença. Seu dinheiro rende e pode superar a valorização do imóvel. Ideal se você não tem pressa e busca flexibilidade.',
+        'comprometimento_renda': float(comprometimento),
+        'alerta_comprometimento': comprometimento > 30,
+    }
+
+
+def _v2_calcular_compra_a_vista(valor_imovel, capital_disponivel, taxa_investimento, prazo_anos):
+    """
+    (MIGRADO) Calcula compra à vista do imóvel + investimento da sobra.
+    """
+    prazo_meses = prazo_anos * 12
+    sobra = capital_disponivel - valor_imovel
+    
+    if sobra <= 0:
+        return None
+    
+    taxa_mensal = (taxa_investimento / 100) / 12
+    montante_investido = sobra
+    
+    for _ in range(prazo_meses):
+        montante_investido = montante_investido * (1 + taxa_mensal)
+    
+    patrimonio_total = valor_imovel + montante_investido
+    
+    return {
+        'metodo': 'Compra à Vista + Investimento',
+        'valor_imovel_comprado': float(valor_imovel),
+        'capital_disponivel': float(capital_disponivel),
+        'valor_sobra_para_investir': float(sobra),
+        'montante_investido_final': float(montante_investido),
+        'patrimonio_final': float(patrimonio_total),
+        'total_custo': float(valor_imovel),
+        'total_desembolso': float(valor_imovel),
+        'resumo_explicativo': '🎉 Parabéns! Comprar à vista elimina dívidas e juros. A sobra do seu capital continua rendendo, aumentando seu patrimônio.',
+    }
 
 
 def _calcular_guardar_dinheiro(capital_inicial, valor_imovel_alvo, taxa_retorno_anual, 
@@ -528,3 +643,54 @@ def wizard_v2_reset(request):
     if 'wizard_v2_current_step' in request.session:
         del request.session['wizard_v2_current_step']
     return redirect('wizard_v2')
+
+
+@login_required
+def salvar_simulacao_v2(request):
+    """
+    (MIGRADO) Salva a simulação V2 no banco de dados para o usuário logado.
+    """
+    if 'wizard_v2_data' not in request.session:
+        messages.warning(request, "Nenhuma simulação encontrada para salvar.")
+        return redirect('wizard_v2')
+    
+    wizard_data = request.session.get('wizard_v2_data', {})
+    resultados = request.session.get('wizard_v2_resultados', {})
+    
+    # Cria um nome descritivo baseado no valor do imóvel
+    valor = wizard_data.get('imovel_desejado', {}).get('valor_imovel_desejado', 0)
+    try:
+        valor_fmt = f"{float(valor):,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+    except:
+        valor_fmt = str(valor)
+        
+    nome = f"Simulação V2 R$ {valor_fmt}"
+    
+    SavedSimulation.objects.create(
+        user=request.user,
+        titulo=nome,
+        dados_wizard=wizard_data,
+        resultados=resultados
+    )
+    
+    messages.success(request, "Simulação salva com sucesso no seu Dashboard!")
+    return redirect('dashboard')
+
+
+def exportar_pdf_simulacao_v2(request):
+    """
+    (MIGRADO) Gera um PDF com os resultados da simulação V2.
+    """
+    try:
+        from xhtml2pdf import pisa
+    except ImportError:
+        return HttpResponse("Erro: Biblioteca xhtml2pdf não instalada. Execute: pip install xhtml2pdf")
+
+    if 'wizard_v2_resultados' not in request.session:
+        messages.warning(request, "Nenhuma simulação para exportar.")
+        return redirect('wizard_v2')
+
+    # Esta função agora é um stub. A lógica completa de geração de PDF
+    # com gráficos e tabelas está na view `exportar_simulacao_pdf` que
+    # usa um ID de simulação salva, que é uma feature premium.
+    return HttpResponse("Funcionalidade de exportar PDF direto da sessão será implementada em uma versão futura. Salve sua simulação para exportá-la.")

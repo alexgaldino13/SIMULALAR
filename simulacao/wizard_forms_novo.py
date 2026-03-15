@@ -182,36 +182,8 @@ class WizardSituacaoAtualForm(forms.Form):
 # ============================================================================
 class WizardCapitalForm(forms.Form):
     """Quanto você tem de capital para investir?"""
-    
-    valor_imovel_proprio = forms.DecimalField(
-        max_digits=15,
-        decimal_places=2,
-        label="Valor do seu imóvel próprio (R$ 0 se não tiver)",
-        required=False,
-        initial=Decimal('0.00'),
-        widget=forms.NumberInput(attrs={
-            'step': '0.01',
-            'min': '0',
-            'class': 'form-control',
-            'placeholder': '500000'
-        }),
-        help_text="💡 Use valores de mercado ou avaliação de imobiliária"
-    )
-    
-    saldo_dinheiro_guardado = forms.DecimalField(
-        max_digits=15,
-        decimal_places=2,
-        label="Quanto você tem guardado em poupança/investimento? (R$)",
-        required=True,
-        initial=Decimal('50000.00'),
-        widget=forms.NumberInput(attrs={
-            'step': '0.01',
-            'min': '0',
-            'class': 'form-control',
-            'placeholder': '50000'
-        }),
-        help_text="💰 Poupança, CDB, Tesouro, etc. (valor total disponível)"
-    )
+            
+        
     
     saldo_fgts = forms.DecimalField(
         max_digits=15,

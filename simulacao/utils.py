@@ -43,6 +43,80 @@ def formatar_moeda_brl(valor):
         return f"R$ {final_str}"
 
 # ----------------------------------------------------------------------
+# FUNÇÃO DE CÁLCULO DE MARGEM DE CRÉDITO
+# ----------------------------------------------------------------------
+
+def calcular_margem_credito(renda_familiar_bruta, outras_rendas=0.0, percentual_comprometimento=30.0, desconto_outras_rendas=25.0):
+    """
+    Calcula a margem de crédito e a parcela máxima que o usuário pode pagar.
+
+    Args:
+        renda_familiar_bruta (float): Renda principal (CLT, etc.).
+        outras_rendas (float): Rendas adicionais (autônomo, aluguéis).
+        percentual_comprometimento (float): Percentual da renda que pode ser comprometido (padrão 30%).
+        desconto_outras_rendas (float): Percentual de desconto aplicado sobre outras rendas (padrão 25%).
+
+    Returns:
+        dict: Dicionário com detalhes da margem de crédito.
+    """
+    renda_bruta_dec = Decimal(str(renda_familiar_bruta))
+    outras_rendas_dec = Decimal(str(outras_rendas))
+    
+    # Aplica desconto sobre outras rendas
+    fator_desconto = Decimal(str(1 - (desconto_outras_rendas / 100)))
+    renda_adicional_considerada = outras_rendas_dec * fator_desconto
+    
+    # Renda total considerada pelo banco
+    renda_total_considerada = renda_bruta_dec + renda_adicional_considerada
+    
+    # Calcula parcela máxima (margem de crédito)
+    fator_comprometimento = Decimal(str(percentual_comprometimento / 100))
+    parcela_maxima = renda_total_considerada * fator_comprometimento
+    
+    return {
+        'renda_total_bruta': float(renda_bruta_dec + outras_rendas_dec),
+        'renda_total_considerada': float(renda_total_considerada),
+        'parcela_maxima': float(parcela_maxima),
+        'percentual_comprometimento': percentual_comprometimento,
+        'desconto_aplicado_outras_rendas': desconto_outras_rendas,
+    }
+
+
+def calcular_acumulo_fgts(salario_bruto, meses_ate_compra):
+    """
+    Estima o acúmulo de FGTS futuro.
+    """
+    # Lógica simplificada: 8% do salário por mês, com rendimento de 3% a.a.
+    deposito_mensal = Decimal(str(salario_bruto)) * Decimal('0.08')
+    taxa_rendimento_mensal = (Decimal('1.03') ** (Decimal('1')/Decimal('12'))) - 1
+    
+    saldo_fgts_futuro = Decimal('0')
+    for _ in range(meses_ate_compra):
+        saldo_fgts_futuro = (saldo_fgts_futuro + deposito_mensal) * (1 + taxa_rendimento_mensal)
+        
+    return {
+        'saldo_estimado': float(saldo_fgts_futuro),
+        'meses_acumulando': meses_ate_compra,
+        'observacao': 'Estimativa simplificada. O valor real pode variar.'
+    }
+
+
+def calcular_cenario_80_porcento(valor_imovel, capital_disponivel, aluguel_mensal, taxa_juros_financiamento, taxa_investimento, prazo_anos):
+    """
+    (STUB) Calcula um cenário especial para quem já tem 80% do valor do imóvel.
+    """
+    # TODO: Implementar a lógica de comparação:
+    # 1. Financiar os 20% restantes.
+    # 2. Alugar por mais um tempo e investir o capital para comprar à vista.
+    return {
+        'nome': 'Cenário 80%+',
+        'viavel': True,
+        'observacao': 'Análise detalhada para este cenário ainda não implementada.',
+        'sugestao': 'Com seu capital atual, financiar o valor restante é uma excelente opção com baixo risco.'
+    }
+
+
+# ----------------------------------------------------------------------
 # FUNÇÃO 1: CÁLCULO PRICE/SAC (COM LÓGICA DE AMORTIZAÇÃO FGTS) - CORRIGIDA
 # ----------------------------------------------------------------------
 
@@ -588,4 +662,3 @@ def guardar_dinheiro(
         'tempo_para_comprar_meses': 0,
         'viavel': saldo_total_final >= Decimal(str(valor_imovel))
     }
-

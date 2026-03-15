@@ -345,5 +345,37 @@
             </a>
         </div>
     </div>
+
+        <!-- Anúncio Intersticial (apenas para usuários não-premium) -->
+    {% if not request.user.is_authenticated or not is_premium %}
+    <script>
+        // Configuração do Anúncio Intersticial
+        (adsbygoogle = window.adsbygoogle || []).push({
+            google_ad_client: "ca-pub-XXXXXXXXXXXXXXXX",
+            enable_page_level_ads: true
+        });
+        
+        // Função para mostrar intersticial após visualizar resultados
+        function showInterstitialAd() {
+            if (typeof adsbygoogle !== 'undefined') {
+                // Registrar visualização do anúncio
+                fetch('/api/ads/view/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({
+                        ad_type: 'interstitial',
+                        page: 'wizard_v2_resultados'
+                    })
+                });
+            }
+        }
+        
+        // Mostrar intersticial após 3 segundos na página de resultados
+        setTimeout(showInterstitialAd, 3000);
+    </script>
+    {% endif %}
 </body>
 </html>

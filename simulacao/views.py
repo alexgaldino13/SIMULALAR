@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse
 from django.contrib import messages
 from .forms import FinanciamentoForm, InvestidorImobiliarioForm
@@ -416,3 +416,51 @@ def exportar_simulacao_pdf(request, sim_id):
     response.write(buffer.getvalue())
     
     return response
+
+
+# ============================================
+# TAREFA 1 - API DE STATUS DE ASSINATURA
+# ============================================
+def api_assinatura_status(request):
+    """
+    Retorna se o usuário atual tem assinatura premium ativa.
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({'is_premium': False})
+    
+    from .subscription_models import Subscription
+    from django.utils import timezone
+    
+    has_active = Subscription.objects.filter(
+                    usuario=request.user,
+                                status='ATIVA',
+        data_expiracao__gt=timezone.now()
+    ).exists()
+    
+    return JsonResponse({'is_premium': has_active})
+
+def redirecionar_afiliado(request, link_id):
+    from .models import LinkAfiliado, CliqueAfiliado
+    link = get_object_or_404(LinkAfiliado, id=link_id, ativo=True)
+    
+    # Registrar clique
+    CliqueAfiliado.objects.create(
+        link=link,
+        usuario=request.user if request.user.is_authenticated else None,
+        ip_address=request.META.get('REMOTE_ADDR'),
+        user_agent=request.META.get('HTTP_USER_AGENT', ''),
+        pagina_origem=request.META.get('HTTP_REFERER', '')
+    )
+    
+    return redirect(link.url_afiliado)
+
+def api_links_afiliados(request):
+    from .models import LinkAfiliado
+    tipo = request.GET.get('tipo', None)
+    links = LinkAfiliado.objects.filter(ativo=True)
+    if tipo:
+        links = links.filter(tipo=tipo)
+    
+    data = [{'id': l.id, 'nome': l.nome, 'tipo': l.tipo, 'url': f'/afiliado/{l.id}/', 'logo': l.logo.url if l.logo else None, 'descricao': l.descricao} for l in links]
+    
+    return JsonResponse({'links': data})

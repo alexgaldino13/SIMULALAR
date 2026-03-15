@@ -430,6 +430,13 @@ class WizardCenariosForm(BaseWizardForm):
         help_text="⏱️ Ajuda a calcular se consórcio é viável para seu prazo"
     )
     
+    comparar_mcmv = forms.BooleanField(
+        label="Minha Casa Minha Vida (MCMV)",
+        required=False,
+        initial=False,
+        help_text="🏠 Subsídios e taxas reduzidas (se elegível)"
+    )
+    
     comparar_aluguel_investimento = forms.BooleanField(
         label="Continuar alugando + Investir diferença",
         required=False,
@@ -441,7 +448,7 @@ class WizardCenariosForm(BaseWizardForm):
         label="Compra à vista + Investir sobra",
         required=False,
         initial=False,
-        help_text="✓ Se tiver dinheiro suficiente"
+        help_text="✓ Apenas se o seu dinheiro guardado cobre o valor do imóvel"
     )
     
     comparar_guardar_dinheiro = forms.BooleanField(
@@ -525,6 +532,7 @@ class WizardCenariosForm(BaseWizardForm):
         cenarios_selecionados = [
             cleaned_data.get('comparar_financiamento_price'),
             cleaned_data.get('comparar_financiamento_sac'),
+            cleaned_data.get('comparar_mcmv'),
             cleaned_data.get('comparar_consorcio'),
             cleaned_data.get('comparar_aluguel_investimento'),
             cleaned_data.get('comparar_compra_a_vista'),
