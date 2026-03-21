@@ -167,6 +167,14 @@
             background: #e0e0e0;
         }
     </style>
+    <!-- CSS - usar minificado em produção -->
+    {% if DEBUG %}
+        <link rel="stylesheet" href="{% static 'css/wizard-responsive.css' %}">
+    {% else %}
+        <link rel="stylesheet" href="{% static 'css/wizard-responsive.min.css' %}">
+    {% endif %}
+    <!-- Cleave.js para formatação de campos monetários -->
+    <script src="https://cdn.jsdelivr.net/npm/cleave.js@1.6.0/dist/cleave.min.js"></script>
 </head>
 <body>
     <div class="wizard-container">
@@ -188,11 +196,11 @@
                     <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                     
                     {% if field.field.widget.input_type == 'radio' %}
-                        <div class="radio-group">
+                        <div class="poll-cards-container">
                             {% for choice in field %}
-                                <label class="radio-option">
+                                <label class="poll-card">
                                     {{ choice.tag }}
-                                    <span>{{ choice.choice_label }}</span>
+                                    <span class="poll-card-label">{{ choice.choice_label }}</span>
                                 </label>
                             {% endfor %}
                         </div>
@@ -250,5 +258,14 @@
             </div>
         </form>
     </div>
+    <!-- Cleave.js para formatação monetária -->
+    <script src="https://cdn.jsdelivr.net/npm/cleave.js@1.6.0/dist/cleave.min.js"></script>
+    
+    <!-- JavaScript - usar minificado em produção -->
+    {% if DEBUG %}
+        <script src="{% static 'js/wizard.js' %}"></script>
+    {% else %}
+        <script src="{% static 'js/wizard.min.js' %}"></script>
+    {% endif %}
 </body>
 </html>

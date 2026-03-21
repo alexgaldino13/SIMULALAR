@@ -71,9 +71,8 @@ class WizardPerfilObjetivosForm(BaseWizardForm):
         label="Quanto você paga de aluguel por mês? (R$)",
         required=False,
         initial=Decimal('1500.00'),
-        widget=forms.NumberInput(attrs={
-            'step': '0.01',
-            'min': '0',
+        widget=forms.TextInput(attrs={
+            'inputmode': 'numeric',
             'class': 'form-control currency-input',
             'placeholder': '1.500,00'
         }),
@@ -107,9 +106,8 @@ class WizardTrabalhoRendaForm(BaseWizardForm):
         label="Renda Familiar CLT/Formal (R$)",
         required=True,
         initial=Decimal('8000.00'),
-        widget=forms.NumberInput(attrs={
-            'step': '0.01',
-            'min': '1000',
+        widget=forms.TextInput(attrs={
+            'inputmode': 'numeric',
             'class': 'form-control currency-input',
             'placeholder': '8.000,00'
         }),
@@ -172,9 +170,8 @@ class WizardTrabalhoRendaForm(BaseWizardForm):
         label="Outras Rendas Comprovadas (R$)",
         required=False,
         initial=Decimal('0.00'),
-        widget=forms.NumberInput(attrs={
-            'step': '0.01',
-            'min': '0',
+        widget=forms.TextInput(attrs={
+            'inputmode': 'numeric',
             'class': 'form-control currency-input',
             'placeholder': '0,00'
         }),
@@ -194,9 +191,8 @@ class WizardFinancasAtuaisForm(BaseWizardForm):
         label="Valor do seu imóvel próprio (R$ 0 se não tiver)",
         required=False,
         initial=Decimal('0.00'),
-        widget=forms.NumberInput(attrs={
-            'step': '0.01',
-            'min': '0',
+        widget=forms.TextInput(attrs={
+            'inputmode': 'numeric',
             'class': 'form-control currency-input',
             'placeholder': '0,00'
         }),
@@ -209,9 +205,8 @@ class WizardFinancasAtuaisForm(BaseWizardForm):
         label="Quanto você tem guardado? (R$)",
         required=True,
         initial=Decimal('50000.00'),
-        widget=forms.NumberInput(attrs={
-            'step': '0.01',
-            'min': '0',
+        widget=forms.TextInput(attrs={
+            'inputmode': 'numeric',
             'class': 'form-control currency-input',
             'placeholder': '50.000,00'
         }),
@@ -224,9 +219,8 @@ class WizardFinancasAtuaisForm(BaseWizardForm):
         label="Saldo de FGTS disponível? (R$)",
         required=False,
         initial=Decimal('0.00'),
-        widget=forms.NumberInput(attrs={
-            'step': '0.01',
-            'min': '0',
+        widget=forms.TextInput(attrs={
+            'inputmode': 'numeric',
             'class': 'form-control currency-input',
             'placeholder': '0,00'
         }),
@@ -239,9 +233,8 @@ class WizardFinancasAtuaisForm(BaseWizardForm):
         label="Outras despesas mensais fixas (R$)",
         required=False,
         initial=Decimal('2000.00'),
-        widget=forms.NumberInput(attrs={
-            'step': '0.01',
-            'min': '0',
+        widget=forms.TextInput(attrs={
+            'inputmode': 'numeric',
             'class': 'form-control currency-input',
             'placeholder': '2.000,00'
         }),
@@ -261,10 +254,8 @@ class WizardImovelDesejadoForm(BaseWizardForm):
         label="Qual o valor do imóvel que deseja? (R$)",
         required=True,
         initial=Decimal('500000.00'),
-        widget=forms.NumberInput(attrs={
-            'step': '0.01',
-            'min': '50000',
-            'max': '20000000',
+        widget=forms.TextInput(attrs={
+            'inputmode': 'numeric',
             'class': 'form-control currency-input',
             'placeholder': '500.000,00'
         }),
@@ -406,9 +397,8 @@ class WizardCenariosForm(BaseWizardForm):
         label="Quanto tem disponível para lance? (R$)",
         required=False,
         initial=Decimal('0.00'),
-        widget=forms.NumberInput(attrs={
-            'step': '0.01',
-            'min': '0',
+        widget=forms.TextInput(attrs={
+            'inputmode': 'numeric',
             'class': 'form-control currency-input',
             'placeholder': '0,00'
         }),

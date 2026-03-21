@@ -238,17 +238,17 @@
                 
                 <div class="metric">
                     <span class="metric-label">Parcela Inicial</span>
-                    <span class="metric-value">R$ {{ resultado.parcela_inicial|floatformat:2 }}</span>
+                    <span class="metric-value">{{ resultado.parcela_inicial }}</span>
                 </div>
                 
                 <div class="metric">
                     <span class="metric-label">Custo Total</span>
-                    <span class="metric-value">R$ {{ resultado.total_custo|floatformat:2 }}</span>
+                    <span class="metric-value">{{ resultado.total_custo }}</span>
                 </div>
                 
                 <div class="metric">
                     <span class="metric-label">Prazo</span>
-                    <span class="metric-value">{{ resultado.prazo_final_anos }} anos</span>
+                    <span class="metric-value">{{ resultado.prazo_final_anos }}</span>
                 </div>
                 
                 {% if resultado.total_desembolso %}

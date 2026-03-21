@@ -9,9 +9,10 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .models import SavedSimulation
 from . import wizard_forms_v2 as forms_v2
-from .utils import calcular_price_sac, calcular_margem_credito, calcular_acumulo_fgts, calcular_cenario_80_porcento
+from .utils import calcular_margem_credito, calcular_acumulo_fgts, calcular_cenario_80_porcento
 from .recomendacao_inteligente import analisar_perfil_e_recomendar
-from .calculadora_financeira import calcular_mcmv
+from .calculadora_financeira import calcular_mcmv, calcular_price_sac
+from .formatacao import formatar_moeda_brl
 
 
 # Constantes
@@ -147,6 +148,10 @@ def wizard_v2_resultados(request):
     capital_guardado = Decimal(str(financas.get('saldo_dinheiro_guardado', 0)))
     fgts_saldo = Decimal(str(financas.get('saldo_fgts', 0)))
     
+    valor_imovel_proprio = Decimal(str(financas.get('valor_imovel_proprio', 0)))
+    if perfil_obj.get('onde_mora_atualmente') == 'proprio':
+        capital_guardado += valor_imovel_proprio
+    
     renda_bruta = Decimal(str(trabalho.get('renda_familiar_bruta', 0)))
     aluguel_atual = Decimal(str(perfil_obj.get('aluguel_atual', 0)))
     
@@ -169,6 +174,12 @@ def wizard_v2_resultados(request):
         renda_familiar_bruta=float(renda_bruta),
         outras_rendas=float(outras_rendas)
     )
+    # FIX BUG 2: Adicionar margem disponível se estiver vazio
+    if margem_info:
+        margem_info['margem_disponivel'] = float(renda_bruta * Decimal('0.30'))
+        margem_info['margem_disponivel_fmt'] = formatar_moeda_brl(margem_info['margem_disponivel'])
+        margem_info['margem_30_porcento'] = margem_info['parcela_maxima']
+        margem_info['desconto_aplicado'] = margem_info['desconto_aplicado_outras_rendas']
     
     # Calcula FGTS futuro (se CLT)
     tipo_contrato = trabalho.get('tipo_contrato', '')
@@ -178,6 +189,14 @@ def wizard_v2_resultados(request):
             salario_bruto=float(renda_bruta),
             meses_ate_compra=prazo_meses
         )
+        # FIX BUG 3: Adicionar depósito mensal se estiver vazio
+        if fgts_futuro:
+            fgts_futuro['deposito_mensal'] = float(renda_bruta * Decimal('0.08'))
+            fgts_futuro['total_depositado'] = fgts_futuro['deposito_mensal'] * prazo_meses
+            fgts_futuro['saldo_final'] = fgts_futuro['saldo_estimado']
+            fgts_futuro['meses'] = prazo_meses
+            fgts_futuro['rendimento_acumulado'] = fgts_futuro['saldo_estimado'] - fgts_futuro['total_depositado']
+            fgts_futuro['taxa_efetiva_anual'] = 3.0
     
     # Verifica cenário 80%
     capital_total = capital_guardado + fgts_saldo
@@ -246,20 +265,28 @@ def wizard_v2_resultados(request):
     if cenarios.get('comparar_guardar_dinheiro'):
         despesas_fixas = Decimal(str(financas.get('despesas_mensais_fixas', 0)))
         renda_disponivel = renda_bruta - aluguel_atual - despesas_fixas
+
+        # FIX BUG 5: Usar menor parcela (SAC/PRICE) como referência se disponível
+        valor_referencia = renda_disponivel
+        parcelas_simuladas = []
+        if 'price' in resultados: parcelas_simuladas.append(Decimal(str(resultados['price'].get('parcela_inicial', 0))))
+        if 'sac' in resultados: parcelas_simuladas.append(Decimal(str(resultados['sac'].get('parcela_inicial', 0))))
         
-        if renda_disponivel > 0:
-            taxa_retorno = Decimal(str(cenarios.get('taxa_investimento_esperada', 9.5)))
-            
-            resultado_guardar = _calcular_guardar_dinheiro(
-                capital_inicial=capital_guardado,
-                valor_imovel_alvo=valor_imovel,
-                taxa_retorno_anual=taxa_retorno,
-                renda_disponivel_mensal=renda_disponivel,
-                aluguel_mensal=aluguel_atual
-            )
-            
-            if resultado_guardar:
-                resultados['guardar_dinheiro'] = resultado_guardar
+        if parcelas_simuladas:
+            valor_referencia = min(p for p in parcelas_simuladas if p > 0)
+
+        taxa_retorno = Decimal(str(cenarios.get('taxa_investimento_esperada', 9.5)))
+        
+        resultado_guardar = _calcular_guardar_dinheiro(
+            capital_inicial=capital_guardado,
+            valor_imovel_alvo=valor_imovel,
+            taxa_retorno_anual=taxa_retorno,
+            renda_disponivel_mensal=max(valor_referencia, Decimal('100')), # Mínimo R$ 100
+            aluguel_mensal=aluguel_atual
+        )
+        
+        if resultado_guardar:
+            resultados['guardar_dinheiro'] = resultado_guardar
 
     # --- CENÁRIOS MIGRADOS ---
     taxa_investimento = Decimal(str(cenarios.get('taxa_investimento_esperada', 9.5)))
@@ -315,8 +342,23 @@ def wizard_v2_resultados(request):
         reverse=True  # Maior custo primeiro (pior opção)
     ))
     
+    # FIX BUG 4: Formatação monetária (Separadores de milhar)
+    # Cria uma cópia formatada para exibição
+    resultados_formatados = {}
+    keys_monetarias = ['parcela_inicial', 'total_custo', 'total_desembolso', 'patrimonio_final', 
+                       'total_juros', 'total_principal', 'aluguel_durante', 'total_aluguel_gasto',
+                       'montante_final_investimento', 'ganho_com_investimento', 'sobra_apos_compra',
+                       'patrimonio_final_total', 'valor_lance', 'taxa_administracao', 'fundo_reserva']
+
+    for key, data in resultados_ordenados.items():
+        data_fmt = data.copy()
+        for k, v in data.items():
+            if k in keys_monetarias and isinstance(v, (int, float, Decimal)):
+                data_fmt[k] = formatar_moeda_brl(v)
+        resultados_formatados[key] = data_fmt
+
     context = {
-        'resultados': resultados_ordenados,
+        'resultados': resultados_formatados,
         'analise': analise,
         'wizard_data': wizard_data,
         'valor_imovel': float(valor_imovel),
@@ -355,6 +397,7 @@ def _v2_calcular_aluguel_investimento(aluguel_mensal, capital_inicial, renda_bru
 
     return {
         'metodo': 'Aluguel + Investimento',
+        'parcela_inicial': float(aluguel_mensal), # FIX BUG 2
         'aluguel_mensal': float(aluguel_mensal),
         'total_aluguel_gasto': float(custo_aluguel_total),
         'aporte_mensal_investimento': float(aporte_mensal),
@@ -370,6 +413,7 @@ def _v2_calcular_aluguel_investimento(aluguel_mensal, capital_inicial, renda_bru
         'total_custo': float(custo_aluguel_total),
         'total_desembolso': float(custo_aluguel_total),
         'patrimonio_final': float(patrimonio_final),
+        'prazo_final_anos': prazo_anos,
         'resumo_explicativo': f'💸 Continue alugando e invista a diferença. Seu dinheiro rende e pode superar a valorização do imóvel. Ideal se você não tem pressa e busca flexibilidade.',
         'comprometimento_renda': float(comprometimento),
         'alerta_comprometimento': comprometimento > 30,
@@ -590,7 +634,8 @@ def _calcular_financiamento(metodo, valor_principal, taxa_anual, prazo_meses, re
             'patrimonio_final': float(valor_principal),
         }
     
-    parcela_inicial = Decimal(str(resultado.get('parcela_inicial', tabela[0].get('parcela_total', 0))))
+    # FIX BUG 1: Usar 'parcela' que vem de calculadora_financeira.py, não 'parcela_total'
+    parcela_inicial = Decimal(str(resultado.get('parcela_inicial', tabela[0].get('parcela', 0))))
     total_juros = Decimal(str(resultado.get('total_juros', 0)))
     prazo_final = len(tabela)
     

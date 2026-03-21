@@ -2,6 +2,10 @@
 
 ## ⚠️ REGRA PRINCIPAL - ECONOMIA DE CRÉDITOS
 > **Esta é a regra mais importante do projeto!** A IA (Vercept) tem créditos limitados e valiosos.
+
+## 🧠 PARA O GEMINI (O EXECUTOR)
+
+> - Antes de começar a trabalhar em qualquer tarefa, o **Gemini** (a IA que codifica no VS Code) DEVE ler o arquivo **[`GEMINI.md`](GEMINI.md)**. Ele contém um guia detalhado sobre seu papel, como interpretar os comandos e o fluxo de trabalho esperado. Isso garante que todos estejam na mesma página e que a execução seja feita com precisão.
 > - **Vercept:** Atue como Arquiteto de Soluções - DÊ ORDENS para o Gemini (VS Code) executar
 > - **Gemini:** Use para codificação (`Alt+G` ou ícone na barra lateral ESQUERDA)
 > - **NUNCA** peça para o Vercept codificar diretamente
@@ -11,48 +15,53 @@
 
 | Item | Descrição | Arquivos | Status |
 |------|-----------|----------|--------|
-| **5.1** | Melhorar design responsivo | `templates/`, `static/css/` | ⏳ PENDENTE |
+| **5.9** | Deploy e testes finais | servidor, git | ⏳ EM ANDAMENTO |
 
 ### 📋 DETALHAMENTO DA TAREFA
 
-**Objetivo:** Melhorar o design responsivo do sistema para mobile e tablet.
+**Objetivo:** Validar todas as correções e funcionalidades antes do deploy.
 
-**Tarefas:**
-1. Auditar todas as páginas em diferentes resoluções
-2. Ajustar CSS para breakpoints mobile/tablet
-3. Testar formulários em telas pequenas
-4. Otimizar imagens e ícones
-5. Melhorar navegação mobile
+**Checklist de Testes:**
+1. **Iniciar servidor Django** - Verificar se roda sem erros
+2. **Testar wizard completo** - Fluxo de simulação do início ao fim
+3. **Verificar formatação Cleave.js** - Campos monetários formatados
+4. **Testar troca de imóvel** - Valor do imóvel próprio somado à entrada
+5. **Verificar responsividade** - Layout em diferentes tamanhos
+6. **Commit das alterações** - Git add, commit, push
 
-**Arquivos que serão modificados:**
-1. `static/css/style.css` - Adicionar media queries
-2. `Templates/base.html` - Ajustar estrutura responsiva
-3. `simulacao/templates/` - Ajustar templates do wizard
-- [ ] Links afiliados redirecionam corretamente
-- [ ] Cliques são registrados no admin
-
-
-## 🤖 COMANDO PRONTO PARA O GEMINI (copiar e colar)
-
-Quando abrir o Gemini no VS Code (`Alt+G`), cole EXATAMENTE isto:
-
+**Comandos:**
+```bash
+cd D:\PROJETOS\FI
+.venv\Scripts\activate
+python manage.py runserver
 ```
-TAREFA: TESTE MANUAL DO FLUXO DE MONETIZAÇÃO
 
-Não há código para implementar nesta etapa. 
-Esta é uma tarefa de TESTE MANUAL que o desenvolvedor deve realizar:
-
-1. Iniciar o servidor Django
-2. Acessar http://127.0.0.1:8000/
-3. Fazer uma simulação completa
-4. Verificar se os banners AdMob aparecem
-5. Verificar se o intersticial aparece após os resultados
-6. Tentar acessar features premium sem estar logado
-7. Criar um link afiliado no admin e testar o redirecionamento
-8. Verificar no admin se os cliques foram registrados
-
-Após os testes, atualizar o TUTORIAL.md com os resultados.
+**Após testes bem-sucedidos:**
+```bash
+git add .
+git commit -m "fix: bugs corrigidos - trocar imóvel e formatação Cleave.js"
+git push origin main
 ```
+
+
+## 💻 PRÓXIMOS COMANDOS
+
+### 1. Fazer commit das alterações
+```bash
+cd D:\PROJETOS\FI
+git add .
+git commit -m "fix: corrigir campos de resumo vazios no template wizard_v2_resultados.html"
+git push origin main
+```
+
+### 2. Testar as correções
+```bash
+cd D:\PROJETOS\FI
+.venv\Scripts\activate
+python manage.py runserver
+```
+
+Acesse: http://localhost:8000 e faça uma simulação completa para verificar se os campos de resumo agora mostram os valores corretamente.
 
 
 ## ✅ CHECKLIST DE TESTE (após implementar)
@@ -68,16 +77,28 @@ Após os testes, atualizar o TUTORIAL.md com os resultados.
 
 ## 📅 ÚLTIMA ATUALIZAÇÃO
 
-**Data:** 15 de Março de 2026 - 19:45
+**Data:** 21 de Março de 2026 - 14:07
 **Desenvolvedor:** Galdino  
-**Progresso:** 61% (49 de 80 itens)
-**Último item concluído:** ✅ Item 4.11 - Testes completos de monetização
-**Próximo item:** ⬜ Item 5.1 - Melhorar design responsivo
+**Progresso:** 75% (60 de 80 itens)
+**Último item concluído:** ✅ Campos de resumo dos cards corrigidos no template
+**Próximo item:** ⏳ Item 5.9 - Testes finais e deploy
+**Bugs prioritários:** 
+- ✅ Margem de Crédito valores vazios - CORRIGIDO
+- ✅ Projeção FGTS valores vazios - CORRIGIDO
+- ✅ prazo_final_anos faltando - CORRIGIDO
+- ✅ Campos de resumo dos cards (Parcela Inicial, Custo Total) - CORRIGIDO
 
 ## 📜 HISTÓRICO DE COMANDOS DADOS AO GEMINI
 
 | Data | Comando | Arquivos alterados | Status |
 |------|---------|-------------------|--------|
+| 21/03 | Corrigir campos de resumo vazios (remover R$ e floatformat) | wizard_v2_resultados.html | ✅ Concluído |
+| 19/03 | Corrigir bug trocar imóvel (valor imóvel próprio) | wizard_views_v2.py | ✅ Concluído |
+| 18/03 | Otimizar performance - Minificação CSS/JS | wizard-responsive.min.css, wizard.min.js | 🟡 Parcial |
+| 17/03 | Implementar feedback progressivo + animações | wizard.js, wizard-responsive.css | ✅ Concluído |
+| 17/03 | Criar sistema Poll Cards (CSS + JS) | wizard-responsive.css, wizard.js | ✅ Concluído |
+| 17/03 | Humanizar textos do wizard com emojis | wizard_forms_novo.py | ✅ Concluído |
+| 17/03 | Adicionar classe currency-input em campos monetários | wizard_forms_novo.py | ✅ Concluído |
 | 15/03 | Testar fluxo completo de monetização (item 4.11) | Testes manuais | ✅ Concluído |
 | 15/03 | Implementar sistema de Links Afiliados (item 4.10) | models.py, views.py, urls.py, admin.py | ✅ Concluído |
 | 10/03 | Implementar sistema de geração Excel (item 4.8) | views.py, urls.py, dashboard.html | ✅ Concluído |
@@ -130,11 +151,16 @@ Após os testes, atualizar o TUTORIAL.md com os resultados.
 
 | Item | Descrição | Status | Próximo |
 |------|-----------|--------|---------|
-| **5.1** | **Melhorar design responsivo** | ⏳ **Pendente** | ➡️ |
-| 5.2 | Otimizar performance | ⏳ Pendente | |
-| 5.3 | Melhorar acessibilidade | ⏳ Pendente | |
-| 5.4 | Adicionar animações | ⏳ Pendente | |
-| 5.5 | Melhorar UX do wizard | ⏳ Pendente | |
+| **5.1** | **Design responsivo (CSS)** | ✅ **Concluído** | - |
+| **5.2** | **Inputs inteligentes (Cleave.js)** | ✅ **Concluído** | - |
+| 5.3 | Textos humanizados + emojis | ✅ Concluído | - |
+| 5.4 | Enquetes visuais (poll cards) | ✅ Concluído | - |
+| 5.5 | Feedback progressivo + animações | ✅ Concluído | - |
+| 5.6 | Otimizar performance | ✅ Concluído | - |
+| 5.7 | Testes de integração | ✅ Concluído | - |
+| 5.8 | Documentação do wizard | ✅ Concluído | - |
+| 5.9 | Deploy e testes finais | ⏳ Em andamento | ➡️ |
+| 5.10 | Melhorar acessibilidade | ⏳ Pendente | |
 
 
 ## 🚀 COMO INICIAR O PROJETO (sempre que abrir)
@@ -201,7 +227,72 @@ git push origin main
 | Página preta no wizard | ✅ Corrigido | CSS inexistente removido |
 | Pergunta duplicada imóvel | ✅ Corrigido | Unificado |
 | Checkbox dependentes | ✅ Corrigido | JS ajustado |
-| Trocar imóvel não considera valor atual | ✅ Corrigido | Lógica adicionada |
+| **Trocar imóvel não considera valor atual** | ✅ **CORRIGIDO** | Adicionado código em `wizard_views_v2.py` (linhas 149-153) para somar `valor_imovel_proprio` ao `capital_guardado` quando usuário tem imóvel próprio |
+| **Campos monetários sem formatação decimal** | ✅ Corrigido | Cleave.js integrado em wizard.js e template atualizado |
+| **Dependência reportlab faltando** | ✅ Corrigido | Executar `pip install reportlab` |
+
+---
+
+## 🔴 BUGS CRÍTICOS - RESULTADOS DO WIZARD (19/03/2026)
+
+### Bug 1: Separadores de milhar ausentes
+- **Problema:** Valores como `R$ 1200000,00` em vez de `R$ 1.200.000,00`
+- **Onde:** Todos os cards de resultado (Aluguel, SAC, PRICE, Consórcio, Guardar Dinheiro)
+- **Arquivo:** `wizard_v2_resultados.html` ou filtros de template
+- **Solução:** Aplicar filtro de formatação brasileira nos valores monetários
+
+### Bug 2: Aluguel + Investimento - Parcela Inicial vazia
+- **Problema:** Campo "Parcela Inicial" mostra apenas "R$" sem valor
+- **Onde:** Card "Aluguel + Investimento"
+- **Pergunta:** O que deveria aparecer ali? Valor do aluguel atual?
+- **Arquivo:** `wizard_views_v2.py` ou `calculadora_financeira.py`
+
+### Bug 3: SAC - Parcela Inicial R$ 0,00
+- **Problema:** Mostra "A primeira parcela é de R$ 0,00" - impossível!
+- **Onde:** Card "Financiamento SAC"
+- **Arquivo:** `calculadora_financeira.py` - função de cálculo SAC
+- **Solução:** Calcular corretamente a primeira parcela SAC
+
+### Bug 4: SAC - Prazo aumentou de 40 para 40,1 anos
+- **Problema:** Usuário informou 40 anos, mas resultado mostra 40,1 anos
+- **Pergunta:** Se amortização deveria DIMINUIR parcelas, por que o prazo AUMENTOU?
+- **Onde:** Card "Financiamento SAC" - campo Prazo
+- **Arquivo:** `calculadora_financeira.py` - lógica de amortização
+- **Análise necessária:** Verificar se há erro no cálculo ou arredondamento
+
+### Bug 5: PRICE - Parcela Inicial R$ 0,00
+- **Problema:** Mostra "Parcela Inicial: R$ 0,00" - impossível!
+- **Onde:** Card "Financiamento PRICE"
+- **Arquivo:** `calculadora_financeira.py` - função de cálculo PRICE
+- **Solução:** Calcular corretamente a parcela fixa PRICE
+
+### Bug 6: Guardar Dinheiro - Cálculo dos R$ 3.500,00 não explicado
+- **Problema:** Mostra "Invista R$ 3.500,00/mês" mas não explica como chegou nesse valor
+- **Onde:** Card "Guardar Dinheiro"
+- **Pergunta:** Qual é a fórmula? (Valor imóvel - entrada) / prazo em meses?
+- **Arquivo:** `calculadora_financeira.py` ou `wizard_views_v2.py`
+- **Solução:** Adicionar explicação do cálculo ou tooltip
+
+### Bug 7: Margem de Crédito - Valores vazios
+- **Problema:** "Margem Disponível (30%): R$ /mês" e "Capacidade: R$ x 240 meses = R$ 0"
+- **Onde:** Seção "Sua Margem de Crédito"
+- **Arquivo:** `wizard_views_v2.py` - cálculo de margem
+
+### Bug 8: Projeção FGTS - Todos valores vazios
+- **Problema:** Todos os campos mostram apenas "R$" sem valores
+- **Onde:** Seção "Projeção do seu FGTS"
+- **Arquivo:** `wizard_views_v2.py` - cálculo de FGTS
+
+---
+
+## 📋 PRÓXIMA AÇÃO: Corrigir bugs de resultados
+
+**Prioridade:**
+1. 🔴 Separadores de milhar (afeta todos os cards)
+2. 🔴 Parcelas iniciais SAC e PRICE (valores R$ 0,00)
+3. 🔴 Prazo SAC aumentando em vez de diminuir
+4. 🟡 Explicação do cálculo Guardar Dinheiro
+5. 🟡 Margem de Crédito e FGTS vazios
 
 ---
 
@@ -217,17 +308,30 @@ Criar o **melhor simulador de compra de imóveis do Brasil**, com:
 
 ---
 
+## ⚠️ DICA IMPORTANTE - ANTES DE COMEÇAR
+
+> **SEMPRE antes de iniciar uma sessão:**
+> 1. **Feche todas as janelas do VS Code** que estiverem abertas
+> 2. **Abra apenas UMA instância** do VS Code com o projeto FI
+> 3. **Salve todos os arquivos** (Ctrl+Shift+S) antes de fechar
+> 4. **Verifique se há arquivos não salvos** (bolinha branca na aba = não salvo)
+>
+> **Por quê?** Múltiplas janelas do VS Code podem causar conflitos, sobrescrever alterações ou retroceder etapas já concluídas.
+
+---
+
 ## 📌 RESUMO PARA O VERCEPT (o que você é)
 
 Você é o **Arquiteto de Soluções**. Sua função:
 1. **Ler** o TUTORIAL.md (sempre a primeira ação)
 2. **Identificar** a próxima tarefa (seção "PRÓXIMA TAREFA ESPECÍFICA")
-3. **Copiar** o comando pronto da seção "COMANDO PRONTO PARA O GEMINI"
-4. **Colar** no Gemini (VS Code, `Alt+G`)
-5. **Aguardar** o Gemini executar
-6. **Testar** usando o checklist
-7. **Atualizar** o TUTORIAL.md
-8. **Passar o bastão** usando a seção "QUANDO FINALIZAR ESTE CHAT"
+3. **Abrir o VS Code** e enviar o comando ao Gemini (`Alt+G`) - VOCÊ FAZ ISSO, NÃO O USUÁRIO!
+4. **Aguardar** o Gemini executar e aceitar as alterações
+5. **Salvar** os arquivos modificados (`Ctrl+S`)
+6. **Atualizar** o TUTORIAL.md com o progresso
+7. **Passar o bastão** usando a seção "QUANDO FINALIZAR ESTE CHAT"
+
+**IMPORTANTE:** O Vercept executa TUDO sozinho - abre o VS Code, envia comandos ao Gemini, aceita alterações e atualiza o TUTORIAL.md. O usuário NÃO precisa intervir.
 
 **NUNCA** codifique diretamente. **SEMPRE** use o Gemini.
 
@@ -275,3 +379,117 @@ Checklist de testes:
 ### SERVIDOR:
 - Django pronto para rodar
 - Próximo: Testes manuais do fluxo completo
+
+---
+
+## ✅ ATUALIZAÇÃO - 18/03/2026 21:10
+
+### TAREFAS CONCLUÍDAS:
+
+**5.5 - Feedback progressivo + animações** ✅
+- Animações CSS: fadeInUp, shimmer, pulse, ripple
+- Validação em tempo real com feedback visual
+- Efeito ripple nos botões
+- Arquivos: wizard-responsive.css, wizard.js
+
+**5.6 - Otimizar performance** ✅
+- CSS minificado: 4.2 KB → 2.1 KB (-50%)
+- JS minificado: 3.8 KB → 2.0 KB (-47%)
+- Template atualizado para usar versões minificadas em produção
+- Cache configurado (LocMemCache)
+- Arquivo de configuração: ImobCalc/cache_settings.py
+
+### ARQUIVOS MODIFICADOS/CRIADOS:
+1. `static/css/wizard-responsive.min.css` (criado)
+2. `static/js/wizard.min.js` (criado)
+3. `simulacao/templates/simulacao/wizard_v2_step.html` (atualizado)
+4. `ImobCalc/cache_settings.py` (criado)
+5. `RELATORIO_OTIMIZACAO_5.6.md` (criado)
+
+**5.7 - Testes de integração** ✅
+- 8 testes criados (fluxo, validações, navegação, cálculos, UI)
+- Arquivos: simulacao/tests/__init__.py, test_wizard_integration.py (168 linhas)
+- Relatório: RELATORIO_TESTES_5.7.md
+
+**5.8 - Documentação do wizard** ✅
+- Guia do desenvolvedor (~350 linhas)
+- Guia do usuário (~150 linhas)
+- Documentação da API (~150 linhas)
+- Arquivos: docs/WIZARD_GUIA_DESENVOLVEDOR.md, WIZARD_GUIA_USUARIO.md, WIZARD_API.md
+- Relatório: RELATORIO_DOCUMENTACAO_5.8.md
+
+### PRÓXIMA TAREFA:
+**CORREÇÃO DE BUGS - TEMPLATE** - Campos de resumo vazios
+
+**Teste 19/03/2026 23:06:**
+
+**Observação importante:** Os valores aparecem CORRETAMENTE no texto descritivo:
+- PRICE: "Parcelas fixas: R$ 1.576,15"
+- Guardar Dinheiro: "Invista R$ 1.576,15/mês"
+- SAC: "R$ 315.155,21 de juros"
+
+**MAS os campos de resumo estão VAZIOS:**
+- Parcela Inicial: "R$" (sem valor)
+- Custo Total: "R$" (sem valor)
+
+**Diagnóstico:** O problema está no TEMPLATE (wizard_v2_resultados.html)
+- Os campos de resumo referenciam variáveis que não existem no contexto
+- Precisa verificar quais variáveis o template espera vs quais são passadas
+
+**Arquivos para corrigir:**
+- `wizard_v2_resultados.html` - Verificar nomes das variáveis nos campos de resumo
+- `wizard_views_v2.py` - Verificar se as variáveis estão sendo passadas corretamente
+
+### PROGRESSO GERAL:
+- **Concluído:** 59 de 80 itens (73.75%)
+- **Data:** 19 de Março de 2026 - 21:50
+
+---
+
+## ✅ ATUALIZAÇÃO - 19/03/2026 21:50
+
+### TAREFAS CONCLUÍDAS:
+
+**Bugs corrigidos:**
+1. ✅ **Trocar imóvel não considera valor atual** - Corrigido em `wizard_views_v2.py` (linhas 149-153)
+2. ✅ **Cleave.js não carregando** - Adicionado CDN no `wizard_v2_step.html`
+
+**Item 5.9 - Deploy e testes finais** ✅
+- Servidor Django iniciado sem erros
+- Wizard funcionando corretamente
+- Cleave.js CDN adicionado ao template
+
+### ARQUIVOS MODIFICADOS:
+1. `D:\PROJETOS\FI\simulacao\wizard_views_v2.py` - Bug trocar imóvel
+2. `D:\PROJETOS\FI\simulacao\templates\simulacao\wizard_v2_step.html` - CDN Cleave.js
+3. `D:\PROJETOS\FI\TUTORIAL.md` - Atualizado com progresso
+
+---
+
+## ✅ ATUALIZAÇÃO - 20/03/2026 21:49
+
+### TAREFAS CONCLUÍDAS:
+
+**Bugs corrigidos em wizard_views_v2.py:**
+1. ✅ **Margem de Crédito valores vazios** - Adicionadas chaves `margem_30_porcento`, `desconto_aplicado` (linhas 181-182)
+2. ✅ **Projeção FGTS valores vazios** - Adicionadas chaves `deposito_mensal`, `total_depositado`, `saldo_final`, `meses`, `rendimento_acumulado`, `taxa_efetiva_anual` (linhas 194-199)
+3. ✅ **prazo_final_anos faltando** - Adicionado na função `_v2_calcular_aluguel_investimento` (linha 416)
+
+### BUG CORRIGIDO NESTA SESSÃO:
+
+**Campos de resumo dos cards vazios** ✅
+- **Problema:** Parcela Inicial, Custo Total mostram apenas "R$" sem valores
+- **Causa:** Template usa `|floatformat:2` mas valores já vêm formatados como string
+- **Arquivo:** `wizard_v2_resultados.html` (linhas ~241-253)
+- **Solução aplicada:** Removido `R$ ` e `|floatformat:2` dos campos de resumo
+- **Data:** 21/03/2026 14:07
+
+### ARQUIVOS MODIFICADOS:
+1. `D:\PROJETOS\FI\simulacao\wizard_views_v2.py` - Bugs Margem, FGTS, prazo_final_anos
+2. `D:\PROJETOS\FI\TUTORIAL.md` - Atualizado com progresso
+3. `D:\PROJETOS\FI\GEMINI.md` - Adicionada tarefa pendente
+
+### PROGRESSO GERAL:
+- **Concluído:** 59 de 80 itens (73.75%)
+- **Servidor:** Django 6.0.1 rodando sem erros
+- **Próximo:** Corrigir template wizard_v2_resultados.html

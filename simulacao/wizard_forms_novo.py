@@ -133,6 +133,20 @@ CIDADES_BRASIL = [
 class WizardSituacaoAtualForm(forms.Form):
     """Onde você mora agora? Quanto paga?"""
     
+    prioridade_principal = forms.ChoiceField(
+        label="O que é mais importante pra você?",
+        choices=[
+            ('pagar_menos', '💰 Pagar o menor valor total (economia máxima)'),
+            ('parcelas_suaves', '📉 Prestações mais suaves (cabe no bolso)'),
+            ('quitar_rapido', '⏱️ Quitar rápido (menor prazo possível)'),
+            ('flexibilidade', '🔄 Flexibilidade (poder trocar/vender facilmente)'),
+            ('equilibrio', '⚖️ Equilíbrio (bom custo-benefício geral)'),
+        ],
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
+        initial='equilibrio',
+        help_text="🎯 Definir sua prioridade nos ajuda a recomendar a melhor estratégia"
+    )
+    
     onde_mora_atualmente = forms.ChoiceField(
         choices=[
             ('aluga', 'Aluga imóvel'),
@@ -149,13 +163,13 @@ class WizardSituacaoAtualForm(forms.Form):
     aluguel_atual = forms.DecimalField(
         max_digits=10,
         decimal_places=2,
-        label="Quanto você paga de aluguel por mês? (R$)",
+        label="💰 Valor do aluguel atual (R$/mês)",
         required=False,
         initial=Decimal('1500.00'),
         widget=forms.NumberInput(attrs={
             'step': '0.01',
             'min': '0',
-            'class': 'form-control',
+            'class': 'form-control currency-input',
             'placeholder': '1500'
         }),
         help_text="💡 Se não paga aluguel, deixe em branco"
@@ -183,7 +197,20 @@ class WizardSituacaoAtualForm(forms.Form):
 class WizardCapitalForm(forms.Form):
     """Quanto você tem de capital para investir?"""
             
-        
+    saldo_dinheiro_guardado = forms.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        label="Quanto você tem guardado? (R$)",
+        required=True,
+        initial=Decimal('50000.00'),
+        widget=forms.NumberInput(attrs={
+            'step': '0.01',
+            'min': '0',
+            'class': 'form-control currency-input',
+            'placeholder': '50000'
+        }),
+        help_text="💰 Soma de Poupança, CDB, Tesouro, Ações, etc."
+    )
     
     saldo_fgts = forms.DecimalField(
         max_digits=15,
@@ -194,7 +221,7 @@ class WizardCapitalForm(forms.Form):
         widget=forms.NumberInput(attrs={
             'step': '0.01',
             'min': '0',
-            'class': 'form-control',
+            'class': 'form-control currency-input',
             'placeholder': '20000'
         }),
         help_text="💼 Consulte em www.caixa.gov.br (só CLT)"
@@ -242,7 +269,7 @@ class WizardObjetivoForm(forms.Form):
             'step': '0.01',
             'min': '10000',
             'max': '20000000',
-            'class': 'form-control',
+            'class': 'form-control currency-input',
             'placeholder': '500000'
         }),
         help_text="🏠 Use preço de mercado na região que quer morar"
@@ -274,7 +301,7 @@ class WizardObjetivoForm(forms.Form):
             'step': '0.01',
             'min': '0',
             'max': '20000000',
-            'class': 'form-control',
+            'class': 'form-control currency-input',
             'placeholder': '300000'
         }),
         help_text="💰 Valor estimado de venda do seu imóvel atual"
@@ -290,7 +317,7 @@ class WizardObjetivoForm(forms.Form):
             'step': '0.01',
             'min': '0',
             'max': '20000000',
-            'class': 'form-control',
+            'class': 'form-control currency-input',
             'placeholder': '0'
         }),
         help_text="💳 Se não tiver dívida, deixe em 0"
@@ -319,43 +346,16 @@ class WizardRendaCustosForm(forms.Form):
     renda_familiar_bruta = forms.DecimalField(
         max_digits=15,
         decimal_places=2,
-        label="Renda familiar bruta mensal (R$)",
+        label="💵 Renda total da família antes dos descontos (R$/mês)",
         required=True,
         initial=Decimal('8000.00'),
         widget=forms.NumberInput(attrs={
             'step': '0.01',
             'min': '0',
-            'class': 'form-control',
+            'class': 'form-control currency-input',
             'placeholder': '8000'
         }),
-        help_text="💵 Salário + benefícios de todos da família"
-    )
-    
-    num_dependentes = forms.IntegerField(
-        label="Quantos dependentes? (0 se nenhum)",
-        required=False,
-        initial=0,
-        min_value=0,
-        widget=forms.NumberInput(attrs={
-            'min': '0',
-            'class': 'form-control'
-        }),
-        help_text="📊 Incluindo você mesmo"
-    )
-    
-    outras_despesas_mensais = forms.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        label="Outras despesas mensais (não aluguel)? (R$)",
-        required=False,
-        initial=Decimal('2000.00'),
-        widget=forms.NumberInput(attrs={
-            'step': '0.01',
-            'min': '0',
-            'class': 'form-control',
-            'placeholder': '2000'
-        }),
-        help_text="🛒 Alimentação, energia, água, transporte, etc."
+        help_text=" Soma de todos os salários e benefícios da casa"
     )
     
     tipo_contrato = forms.ChoiceField(
@@ -384,6 +384,33 @@ class WizardRendaCustosForm(forms.Form):
         widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
         initial='estavel',
         help_text="📈 Afeta risco do investimento"
+    )
+
+    outras_despesas_mensais = forms.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        label="🛒 Gastos fixos mensais (sem aluguel): alimentação, contas, transporte...",
+        required=False,
+        initial=Decimal('2000.00'),
+        widget=forms.NumberInput(attrs={
+            'step': '0.01',
+            'min': '0',
+            'class': 'form-control currency-input',
+            'placeholder': '2000'
+        }),
+        help_text="💸 Total aproximado de contas + mercado + lazer"
+    )
+    
+    num_dependentes = forms.IntegerField(
+        label="Quantos dependentes? (0 se nenhum)",
+        required=False,
+        initial=0,
+        min_value=0,
+        widget=forms.NumberInput(attrs={
+            'min': '0',
+            'class': 'form-control'
+        }),
+        help_text="📊 Pessoas que dependem da sua renda (incluindo você)"
     )
 
 

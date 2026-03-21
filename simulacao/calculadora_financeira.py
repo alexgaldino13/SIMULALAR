@@ -159,9 +159,17 @@ def calcular_price_sac(metodo, valor_principal, taxa_anual, prazo_meses, seguro_
         
         mes_original += 1
         
+    # Encontrar a primeira parcela válida (não FGTS/entrada, valor > 0)
+    primeira_parcela = 0.0
+    if tabela:
+        for linha in tabela:
+            if linha.get('parcela', 0) > 0:
+                primeira_parcela = float(linha['parcela'])
+                break
+
     return {
         'tabela': tabela,
-        'parcela_inicial': float(tabela[0]['parcela']) if tabela else 0.0,
+        'parcela_inicial': primeira_parcela,
         'total_juros': float(total_juros),
         'total_seguros_taxas': float(total_seguros_taxas),
         'prazo_final_meses': mes_original - 1 # O número do último mês simulado
