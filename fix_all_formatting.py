@@ -1,0 +1,56 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+Script para corrigir formatação monetária em wizard_views_v2.py
+"""
+
+import re
+
+# Ler o arquivo
+with open('simulacao/wizard_views_v2.py', 'r', encoding='utf-8') as f:
+    content = f.read()
+
+# Lista de campos monetários que devem usar formatar_moeda_brl
+campos_monetarios = [
+    'total_aportes',
+    'capital_inicial',
+    'montante_final_investimento',
+    'ganho_com_investimento',
+    'valor_imovel_alvo',
+    'sobra_apos_compra',
+    'patrimonio_final_total',
+    'total_custo',
+    'total_desembolso',
+    'patrimonio_final',
+    'valor_imovel_comprado',
+    'capital_disponivel',
+    'valor_sobra_para_investir',
+    'montante_investido_final',
+    'aporte_mensal_necessario',
+    'total_aportes_necessarios',
+    'montante_acumulado',
+    'rendimento_total',
+    'parcela_sac',
+    'total_juros_sac',
+    'total_pago_sac',
+    'parcela_price',
+    'total_juros_price',
+    'total_pago_price',
+    'parcela_consorcio',
+    'total_pago_consorcio',
+    'valor_lance',
+]
+
+# Substituir float() por formatar_moeda_brl() para campos monetários
+for campo in campos_monetarios:
+    # Padrão: 'campo': float(valor)
+    pattern = f"'{campo}':\\s*float\\(([^)]+)\\)"
+    replacement = f"'{campo}': formatar_moeda_brl(\\1)"
+    content = re.sub(pattern, replacement, content)
+
+# Salvar o arquivo
+with open('simulacao/wizard_views_v2.py', 'w', encoding='utf-8') as f:
+    f.write(content)
+
+print("✅ Formatação corrigida com sucesso!")
+print(f"✅ {len(campos_monetarios)} campos monetários atualizados")

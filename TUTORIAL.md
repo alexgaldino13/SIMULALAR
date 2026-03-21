@@ -15,32 +15,36 @@
 
 | Item | Descrição | Arquivos | Status |
 |------|-----------|----------|--------|
-| **5.9** | Deploy e testes finais | servidor, git | ⏳ EM ANDAMENTO |
+| **5.9** | Deploy e testes finais | wizard_views_v2.py, wizard_forms_v2.py | ⏳ EM ANDAMENTO |
 
 ### 📋 DETALHAMENTO DA TAREFA
 
-**Objetivo:** Validar todas as correções e funcionalidades antes do deploy.
+**Objetivo:** Corrigir bugs identificados nos resultados do wizard.
 
-**Checklist de Testes:**
-1. **Iniciar servidor Django** - Verificar se roda sem erros
-2. **Testar wizard completo** - Fluxo de simulação do início ao fim
-3. **Verificar formatação Cleave.js** - Campos monetários formatados
-4. **Testar troca de imóvel** - Valor do imóvel próprio somado à entrada
-5. **Verificar responsividade** - Layout em diferentes tamanhos
-6. **Commit das alterações** - Git add, commit, push
+**Bugs a corrigir:**
+1. **Campos vazios nos resultados** - Aplicar formatar_moeda_brl() em ~40 campos
+2. **Função Guardar Dinheiro incompleta** - Adicionar cálculo de rendimento
+3. **Falta pergunta sobre FGTS** - Adicionar no formulário
+4. **Erro no Chrome** - Verificar console JavaScript
 
-**Comandos:**
+**Solução Problema 1 (PRIORITÁRIO):**
+Arquivo: `wizard_views_v2.py`
+Usar Ctrl+H para substituir em ~40 campos:
+```python
+'campo': float(valor) → 'campo': formatar_moeda_brl(valor)
+```
+
+**IMPORTANTE:** Preservar campos não-monetários:
+- taxa_investimento, prazo_anos, comprometimento_renda (manter float)
+- pode_comprar_imovel (manter booleano)
+
+**Documentação completa:** Ver arquivo de memória `SITUACAO_PARA_PROXIMO_PROMPT.md`
+
+**Comandos úteis:**
 ```bash
 cd D:\PROJETOS\FI
 .venv\Scripts\activate
 python manage.py runserver
-```
-
-**Após testes bem-sucedidos:**
-```bash
-git add .
-git commit -m "fix: bugs corrigidos - trocar imóvel e formatação Cleave.js"
-git push origin main
 ```
 
 

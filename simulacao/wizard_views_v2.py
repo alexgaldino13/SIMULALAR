@@ -397,10 +397,10 @@ def _v2_calcular_aluguel_investimento(aluguel_mensal, capital_inicial, renda_bru
 
     return {
         'metodo': 'Aluguel + Investimento',
-        'parcela_inicial': float(aluguel_mensal), # FIX BUG 2
-        'aluguel_mensal': float(aluguel_mensal),
-        'total_aluguel_gasto': float(custo_aluguel_total),
-        'aporte_mensal_investimento': float(aporte_mensal),
+        'parcela_inicial': formatar_moeda_brl(aluguel_mensal),
+        'aluguel_mensal': formatar_moeda_brl(aluguel_mensal),
+        'total_aluguel_gasto': formatar_moeda_brl(custo_aluguel_total),
+        'aporte_mensal_investimento': formatar_moeda_brl(aporte_mensal),
         'total_aportes': float(total_aportes),
         'capital_inicial': float(capital_inicial),
         'taxa_investimento': float(taxa_investimento),
