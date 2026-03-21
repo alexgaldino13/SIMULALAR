@@ -43,38 +43,20 @@ Ao receber um comando do Vercept, seu fluxo de trabalho será:
 
 ---
 
-## 📋 TAREFA PENDENTE PARA PRÓXIMA SESSÃO (20/03/2026)
+## 📋 TAREFA PENDENTE PARA PRÓXIMA SESSÃO (21/03/2026)
 
-### Bug: Campos de resumo dos cards vazios no template
+### Bug: TypeError em wizard_views_v2.py
 
-**Problema:** Os campos de resumo (Parcela Inicial, Custo Total, Prazo) mostram apenas "R$" sem valores.
+**Problema:** A função `analisar_perfil_e_recomendar` falha com `TypeError` porque recebe valores formatados como string.
 
-**Causa:** O template usa `|floatformat:2` mas os valores já vêm formatados como string (ex: "R$ 1.500,00").
+**Causa:** `_v2_calcular_aluguel_investimento` retorna `parcela_inicial` como string formatada (`formatar_moeda_brl`).
 
-**Arquivo:** `D:\PROJETOS\FI\simulacao\templates\simulacao\wizard_v2_resultados.html`
+**Arquivo:** `D:\PROJETOS\FI\simulacao\wizard_views_v2.py`
 
-**Correção necessária (linhas 241-253):**
-
-DE:
-```html
-<span class="metric-value">R$ {{ resultado.parcela_inicial|floatformat:2 }}</span>
-```
-
-PARA:
-```html
-<span class="metric-value">{{ resultado.parcela_inicial }}</span>
-```
-
-Aplicar a mesma lógica para:
-- `resultado.parcela_inicial`
-- `resultado.total_custo`
-- `resultado.prazo_final_anos`
-
-**Como executar:**
-1. Abra o arquivo `wizard_v2_resultados.html` no VS Code
-2. Localize os campos de resumo (linhas ~241-253)
-3. Remova `R$ ` e `|floatformat:2` de cada campo
-4. Salve o arquivo
+**Correção necessária:**
+Na função `_v2_calcular_aluguel_investimento` (aprox. linha 399):
+Mudar: `'parcela_inicial': formatar_moeda_brl(aluguel_mensal)`
+Para: `'parcela_inicial': float(aluguel_mensal)`
 
 ---
 
@@ -83,3 +65,4 @@ Aplicar a mesma lógica para:
 1. **Margem de Crédito** - Adicionadas chaves em `wizard_views_v2.py` (linhas 181-182)
 2. **Projeção FGTS** - Adicionadas chaves em `wizard_views_v2.py` (linhas 194-199)
 3. **prazo_final_anos** - Adicionado na função `_v2_calcular_aluguel_investimento` (linha 416)
+4. **Campos de resumo vazios** - Removido `floatformat` redundante no template `wizard_v2_resultados.html`

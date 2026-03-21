@@ -15,7 +15,7 @@
 
 | Item | Descrição | Arquivos | Status |
 |------|-----------|----------|--------|
-| **5.9** | Deploy e testes finais | wizard_views_v2.py, wizard_forms_v2.py | ⏳ EM ANDAMENTO |
+| **5.10** | Melhorar acessibilidade | templates, CSS | ⏳ PENDENTE |
 
 ### 📋 DETALHAMENTO DA TAREFA
 
@@ -81,21 +81,24 @@ Acesse: http://localhost:8000 e faça uma simulação completa para verificar se
 
 ## 📅 ÚLTIMA ATUALIZAÇÃO
 
-**Data:** 21 de Março de 2026 - 14:07
+**Data:** 21 de Março de 2026 - 20:02
 **Desenvolvedor:** Galdino  
-**Progresso:** 75% (60 de 80 itens)
-**Último item concluído:** ✅ Campos de resumo dos cards corrigidos no template
-**Próximo item:** ⏳ Item 5.9 - Testes finais e deploy
+**Progresso:** 80% (64 de 80 itens)
+**Último item concluído:** ✅ Bug TypeError corrigido - parcela_inicial retorna float em vez de string
+**Próximo item:** ⏳ Item 5.10 - Melhorar acessibilidade
 **Bugs prioritários:** 
 - ✅ Margem de Crédito valores vazios - CORRIGIDO
 - ✅ Projeção FGTS valores vazios - CORRIGIDO
 - ✅ prazo_final_anos faltando - CORRIGIDO
 - ✅ Campos de resumo dos cards (Parcela Inicial, Custo Total) - CORRIGIDO
+- ✅ TypeError em analisar_perfil_e_recomendar - CORRIGIDO (21/03/2026)
+- 🔴 TypeError em wizard_views_v2.py (string vs float)
 
 ## 📜 HISTÓRICO DE COMANDOS DADOS AO GEMINI
 
 | Data | Comando | Arquivos alterados | Status |
 |------|---------|-------------------|--------|
+| 21/03 | Corrigir TypeError parcela_inicial (float em vez de string) | wizard_views_v2.py | ✅ Concluído |
 | 21/03 | Corrigir campos de resumo vazios (remover R$ e floatformat) | wizard_v2_resultados.html | ✅ Concluído |
 | 19/03 | Corrigir bug trocar imóvel (valor imóvel próprio) | wizard_views_v2.py | ✅ Concluído |
 | 18/03 | Otimizar performance - Minificação CSS/JS | wizard-responsive.min.css, wizard.min.js | 🟡 Parcial |
@@ -163,8 +166,8 @@ Acesse: http://localhost:8000 e faça uma simulação completa para verificar se
 | 5.6 | Otimizar performance | ✅ Concluído | - |
 | 5.7 | Testes de integração | ✅ Concluído | - |
 | 5.8 | Documentação do wizard | ✅ Concluído | - |
-| 5.9 | Deploy e testes finais | ⏳ Em andamento | ➡️ |
-| 5.10 | Melhorar acessibilidade | ⏳ Pendente | |
+| 5.9 | Deploy e testes finais | ✅ Concluído | - |
+| 5.10 | Melhorar acessibilidade | ⏳ Pendente | ➡️ |
 
 
 ## 🚀 COMO INICIAR O PROJETO (sempre que abrir)
