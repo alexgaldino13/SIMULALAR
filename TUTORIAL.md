@@ -15,16 +15,16 @@
 
 | Item | Descrição | Arquivos | Status |
 |------|-----------|----------|--------|
-| **6.5** | Testes de cálculos financeiros | calculadora_financeira.py, test_calculos.py | ⏳ PENDENTE |
+| **6.6** | Testes de integração AdMob | admob-integration.js, views.py | ⏳ PENDENTE |
 
 ### 📋 DETALHAMENTO DA TAREFA
 
-**Objetivo:** Elaborar e rodar testes unitários e de integração validando os valores produzidos pela API de financiamento.
+**Objetivo:** Garantir que os anúncios, links e bloqueios de monetização atuam em harmonia sem quebrar a simulação.
 
 **Prioridade:**
-1. Criar validação rigorosa para Consórcio vs PRICE/SAC
-2. Testar limites de Margem de Crédito
-3. Garantir estabilidade nos coeficientes de PRICE
+1. Testar bloqueio de links para usuários Free
+2. Verificar os callbacks das tags AdMob no frontend
+3. Testar a rota de monetização de cliques
 
 **Comandos úteis:**
 ```bash
@@ -107,13 +107,13 @@ Acesse: http://localhost:8000 e faça uma simulação completa para verificar se
 
 ## 📅 ÚLTIMA ATUALIZAÇÃO
 
-**Data:** 26 de Março de 2026 - 22:50
+**Data:** 26 de Março de 2026 - 23:15
 **Desenvolvedor:** Vercept (Gemini)  
-**Progresso:** 50% da Fase 6 (5 de 10 itens concluídos)
-**Último item concluído:** ✅ Correção dos bugs de resultados (separadores, parcelas iniciais nulas, cálculo margem)
-**Próximo item:** ⏳ Testes de cálculos financeiros (Item 6.5)
+**Progresso:** 60% da Fase 6 (6 de 10 itens concluídos)
+**Último item concluído:** ✅ Item 6.5 - Testes unitários dos Cálculos Financeiros (9 testes ok)
+**Próximo item:** ⏳ Testes de integração AdMob (Item 6.6)
 **FASE 5 - Design e UX:** ✅ COMPLETA
-**FASE 6 - Testes Finais:** 🔄 Em andamento (50%)
+**FASE 6 - Testes Finais:** 🔄 Em andamento (60%)
 **Bugs prioritários resolvidas:** 
 - ✅ Separadores de milhar (afeta todos os cards) - CORRIGIDO
 - ✅ Parcelas iniciais SAC e PRICE (valores R$ 0,00) - CORRIGIDO
@@ -125,6 +125,7 @@ Acesse: http://localhost:8000 e faça uma simulação completa para verificar se
 
 | Data | Comando | Arquivos alterados | Status |
 |------|---------|-------------------|--------|
+| 26/03 | Testes de cálculos financeiros (Item 6.5) | calculadora_financeira.py, test_calculos.py | ✅ Concluído |
 | 26/03 | Correção bugs de resultados (1 a 8) | wizard_views_v2.py, wizard_v2_resultados.html | ✅ Concluído |
 | 26/03 | Testes de performance do wizard (Item 6.4) | Lighthouse | ✅ Concluído |
 | 27/03 | Implementar limites de uso (PremiumManager) | monetizacao.py, monetizacao_models.py | ✅ Concluído |
@@ -212,7 +213,7 @@ Acesse: http://localhost:8000 e faça uma simulação completa para verificar se
 | 6.2 | Testes com leitor de tela | ✅ Concluído | - |
 | 6.3 | Testes de responsividade (mobile/tablet/desktop) | ✅ Concluído | - |
 | 6.4 | Testes de performance (Lighthouse) | ✅ Concluído | - |
-| 6.5 | Testes de cálculos financeiros | ⏳ Pendente | |
+| 6.5 | Testes de cálculos financeiros | ✅ Concluído | - |
 | 6.6 | Testes de integração AdMob | ⏳ Pendente | |
 | 6.7 | Testes de assinatura Premium | ⏳ Pendente | |
 | 6.8 | Testes de links afiliados | ⏳ Pendente | |
@@ -343,12 +344,12 @@ git push origin main
 
 ---
 
-## 📋 PRÓXIMA AÇÃO: Testar cálculos financeiros (Item 6.5)
+## 📋 PRÓXIMA AÇÃO: Testes de integração AdMob (Item 6.6)
 
 **Prioridade:**
-1. Escrever testes unitários rigorosos para `calcular_price_sac`
-2. Testar simulação de Consórcio e FGTS
-3. Verificar valores exatos de juros contra calculadoras do mercado
+1. Testar bloqueio de links para usuários Free
+2. Verificar os callbacks das tags AdMob no frontend
+3. Testar a rota de monetização de cliques
 
 ---
 

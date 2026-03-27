@@ -762,9 +762,9 @@ def calcular_mcmv(valor_imovel, renda_familiar_mensal, valor_entrada, prazo_mese
         }
     
     # Calcular subsídio
-        subsidio = Decimal(str(valor_imovel)) * subsidio_percent
-        if subsidio > Decimal('55000'):
-            subsidio = Decimal('55000')    
+    subsidio = Decimal(str(valor_imovel)) * subsidio_percent
+    if subsidio > Decimal('55000'):
+        subsidio = Decimal('55000')    
     # Valor financiado
     valor_financiado = Decimal(str(valor_imovel)) - Decimal(str(valor_entrada)) - subsidio
     if usa_fgts:
@@ -777,8 +777,8 @@ def calcular_mcmv(valor_imovel, renda_familiar_mensal, valor_entrada, prazo_mese
     else:
         # Calcular parcela (SAC simplificado)
         taxa_mensal = float(taxa_juros) / 12
-        parcela_media = valor_financiado * (taxa_mensal * (1 + taxa_mensal)**prazo_meses) / ((1 + taxa_mensal)**prazo_meses - 1)
-        custo_total = parcela_media * prazo_meses + valor_entrada
+        parcela_media = float(valor_financiado) * (taxa_mensal * (1 + taxa_mensal)**prazo_meses) / ((1 + taxa_mensal)**prazo_meses - 1)
+        custo_total = parcela_media * prazo_meses + float(valor_entrada)
     
     return {
         'qualificado': True,
