@@ -159,5 +159,45 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Inicializar formatação monetária
+
+    // ==========================================================================
+    // Navegação por teclado - Item 5.10 Acessibilidade
+    // ==========================================================================
+    
+    // Enter para avançar no formulário
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                const submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) submitBtn.click();
+            }
+        });
+    }
+    
+    // Esc para voltar
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const backBtn = document.querySelector('.btn-voltar');
+            if (backBtn) backBtn.click();
+        }
+    });
+    
+    // Tornar poll-cards navegáveis por teclado
+    const pollCards = document.querySelectorAll('.poll-card');
+    pollCards.forEach(card => {
+        // Tornar focável
+        card.setAttribute('tabindex', '0');
+        
+        // Ativar com Enter ou Space
+        card.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                card.click();
+            }
+        });
+    });
+
     initializeCurrencyInputs();
 });

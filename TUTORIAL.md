@@ -15,30 +15,18 @@
 
 | Item | Descrição | Arquivos | Status |
 |------|-----------|----------|--------|
-| **5.10** | Melhorar acessibilidade | templates, CSS | ⏳ PENDENTE |
+| **Bugs** | Corrigir bugs de resultados | wizard_v2_resultados.html, wizard_views_v2.py, calculadora_financeira.py | ⏳ PENDENTE |
 
 ### 📋 DETALHAMENTO DA TAREFA
 
-**Objetivo:** Corrigir bugs identificados nos resultados do wizard.
+**Objetivo:** Corrigir os bugs de valores nulos e separadores de milhar na tela de resultados do wizard.
 
-**Bugs a corrigir:**
-1. **Campos vazios nos resultados** - Aplicar formatar_moeda_brl() em ~40 campos
-2. **Função Guardar Dinheiro incompleta** - Adicionar cálculo de rendimento
-3. **Falta pergunta sobre FGTS** - Adicionar no formulário
-4. **Erro no Chrome** - Verificar console JavaScript
-
-**Solução Problema 1 (PRIORITÁRIO):**
-Arquivo: `wizard_views_v2.py`
-Usar Ctrl+H para substituir em ~40 campos:
-```python
-'campo': float(valor) → 'campo': formatar_moeda_brl(valor)
-```
-
-**IMPORTANTE:** Preservar campos não-monetários:
-- taxa_investimento, prazo_anos, comprometimento_renda (manter float)
-- pode_comprar_imovel (manter booleano)
-
-**Documentação completa:** Ver arquivo de memória `SITUACAO_PARA_PROXIMO_PROMPT.md`
+**Prioridade:**
+1. 🔴 Separadores de milhar (afeta todos os cards)
+2. 🔴 Parcelas iniciais SAC e PRICE (valores R$ 0,00)
+3. 🔴 Prazo SAC aumentando em vez de diminuir
+4. 🟡 Explicação do cálculo Guardar Dinheiro
+5. 🟡 Margem de Crédito e FGTS vazios
 
 **Comandos úteis:**
 ```bash
@@ -46,6 +34,46 @@ cd D:\PROJETOS\FI
 .venv\Scripts\activate
 python manage.py runserver
 ```
+
+---
+
+## ✅ RESULTADO DO ITEM 6.1 - Testes de Navegação por Teclado
+
+**Data:** 24/03/2026 - 23:30
+
+### Funcionalidades Testadas:
+
+| Funcionalidade | Status | Observação |
+|----------------|--------|------------|
+| Skip links | ✅ OK | "Pular para conteúdo" e "Pular para formulário" funcionam |
+| Tab/Shift+Tab | ✅ OK | Navegação funciona corretamente |
+| Setas do teclado | ✅ OK | Navega entre opções de radio buttons |
+| Campos de texto | ✅ OK | Outline azul visível quando focado |
+| Botão Voltar | ✅ OK | Funciona com clique |
+| Botão Próximo | ✅ OK | Funciona com clique |
+| Tecla Esc | ❌ BUG | Não volta ao passo anterior |
+| Outline em poll-cards | ❌ BUG | Não mostra outline quando focado via Tab |
+
+### Bugs Encontrados:
+1. **Tecla Esc não funciona** - Deveria voltar ao passo anterior
+2. **Poll-cards sem outline de foco** - Acessibilidade comprometida
+
+
+## ✅ RESULTADO DO ITEM 6.4 - Testes de Performance (Lighthouse)
+
+**Data:** 26/03/2026 - 21:10
+
+### Scores Obtidos
+
+| Métrica | Mobile | Desktop |
+|---------|--------|---------|
+| Performance | 91 | 83 |
+| Acessibilidade | 95 | 95 |
+| Best Practices | 96 | 96 |
+| SEO | 90 | 90 |
+
+### Observações:
+O wizard obteve notas excelentes, com destaque para Acessibilidade e Best Practices. A performance desktop teve score 83 (bom). Sem grandes gargalos identificados.
 
 
 ## 💻 PRÓXIMOS COMANDOS
@@ -81,23 +109,35 @@ Acesse: http://localhost:8000 e faça uma simulação completa para verificar se
 
 ## 📅 ÚLTIMA ATUALIZAÇÃO
 
-**Data:** 21 de Março de 2026 - 20:02
+**Data:** 26 de Março de 2026 - 21:15
 **Desenvolvedor:** Galdino  
-**Progresso:** 80% (64 de 80 itens)
-**Último item concluído:** ✅ Bug TypeError corrigido - parcela_inicial retorna float em vez de string
-**Próximo item:** ⏳ Item 5.10 - Melhorar acessibilidade
+**Progresso:** 40% da Fase 6 (4 de 10 itens concluídos)
+**Último item concluído:** ✅ Item 6.4 - Testes de performance (Lighthouse)
+**Próximo item:** ⏳ Correção dos bugs de resultados (separadores, parcelas iniciais)
+**FASE 5 - Design e UX:** ✅ COMPLETA
+**FASE 6 - Testes Finais:** 🔄 Em andamento (40%)
 **Bugs prioritários:** 
 - ✅ Margem de Crédito valores vazios - CORRIGIDO
 - ✅ Projeção FGTS valores vazios - CORRIGIDO
 - ✅ prazo_final_anos faltando - CORRIGIDO
 - ✅ Campos de resumo dos cards (Parcela Inicial, Custo Total) - CORRIGIDO
-- ✅ TypeError em analisar_perfil_e_recomendar - CORRIGIDO (21/03/2026)
-- 🔴 TypeError em wizard_views_v2.py (string vs float)
+- ✅ TypeError em analisar_perfil_e_recomendar - CORRIGIDO
+- ✅ Campo "Custo Total + Aluguel" vazio - CORRIGIDO
+- ✅ Guardar Dinheiro sem detalhes - MELHORADO (valorização + investimento pós-compra)
+- ✅ TypeError em wizard_views_v2.py (string vs float) - CORRIGIDO
+- ✅ Bug Custo Total + Aluguel no template (formatar string) - CORRIGIDO
 
 ## 📜 HISTÓRICO DE COMANDOS DADOS AO GEMINI
 
 | Data | Comando | Arquivos alterados | Status |
 |------|---------|-------------------|--------|
+| 26/03 | Testes de performance do wizard (Item 6.4) | Lighthouse | ✅ Concluído |
+| 27/03 | Implementar limites de uso (PremiumManager) | monetizacao.py, monetizacao_models.py | ✅ Concluído |
+| 26/03 | Implementar Google Play Billing no backend | monetizacao.py, monetizacao_models.py, monetizacao_views.py, urls.py | ✅ Concluído |
+| 25/03 | Refatorar APIs AdMob para DRF | monetizacao_views.py, urls.py | ✅ Concluído |
+| 24/03 | Testes de navegação por teclado (Item 6.1) | Testes manuais | ✅ Concluído |
+| 21/03 | Melhorar Guardar Dinheiro (valorização + investimento pós-compra) | wizard_views_v2.py | ✅ Concluído |
+| 21/03 | Corrigir Bug Custo Total + Aluguel (template) | wizard_v2_resultados.html | ✅ Concluído |
 | 21/03 | Corrigir TypeError parcela_inicial (float em vez de string) | wizard_views_v2.py | ✅ Concluído |
 | 21/03 | Corrigir campos de resumo vazios (remover R$ e floatformat) | wizard_v2_resultados.html | ✅ Concluído |
 | 19/03 | Corrigir bug trocar imóvel (valor imóvel próprio) | wizard_views_v2.py | ✅ Concluído |
@@ -167,7 +207,22 @@ Acesse: http://localhost:8000 e faça uma simulação completa para verificar se
 | 5.7 | Testes de integração | ✅ Concluído | - |
 | 5.8 | Documentação do wizard | ✅ Concluído | - |
 | 5.9 | Deploy e testes finais | ✅ Concluído | - |
-| 5.10 | Melhorar acessibilidade | ⏳ Pendente | ➡️ |
+| 5.10 | Melhorar acessibilidade | ✅ Concluído | - |
+
+### 🔄 FASE 6: Testes Finais (Em Andamento - 40%)
+
+| Item | Descrição | Status | Próximo |
+|------|-----------|--------|---------|
+| 6.1 | Testes de navegação por teclado | ✅ Concluído | - |
+| 6.2 | Testes com leitor de tela | ✅ Concluído | - |
+| 6.3 | Testes de responsividade (mobile/tablet/desktop) | ✅ Concluído | - |
+| 6.4 | Testes de performance (Lighthouse) | ✅ Concluído | - |
+| 6.5 | Testes de cálculos financeiros | ⏳ Pendente | |
+| 6.6 | Testes de integração AdMob | ⏳ Pendente | |
+| 6.7 | Testes de assinatura Premium | ⏳ Pendente | |
+| 6.8 | Testes de links afiliados | ⏳ Pendente | |
+| 6.9 | Correção de bugs encontrados | ⏳ Pendente | |
+| 6.10 | Documentação final e README | ⏳ Pendente | |
 
 
 ## 🚀 COMO INICIAR O PROJETO (sempre que abrir)
@@ -215,13 +270,12 @@ git push origin main
 - ✅ FASE 2: LGPD (100%) 
 - ✅ FASE 3: Parcerias (100%)
 - ✅ FASE 4: Monetização (100%)
+- ✅ FASE 5: Design e UX (100%)
 
 **Fase em Andamento:**
-- 🔄 FASE 5: Design e UX (0% - 0/10 itens)
+- 🔄 FASE 6: Testes Finais (10% - 1/10 itens)
 
 **Fases Futuras:**
-- ⏳ FASE 5: Design e UX (0%)
-- ⏳ FASE 6: Testes Finais (0%)
 - ⏳ FASE 7: Mobile (0%)
 - ⏳ FASE 8: Publicação (0%)
 
@@ -231,6 +285,8 @@ git push origin main
 
 | Bug | Status | Observação |
 |-----|--------|------------|
+| **Tecla Esc não volta ao passo anterior** | ⏳ Pendente | Esc deveria funcionar como atalho para "Voltar" |
+| **Poll-cards sem outline de foco** | ⏳ Pendente | Radio buttons não mostram outline azul quando focados via Tab |
 | Página preta no wizard | ✅ Corrigido | CSS inexistente removido |
 | Pergunta duplicada imóvel | ✅ Corrigido | Unificado |
 | Checkbox dependentes | ✅ Corrigido | JS ajustado |

@@ -489,6 +489,24 @@ def _calcular_guardar_dinheiro(capital_inicial, valor_imovel_alvo, taxa_retorno_
         anos = round(meses / 12, 1)
         ganho_investimento = montante - capital_inicial_total - total_aportes
         
+        
+        # NOVO: Calcula valorização do imóvel
+        TAXA_VALORIZACAO_IMOVEL = Decimal('0.05')  # 5% ao ano
+        anos_decimal = Decimal(str(meses)) / Decimal('12')
+        valor_imovel_futuro = valor_imovel_alvo * ((Decimal('1') + TAXA_VALORIZACAO_IMOVEL) ** anos_decimal)
+        
+        # NOVO: Calcula investimento do aluguel pós-compra (até completar 30 anos)
+        meses_pos_compra = 360 - meses
+        montante_aluguel_investido = Decimal('0')
+        
+        if meses_pos_compra > 0:
+            for _ in range(meses_pos_compra):
+                rendimento = montante_aluguel_investido * taxa_mensal
+                montante_aluguel_investido += rendimento + aluguel_mensal
+        
+        # Patrimônio final total = imóvel valorizado + investimento do aluguel
+        patrimonio_final_total = valor_imovel_futuro + montante_aluguel_investido
+
         # Calcula economia vs financiamento (estimativa)
         economia_vs_financiamento = ganho_investimento
         
@@ -505,9 +523,17 @@ def _calcular_guardar_dinheiro(capital_inicial, valor_imovel_alvo, taxa_retorno_
             'total_aluguel': float(total_aluguel),
             'total_custo': float(capital_inicial_total + total_aportes),
             'total_desembolso': float(capital_inicial_total + total_aportes + total_aluguel),
-            'patrimonio_final': float(valor_imovel_alvo),
-            'resumo_explicativo': f'💰 Invista R$ {float(investimento_mensal):,.2f}/mês e compre à vista depois. Seu dinheiro rende enquanto economiza. Continua pagando aluguel durante {anos} anos.',
-            'observacao': f'Investindo R$ {float(investimento_mensal):.2f}/mês + FGTS R$ {float(fgts_saldo):.2f}, acumula em {anos} anos com retorno de {float(taxa_retorno_anual)}% a.a.'
+            
+            # NOVOS CAMPOS:
+            'valor_imovel_inicial': float(valor_imovel_alvo),
+            'valor_imovel_futuro': float(valor_imovel_futuro),
+            'taxa_valorizacao_imovel': float(TAXA_VALORIZACAO_IMOVEL * 100),
+            'meses_pos_compra': meses_pos_compra,
+            'montante_aluguel_investido': float(montante_aluguel_investido),
+            'patrimonio_final': float(patrimonio_final_total),
+            
+            'resumo_explicativo': f'💰 Invista R$ {float(investimento_mensal):,.2f}/mês durante {anos} anos. Compre à vista quando juntar o valor. Depois, invista o aluguel (R$ {float(aluguel_mensal):,.2f}/mês) e acumule mais patrimônio!',
+            'observacao': f'Estratégia completa: 1) Investe {anos} anos até juntar R$ {float(valor_imovel_alvo):,.2f}. 2) Compra imóvel à vista (valorizado para R$ {float(valor_imovel_futuro):,.2f}). 3) Investe o aluguel por mais {meses_pos_compra/12:.1f} anos = R$ {float(montante_aluguel_investido):,.2f}. Patrimônio final: R$ {float(patrimonio_final_total):,.2f}!'
         }
     else:
         return None

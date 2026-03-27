@@ -3,7 +3,8 @@ from django.urls import path
 from . import views 
 from . import wizard_views_v2
 from . import auth_views
-from . import lgpd_views
+from . import lgpd_views 
+from .monetizacao_views import SubscriptionStatusView, AdViewTrackingView, GooglePlayBillingWebhookView
 
 urlpatterns = [
     # URLs de Autenticação
@@ -51,8 +52,9 @@ urlpatterns = [
     path('exportar/pdf/<int:sim_id>/', views.exportar_simulacao_pdf, name='exportar_pdf'),
             
     # APIs para AdMob/Monetizacao
-    path('api/assinaturas/status/', views.api_assinatura_status, name='api_assinatura_status'),
-    path('api/monetizacao/ad-view/', views.api_registrar_ad_view, name='api_registrar_ad_view'),
+    path('api/assinaturas/status/', SubscriptionStatusView.as_view(), name='api_assinatura_status'),
+    path('api/monetizacao/ad-view/', AdViewTrackingView.as_view(), name='api_registrar_ad_view'),
+    path('api/monetizacao/google-play-billing-webhook/', GooglePlayBillingWebhookView.as_view(), name='api_google_play_billing_webhook'),
 
     path('afiliado/<int:link_id>/', views.redirecionar_afiliado, name='redirecionar_afiliado'),
     path('api/afiliados/', views.api_links_afiliados, name='api_links_afiliados'),

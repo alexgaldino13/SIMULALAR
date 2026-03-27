@@ -6,6 +6,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ step_title }} - Simulador Financeiro</title>
     <style>
+        /* Skip links para acessibilidade */
+        .sr-only-focusable {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+        
+        .sr-only-focusable:focus {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 9999;
+            width: auto;
+            height: auto;
+            padding: 10px 20px;
+            overflow: visible;
+            clip: auto;
+            white-space: normal;
+            background: #4A90E2;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+    </style>
+    <style>
         * {
             margin: 0;
             padding: 0;
@@ -177,6 +209,11 @@
     <script src="https://cdn.jsdelivr.net/npm/cleave.js@1.6.0/dist/cleave.min.js"></script>
 </head>
 <body>
+    <!-- Skip Links para acessibilidade -->
+    <a href="#main-content" class="sr-only-focusable">Pular para o conteúdo principal</a>
+    <a href="#wizard-form" class="sr-only-focusable">Pular para o formulário</a>
+    
+    <main id="main-content" role="main" aria-label="Simulador de compra de imóveis">
     <div class="wizard-container">
         <div class="progress-bar">
             <div class="progress-fill" style="width: {{ progress_percent }}%"></div>
@@ -188,7 +225,7 @@
             <h1 class="step-title">{{ step_title }}</h1>
         </div>
         
-        <form method="post">
+        <form id="wizard-form" method="post" role="form" aria-label="Formulário de simulação">
             {% csrf_token %}
             
             {% for field in form %}
@@ -196,7 +233,8 @@
                     <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                     
                     {% if field.field.widget.input_type == 'radio' %}
-                        <div class="poll-cards-container">
+                        <div class="poll-cards-container" role="radiogroup" aria-labelledby="{{ field.id_for_label }}-label">
+                            <span id="{{ field.id_for_label }}-label" class="sr-only">{{ field.label }}</span>
                             {% for choice in field %}
                                 <label class="poll-card">
                                     {{ choice.tag }}
@@ -230,7 +268,7 @@
                     {% endif %}
                     
                     {% if field.help_text %}
-                        <div class="help-text">{{ field.help_text }}</div>
+                        <div class="help-text" id="help-{{ field.name }}">{{ field.help_text }}</div>
                     {% endif %}
                     
                     {% if field.errors %}
@@ -258,6 +296,7 @@
             </div>
         </form>
     </div>
+    </main>
     <!-- Cleave.js para formatação monetária -->
     <script src="https://cdn.jsdelivr.net/npm/cleave.js@1.6.0/dist/cleave.min.js"></script>
     

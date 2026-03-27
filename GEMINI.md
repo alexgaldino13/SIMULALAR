@@ -43,20 +43,14 @@ Ao receber um comando do Vercept, seu fluxo de trabalho será:
 
 ---
 
-## 📋 TAREFA PENDENTE PARA PRÓXIMA SESSÃO (21/03/2026)
+cd D:\PROJETOS\FI
+.venv\Scripts\activate
+python manage.py runserver
+## 📋 TAREFA CONCLUÍDA (21/03/2026)
 
-### Bug: TypeError em wizard_views_v2.py
+### ✅ Bug: Campo 'Custo Total + Aluguel' vazio no template
 
-**Problema:** A função `analisar_perfil_e_recomendar` falha com `TypeError` porque recebe valores formatados como string.
-
-**Causa:** `_v2_calcular_aluguel_investimento` retorna `parcela_inicial` como string formatada (`formatar_moeda_brl`).
-
-**Arquivo:** `D:\PROJETOS\FI\simulacao\wizard_views_v2.py`
-
-**Correção necessária:**
-Na função `_v2_calcular_aluguel_investimento` (aprox. linha 399):
-Mudar: `'parcela_inicial': formatar_moeda_brl(aluguel_mensal)`
-Para: `'parcela_inicial': float(aluguel_mensal)`
+**Correção aplicada:** Removida formatação redundante no template `wizard_v2_resultados.html`.
 
 ---
 
@@ -66,3 +60,5 @@ Para: `'parcela_inicial': float(aluguel_mensal)`
 2. **Projeção FGTS** - Adicionadas chaves em `wizard_views_v2.py` (linhas 194-199)
 3. **prazo_final_anos** - Adicionado na função `_v2_calcular_aluguel_investimento` (linha 416)
 4. **Campos de resumo vazios** - Removido `floatformat` redundante no template `wizard_v2_resultados.html`
+5. **TypeError wizard_views_v2.py** - `parcela_inicial` agora retorna float.
+6. **Custo Total + Aluguel** - Removido `R$` e `floatformat` no template `wizard_v2_resultados.html`.

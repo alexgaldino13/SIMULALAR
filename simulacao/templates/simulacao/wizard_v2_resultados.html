@@ -206,6 +206,11 @@
     </style>
 </head>
 <body>
+    <!-- Skip Links para acessibilidade -->
+    <a href="#main-content" class="sr-only-focusable">Pular para o conteúdo principal</a>
+    <a href="#resultados" class="sr-only-focusable">Pular para os resultados</a>
+    
+    <main id="main-content" role="main" aria-label="Resultados da simulação">
     <div class="container">
         <div class="header">
             <h1>🎯 Seus Resultados Personalizados</h1>
@@ -220,13 +225,13 @@
         </div>
         {% endif %}
         
-        <div class="cards-grid">
+        <div id="resultados" class="cards-grid" role="region" aria-label="Resultados das simulações">
             {% for nome, resultado in resultados.items %}
-            <div class="result-card {% if nome == analise.recomendacao_principal %}recommended{% endif %}">
-                <h3>
+            <article class="result-card {% if nome == analise.recomendacao_principal %}recommended{% endif %}" role="article" aria-labelledby="resultado-{{ nome }}">
+                <h3 id="resultado-{{ nome }}">
                     {{ resultado.metodo }}
                     {% if nome == analise.recomendacao_principal %}
-                        <span class="badge badge-best">RECOMENDADO</span>
+                        <span class="badge badge-best" role="status" aria-label="Opção recomendada">RECOMENDADO</span>
                     {% endif %}
                 </h3>
                 
@@ -239,7 +244,7 @@
                 <div class="metric">
                     <span class="metric-label">Parcela Inicial</span>
                     <span class="metric-value">{{ resultado.parcela_inicial }}</span>
-                </div>
+                 </div>
                 
                 <div class="metric">
                     <span class="metric-label">Custo Total</span>
@@ -254,34 +259,34 @@
                 {% if resultado.total_desembolso %}
                 <div class="metric">
                     <span class="metric-label">Custo Total + Aluguel</span>
-                    <span class="metric-value">R$ {{ resultado.total_desembolso|floatformat:2 }}</span>
+                    <span class="metric-value">{{ resultado.total_desembolso }}</span>
                 </div>
                 {% endif %}
-            </div>
+            </article>
             {% endfor %}
         </div>
         
         {% if margem_credito %}
-        <div class="highlight-card">
-            <h4>💳 Sua Margem de Crédito</h4>
+        <section class="highlight-card" aria-labelledby="margem-credito">
+            <h4 id="margem-credito">💳 Sua Margem de Crédito</h4>
             <p><strong>Renda Considerada pelo Banco:</strong> R$ {{ margem_credito.renda_total_considerada|floatformat:2 }}</p>
             <p><strong>Margem Disponível (30%):</strong> R$ {{ margem_credito.margem_30_porcento|floatformat:2 }}/mês</p>
             <p><strong>Capacidade de Financiamento (20 anos):</strong> R$ {{ margem_credito.margem_30_porcento|floatformat:2 }} x 240 meses = R$ {{ margem_credito.margem_30_porcento|floatformat:2|mul:240 }}</p>
             {% if margem_credito.desconto_aplicado > 0 %}
             <p style="font-size: 14px; margin-top: 10px;">💡 Outras rendas foram consideradas com desconto de {{ margem_credito.desconto_aplicado|floatformat:0 }}%</p>
             {% endif %}
-        </div>
+        </section>
         {% endif %}
         
         {% if fgts_futuro %}
-        <div class="highlight-card">
-            <h4>🏦 Projeção do seu FGTS</h4>
+        <section class="highlight-card" aria-labelledby="fgts-projecao">
+            <h4 id="fgts-projecao">🏦 Projeção do seu FGTS</h4>
             <p><strong>Depósito Mensal:</strong> R$ {{ fgts_futuro.deposito_mensal|floatformat:2 }}</p>
             <p><strong>Total Depositado ({{ fgts_futuro.meses }} meses):</strong> R$ {{ fgts_futuro.total_depositado|floatformat:2 }}</p>
             <p><strong>Rendimento Acumulado:</strong> R$ {{ fgts_futuro.rendimento_acumulado|floatformat:2 }}</p>
             <p><strong>Saldo Final Projetado:</strong> R$ {{ fgts_futuro.saldo_final|floatformat:2 }}</p>
             <p style="font-size: 14px; margin-top: 10px;">💡 Baseado em: 8% do salário CLT + {{ fgts_futuro.taxa_efetiva_anual|floatformat:1 }}% a.a.</p>
-        </div>
+        </section>
         {% endif %}
         
         {% if cenario_80 and not cenario_80.erro %}
@@ -306,15 +311,15 @@
         {% endif %}
         
         {% if analise.destaques %}
-        <div class="highlight-card">
-            <h4>📊 Destaques</h4>
+        <section class="highlight-card" aria-labelledby="destaques">
+            <h4 id="destaques">📊 Destaques</h4>
             <p><strong>Mais Econômico:</strong> {{ analise.destaques.mais_economico.cenario }} 
                (R$ {{ analise.destaques.mais_economico.valor|floatformat:2 }})</p>
             <p><strong>Menor Parcela:</strong> {{ analise.destaques.menor_parcela.cenario }} 
                (R$ {{ analise.destaques.menor_parcela.valor|floatformat:2 }})</p>
             <p><strong>Menor Prazo:</strong> {{ analise.destaques.menor_prazo.cenario }} 
                ({{ analise.destaques.menor_prazo.anos|floatformat:1 }} anos)</p>
-        </div>
+        </section>
         {% endif %}
         
         {% if analise.argumentos_pro %}
@@ -377,5 +382,6 @@
         setTimeout(showInterstitialAd, 3000);
     </script>
     {% endif %}
+    </main>
 </body>
 </html>

@@ -165,3 +165,77 @@
 .poll-card.selected {
     animation: pulse 0.3s ease-out;
 }
+
+/* ==========================================================================
+   Acessibilidade - Item 5.10
+   ========================================================================== */
+
+/* Classe para textos apenas para leitores de tela */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+.sr-only-focusable:focus {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+}
+
+/* Indicadores de foco acessíveis */
+*:focus {
+    outline: 3px solid #4A90E2;
+    outline-offset: 2px;
+}
+
+button:focus,
+.btn:focus {
+    outline: 3px solid #4A90E2;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.2);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    outline: 3px solid #4A90E2;
+    outline-offset: 2px;
+    border-color: #4A90E2;
+}
+
+input[type="radio"]:focus,
+input[type="checkbox"]:focus {
+    outline: 3px solid #4A90E2;
+    outline-offset: 2px;
+}
+
+a:focus {
+    outline: 3px solid #4A90E2;
+    outline-offset: 2px;
+    text-decoration: underline;
+}
+
+.poll-card:focus {
+    outline: 3px solid #4A90E2;
+    outline-offset: 2px;
+}
+
+*:focus:not(:focus-visible) {
+    outline: none;
+}
+
+*:focus-visible {
+    outline: 3px solid #4A90E2;
+    outline-offset: 2px;
+}
+
