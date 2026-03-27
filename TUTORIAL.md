@@ -15,18 +15,16 @@
 
 | Item | Descrição | Arquivos | Status |
 |------|-----------|----------|--------|
-| **Bugs** | Corrigir bugs de resultados | wizard_v2_resultados.html, wizard_views_v2.py, calculadora_financeira.py | ⏳ PENDENTE |
+| **6.5** | Testes de cálculos financeiros | calculadora_financeira.py, test_calculos.py | ⏳ PENDENTE |
 
 ### 📋 DETALHAMENTO DA TAREFA
 
-**Objetivo:** Corrigir os bugs de valores nulos e separadores de milhar na tela de resultados do wizard.
+**Objetivo:** Elaborar e rodar testes unitários e de integração validando os valores produzidos pela API de financiamento.
 
 **Prioridade:**
-1. 🔴 Separadores de milhar (afeta todos os cards)
-2. 🔴 Parcelas iniciais SAC e PRICE (valores R$ 0,00)
-3. 🔴 Prazo SAC aumentando em vez de diminuir
-4. 🟡 Explicação do cálculo Guardar Dinheiro
-5. 🟡 Margem de Crédito e FGTS vazios
+1. Criar validação rigorosa para Consórcio vs PRICE/SAC
+2. Testar limites de Margem de Crédito
+3. Garantir estabilidade nos coeficientes de PRICE
 
 **Comandos úteis:**
 ```bash
@@ -109,28 +107,25 @@ Acesse: http://localhost:8000 e faça uma simulação completa para verificar se
 
 ## 📅 ÚLTIMA ATUALIZAÇÃO
 
-**Data:** 26 de Março de 2026 - 21:15
-**Desenvolvedor:** Galdino  
-**Progresso:** 40% da Fase 6 (4 de 10 itens concluídos)
-**Último item concluído:** ✅ Item 6.4 - Testes de performance (Lighthouse)
-**Próximo item:** ⏳ Correção dos bugs de resultados (separadores, parcelas iniciais)
+**Data:** 26 de Março de 2026 - 22:50
+**Desenvolvedor:** Vercept (Gemini)  
+**Progresso:** 50% da Fase 6 (5 de 10 itens concluídos)
+**Último item concluído:** ✅ Correção dos bugs de resultados (separadores, parcelas iniciais nulas, cálculo margem)
+**Próximo item:** ⏳ Testes de cálculos financeiros (Item 6.5)
 **FASE 5 - Design e UX:** ✅ COMPLETA
-**FASE 6 - Testes Finais:** 🔄 Em andamento (40%)
-**Bugs prioritários:** 
-- ✅ Margem de Crédito valores vazios - CORRIGIDO
-- ✅ Projeção FGTS valores vazios - CORRIGIDO
-- ✅ prazo_final_anos faltando - CORRIGIDO
-- ✅ Campos de resumo dos cards (Parcela Inicial, Custo Total) - CORRIGIDO
-- ✅ TypeError em analisar_perfil_e_recomendar - CORRIGIDO
-- ✅ Campo "Custo Total + Aluguel" vazio - CORRIGIDO
-- ✅ Guardar Dinheiro sem detalhes - MELHORADO (valorização + investimento pós-compra)
-- ✅ TypeError em wizard_views_v2.py (string vs float) - CORRIGIDO
-- ✅ Bug Custo Total + Aluguel no template (formatar string) - CORRIGIDO
+**FASE 6 - Testes Finais:** 🔄 Em andamento (50%)
+**Bugs prioritários resolvidas:** 
+- ✅ Separadores de milhar (afeta todos os cards) - CORRIGIDO
+- ✅ Parcelas iniciais SAC e PRICE (valores R$ 0,00) - CORRIGIDO
+- ✅ Prazo SAC aumentando em vez de diminuir - CORRIGIDO
+- ✅ Explicação do cálculo Guardar Dinheiro - CORRIGIDO
+- ✅ Margem de Crédito e FGTS mostrando 0 ou vazios - CORRIGIDO
 
 ## 📜 HISTÓRICO DE COMANDOS DADOS AO GEMINI
 
 | Data | Comando | Arquivos alterados | Status |
 |------|---------|-------------------|--------|
+| 26/03 | Correção bugs de resultados (1 a 8) | wizard_views_v2.py, wizard_v2_resultados.html | ✅ Concluído |
 | 26/03 | Testes de performance do wizard (Item 6.4) | Lighthouse | ✅ Concluído |
 | 27/03 | Implementar limites de uso (PremiumManager) | monetizacao.py, monetizacao_models.py | ✅ Concluído |
 | 26/03 | Implementar Google Play Billing no backend | monetizacao.py, monetizacao_models.py, monetizacao_views.py, urls.py | ✅ Concluído |
@@ -221,7 +216,7 @@ Acesse: http://localhost:8000 e faça uma simulação completa para verificar se
 | 6.6 | Testes de integração AdMob | ⏳ Pendente | |
 | 6.7 | Testes de assinatura Premium | ⏳ Pendente | |
 | 6.8 | Testes de links afiliados | ⏳ Pendente | |
-| 6.9 | Correção de bugs encontrados | ⏳ Pendente | |
+| 6.9 | Correção de bugs encontrados | ✅ Concluído | - |
 | 6.10 | Documentação final e README | ⏳ Pendente | |
 
 
@@ -348,14 +343,12 @@ git push origin main
 
 ---
 
-## 📋 PRÓXIMA AÇÃO: Corrigir bugs de resultados
+## 📋 PRÓXIMA AÇÃO: Testar cálculos financeiros (Item 6.5)
 
 **Prioridade:**
-1. 🔴 Separadores de milhar (afeta todos os cards)
-2. 🔴 Parcelas iniciais SAC e PRICE (valores R$ 0,00)
-3. 🔴 Prazo SAC aumentando em vez de diminuir
-4. 🟡 Explicação do cálculo Guardar Dinheiro
-5. 🟡 Margem de Crédito e FGTS vazios
+1. Escrever testes unitários rigorosos para `calcular_price_sac`
+2. Testar simulação de Consórcio e FGTS
+3. Verificar valores exatos de juros contra calculadoras do mercado
 
 ---
 

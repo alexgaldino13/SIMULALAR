@@ -271,7 +271,7 @@
             <h4 id="margem-credito">💳 Sua Margem de Crédito</h4>
             <p><strong>Renda Considerada pelo Banco:</strong> R$ {{ margem_credito.renda_total_considerada|floatformat:2 }}</p>
             <p><strong>Margem Disponível (30%):</strong> R$ {{ margem_credito.margem_30_porcento|floatformat:2 }}/mês</p>
-            <p><strong>Capacidade de Financiamento (20 anos):</strong> R$ {{ margem_credito.margem_30_porcento|floatformat:2 }} x 240 meses = R$ {{ margem_credito.margem_30_porcento|floatformat:2|mul:240 }}</p>
+            <p><strong>Capacidade de Financiamento (20 anos):</strong> R$ {{ margem_credito.margem_30_porcento|floatformat:2 }} x 240 meses = R$ {{ margem_credito.margem_30_porcento|mul:240|floatformat:2 }}</p>
             {% if margem_credito.desconto_aplicado > 0 %}
             <p style="font-size: 14px; margin-top: 10px;">💡 Outras rendas foram consideradas com desconto de {{ margem_credito.desconto_aplicado|floatformat:0 }}%</p>
             {% endif %}

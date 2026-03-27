@@ -532,8 +532,8 @@ def _calcular_guardar_dinheiro(capital_inicial, valor_imovel_alvo, taxa_retorno_
             'montante_aluguel_investido': float(montante_aluguel_investido),
             'patrimonio_final': float(patrimonio_final_total),
             
-            'resumo_explicativo': f'💰 Invista R$ {float(investimento_mensal):,.2f}/mês durante {anos} anos. Compre à vista quando juntar o valor. Depois, invista o aluguel (R$ {float(aluguel_mensal):,.2f}/mês) e acumule mais patrimônio!',
-            'observacao': f'Estratégia completa: 1) Investe {anos} anos até juntar R$ {float(valor_imovel_alvo):,.2f}. 2) Compra imóvel à vista (valorizado para R$ {float(valor_imovel_futuro):,.2f}). 3) Investe o aluguel por mais {meses_pos_compra/12:.1f} anos = R$ {float(montante_aluguel_investido):,.2f}. Patrimônio final: R$ {float(patrimonio_final_total):,.2f}!'
+            'resumo_explicativo': f'💰 Invista {formatar_moeda_brl(investimento_mensal)}/mês durante {anos} anos. (Este valor foi sugerido com base na parcela média de um financiamento, para você criar um hábito de investimento em vez de pagar juros). Compre à vista quando juntar o valor. Depois, invista o aluguel ({formatar_moeda_brl(aluguel_mensal)}/mês) e acumule mais patrimônio!',
+            'observacao': f'Estratégia completa: 1) Investe {anos} anos até juntar {formatar_moeda_brl(valor_imovel_alvo)}. 2) Compra imóvel à vista (valorizado para {formatar_moeda_brl(valor_imovel_futuro)}). 3) Investe o aluguel por mais {meses_pos_compra/12:.1f} anos = {formatar_moeda_brl(montante_aluguel_investido)}. Patrimônio final: {formatar_moeda_brl(patrimonio_final_total)}!'
         }
     else:
         return None
@@ -618,11 +618,11 @@ def _calcular_consorcio_detalhado(valor_carta, prazo_meses, estrategia, valor_la
         'patrimonio_final': float(valor_carta),
         'resumo_explicativo': f'''🎲 <strong>Por que Consórcio pode ser vantajoso?</strong><br><br>
 
-<strong>Sem juros bancários:</strong> O consórcio NÃO cobra juros! Você paga apenas o valor do imóvel (R$ {float(valor_carta):,.2f}) + taxa de administração ({float(TAXA_ADMINISTRACAO*100):.0f}% = R$ {float(custo_taxa_admin):,.2f}) + fundo de reserva ({float(TAXA_FUNDO_RESERVA*100):.0f}% = R$ {float(custo_fundo_reserva):,.2f}). Total: R$ {float(custo_total_consorcio):,.2f}.<br><br>
+<strong>Sem juros bancários:</strong> O consórcio NÃO cobra juros! Você paga apenas o valor do imóvel ({formatar_moeda_brl(valor_carta)}) + taxa de administração ({float(TAXA_ADMINISTRACAO*100):.0f}% = {formatar_moeda_brl(custo_taxa_admin)}) + fundo de reserva ({float(TAXA_FUNDO_RESERVA*100):.0f}% = {formatar_moeda_brl(custo_fundo_reserva)}). Total: {formatar_moeda_brl(custo_total_consorcio)}.<br><br>
 
-<strong>Contemplação:</strong> Você precisa ser contemplado (sorteio ou lance) para receber a carta. Com sua estratégia ({estrategia}), a contemplação estimada é em {meses_ate_contemplacao} meses ({round(meses_ate_contemplacao/12, 1)} anos). Até lá, você paga parcelas de R$ {float(parcela_mensal_antes):,.2f} e continua pagando aluguel de R$ {float(aluguel_mensal):,.2f}.<br><br>
+<strong>Contemplação:</strong> Você precisa ser contemplado (sorteio ou lance) para receber a carta. Com sua estratégia ({estrategia}), a contemplação estimada é em {meses_ate_contemplacao} meses ({round(meses_ate_contemplacao/12, 1)} anos). Até lá, você paga parcelas de {formatar_moeda_brl(parcela_mensal_antes)} e continua pagando aluguel de {formatar_moeda_brl(aluguel_mensal)}.<br><br>
 
-<strong>Após contemplação:</strong> Quando receber o imóvel, a parcela cai para R$ {float(parcela_apos_contemplacao):,.2f} (sem taxa de administração) e você para de pagar aluguel. O prazo total é {round(prazo_meses/12, 1)} anos, mais longo que financiamentos.<br><br>
+<strong>Após contemplação:</strong> Quando receber o imóvel, a parcela cai para {formatar_moeda_brl(parcela_apos_contemplacao)} (sem taxa de administração) e você para de pagar aluguel. O prazo total é {round(prazo_meses/12, 1)} anos, mais longo que financiamentos.<br><br>
 
 <strong>Recomendado se:</strong> Você tem tempo (não precisa do imóvel urgente), quer evitar juros altos, pode dar lances para acelerar a contemplação e prefere parcelas menores. Atenção: até ser contemplado, você paga consórcio + aluguel simultaneamente.''',
         'observacao': observacao,
@@ -663,7 +663,8 @@ def _calcular_financiamento(metodo, valor_principal, taxa_anual, prazo_meses, re
     # FIX BUG 1: Usar 'parcela' que vem de calculadora_financeira.py, não 'parcela_total'
     parcela_inicial = Decimal(str(resultado.get('parcela_inicial', tabela[0].get('parcela', 0))))
     total_juros = Decimal(str(resultado.get('total_juros', 0)))
-    prazo_final = len(tabela)
+    # FIX BUG 3: Usar o prazo_final_meses enviado pela calculadora em vez do len(tabela) que inclui FGTS
+    prazo_final = resultado.get('prazo_final_meses', len(tabela))
     
     custo_total = valor_principal + total_juros
     meses_aluguel = min(prazo_final, int(prazo_meses))
@@ -674,9 +675,9 @@ def _calcular_financiamento(metodo, valor_principal, taxa_anual, prazo_meses, re
     if metodo.lower() == 'sac':
         resumo = f'''📉 <strong>Por que SAC é melhor para economizar?</strong><br><br>
         
-<strong>Menor custo total:</strong> O SAC (Sistema de Amortização Constante) tem o menor custo total de juros entre todos os financiamentos. Você pagará R$ {float(total_juros):,.2f} de juros ao longo de {round(prazo_final/12, 1)} anos.<br><br>
+<strong>Menor custo total:</strong> O SAC (Sistema de Amortização Constante) tem o menor custo total de juros entre todos os financiamentos. Você pagará {formatar_moeda_brl(total_juros)} de juros ao longo de {round(prazo_final/12, 1)} anos.<br><br>
 
-<strong>Parcelas decrescentes:</strong> A primeira parcela é de R$ {float(parcela_inicial):,.2f}, mas ela diminui todo mês. Isso significa que com o tempo seu orçamento fica mais folgado, permitindo investir a diferença ou quitar antecipadamente.<br><br>
+<strong>Parcelas decrescentes:</strong> A primeira parcela é de {formatar_moeda_brl(parcela_inicial)}, mas ela diminui todo mês. Isso significa que com o tempo seu orçamento fica mais folgado, permitindo investir a diferença ou quitar antecipadamente.<br><br>
 
 <strong>Ideal para CLT:</strong> Se você é CLT, pode usar o FGTS para amortizar a dívida anualmente, reduzindo ainda mais os juros. Como o FGTS rende apenas 3% ao ano (muito abaixo da inflação), é melhor usar para reduzir uma dívida que cobra {float(taxa_anual)}% ao ano.<br><br>
 
@@ -684,11 +685,11 @@ def _calcular_financiamento(metodo, valor_principal, taxa_anual, prazo_meses, re
     else:  # PRICE
         resumo = f'''📊 <strong>Por que PRICE facilita seu planejamento?</strong><br><br>
 
-<strong>Parcelas fixas:</strong> Todas as {prazo_final} parcelas são iguais: R$ {float(parcela_inicial):,.2f}. Isso facilita muito o planejamento financeiro, pois você sabe exatamente quanto vai pagar todo mês até o final.<br><br>
+<strong>Parcelas fixas:</strong> Todas as {prazo_final} parcelas são iguais: {formatar_moeda_brl(parcela_inicial)}. Isso facilita muito o planejamento financeiro, pois você sabe exatamente quanto vai pagar todo mês até o final.<br><br>
 
 <strong>Orçamento apertado no início:</strong> Se sua renda está no limite ou você tem outras despesas importantes nos primeiros anos (filhos pequenos, carro financiado, etc.), o PRICE é ideal porque a parcela inicial é menor que o SAC.<br><br>
 
-<strong>Atenção aos juros:</strong> O custo total de juros é R$ {float(total_juros):,.2f}, um pouco maior que o SAC. Isso acontece porque você amortiza o principal mais devagar, então paga juros sobre um saldo maior por mais tempo.<br><br>
+<strong>Atenção aos juros:</strong> O custo total de juros é {formatar_moeda_brl(total_juros)}, um pouco maior que o SAC. Isso acontece porque você amortiza o principal mais devagar, então paga juros sobre um saldo maior por mais tempo.<br><br>
 
 <strong>Recomendado se:</strong> Você prefere previsibilidade, tem orçamento apertado no início ou planeja aumentar sua renda nos próximos anos (promoções, novos projetos). Também é bom para quem quer investir a diferença em aplicações que rendem mais que os juros do financiamento.'''
     
