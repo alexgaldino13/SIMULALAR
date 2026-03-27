@@ -58,7 +58,7 @@ class AdMobManager {
             
             if (response.ok) {
                 const data = await response.json();
-                this.isSubscriber = data.is_active || false;
+                this.isSubscriber = data.is_premium || data.is_active || false;
                 
                 // Armazena no localStorage para cache
                 localStorage.setItem('imobcalc_subscriber', this.isSubscriber);
@@ -199,6 +199,7 @@ class AdMobManager {
                 body: JSON.stringify({
                     ad_type: adType,
                     trigger: trigger,
+                    page: window.location.pathname,
                     timestamp: new Date().toISOString()
                 })
             });
