@@ -15,15 +15,15 @@
 
 | Item | Descrição | Arquivos | Status |
 |------|-----------|----------|--------|
-| **6.7** | Testes de assinatura Premium | views.py, subscription_models.py | ⏳ PENDENTE |
+| **6.8** | Testes de links afiliados | views.py, urls.py, models.py | ⏳ PENDENTE |
 
 ### 📋 DETALHAMENTO DA TAREFA
 
-**Objetivo:** Validar o fluxo de bloqueio/desbloqueio nas features que usam o PremiumManager.
+**Objetivo:** Validar o rastreamento e redirecionamento de links afiliados.
 
 **Prioridade:**
-1. Testar redirecionamento automático
-2. Testar acesso garantido a rotas Premium (/investidor-imobiliario/)
+1. Testar redirecionamento e contabilização do clique (IP, user agent)
+2. Testar API de listagem de links afiliados
 
 **Comandos úteis:**
 ```bash
@@ -106,13 +106,13 @@ Acesse: http://localhost:8000 e faça uma simulação completa para verificar se
 
 ## 📅 ÚLTIMA ATUALIZAÇÃO
 
-**Data:** 26 de Março de 2026 - 23:45
+**Data:** 29 de Março de 2026 - 12:30
 **Desenvolvedor:** Vercept (Gemini)  
-**Progresso:** 70% da Fase 6 (7 de 10 itens concluídos)
-**Último item concluído:** ✅ Item 6.6 - Testes de integração AdMob (Front e Backend revisados)
-**Próximo item:** ⏳ Testes de assinatura Premium (Item 6.7)
+**Progresso:** 80% da Fase 6 (8 de 10 itens concluídos)
+**Último item concluído:** ✅ Item 6.7 - Testes de assinatura Premium
+**Próximo item:** ⏳ Testes de links afiliados (Item 6.8)
 **FASE 5 - Design e UX:** ✅ COMPLETA
-**FASE 6 - Testes Finais:** 🔄 Em andamento (70%)
+**FASE 6 - Testes Finais:** 🔄 Em andamento (80%)
 **Bugs prioritários resolvidas:** 
 - ✅ Separadores de milhar (afeta todos os cards) - CORRIGIDO
 - ✅ Parcelas iniciais SAC e PRICE (valores R$ 0,00) - CORRIGIDO
@@ -124,6 +124,7 @@ Acesse: http://localhost:8000 e faça uma simulação completa para verificar se
 
 | Data | Comando | Arquivos alterados | Status |
 |------|---------|-------------------|--------|
+| 29/03 | Testes de assinatura Premium (Item 6.7) | test_premium_subscription.py | ✅ Concluído |
 | 26/03 | Integração AdMob / Correção JSON Bugs | admob-integration.js, test_admob_integration.py | ✅ Concluído |
 | 26/03 | Testes de cálculos financeiros (Item 6.5) | calculadora_financeira.py, test_calculos.py | ✅ Concluído |
 | 26/03 | Correção bugs de resultados (1 a 8) | wizard_views_v2.py, wizard_v2_resultados.html | ✅ Concluído |
@@ -215,7 +216,7 @@ Acesse: http://localhost:8000 e faça uma simulação completa para verificar se
 | 6.4 | Testes de performance (Lighthouse) | ✅ Concluído | - |
 | 6.5 | Testes de cálculos financeiros | ✅ Concluído | - |
 | 6.6 | Testes de integração AdMob | ✅ Concluído | - |
-| 6.7 | Testes de assinatura Premium | ⏳ Pendente | |
+| 6.7 | Testes de assinatura Premium | ✅ Concluído | - |
 | 6.8 | Testes de links afiliados | ⏳ Pendente | |
 | 6.9 | Correção de bugs encontrados | ✅ Concluído | - |
 | 6.10 | Documentação final e README | ⏳ Pendente | |
@@ -269,7 +270,7 @@ git push origin main
 - ✅ FASE 5: Design e UX (100%)
 
 **Fase em Andamento:**
-- 🔄 FASE 6: Testes Finais (10% - 1/10 itens)
+- 🔄 FASE 6: Testes Finais (80% - 8/10 itens)
 
 **Fases Futuras:**
 - ⏳ FASE 7: Mobile (0%)
@@ -344,11 +345,11 @@ git push origin main
 
 ---
 
-## 📋 PRÓXIMA AÇÃO: Testes de assinatura Premium (Item 6.7)
+## 📋 PRÓXIMA AÇÃO: Testes de links afiliados (Item 6.8)
 
 **Prioridade:**
-1. Testar redirecionamento automático em rotas restritas se for Free
-2. Testar acesso e validações das models `PremiumManager`
+1. Testar redirecionamento de links e rastreamento de cliques
+2. Validar API de links de afiliados
 
 ---
 

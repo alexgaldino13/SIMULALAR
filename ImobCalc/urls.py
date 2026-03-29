@@ -6,7 +6,7 @@ from django.views.generic import RedirectView
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('allauth.urls')),
-        path('', RedirectView.as_view(url='/wizard/', permanent=False)),
+        path('', RedirectView.as_view(url='/wizard-v2/', permanent=False)),
 path('api/v1/', include('simulacao.partnership_urls')),  # API de Parcerias 
     path('', include('simulacao.urls')), # <--- Esta linha é a raiz
 ]
