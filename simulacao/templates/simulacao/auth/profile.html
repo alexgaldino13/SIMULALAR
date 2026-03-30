@@ -1,0 +1,211 @@
+{% extends 'simulacao/auth/base_auth.html' %}
+
+{% block title %}Meu Perfil - ImobCalc{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-container {
+        max-width: 680px;
+    }
+    .section-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: #667eea;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin: 28px 0 16px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #f0f0f0;
+    }
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+    .form-group input[type="text"],
+    .form-group input[type="email"],
+    .form-group input[type="number"],
+    .form-group input[type="file"] {
+        width: 100%;
+        padding: 11px 14px;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        font-size: 15px;
+        transition: all 0.3s;
+        background: #fafafa;
+    }
+    .form-group input:focus {
+        outline: none;
+        border-color: #667eea;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+    }
+    .form-group input[type="file"] {
+        padding: 8px 14px;
+        cursor: pointer;
+    }
+    .badge-premium {
+        display: inline-block;
+        background: linear-gradient(135deg, #f6d365, #fda085);
+        color: white;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 3px 10px;
+        border-radius: 20px;
+        margin-left: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        vertical-align: middle;
+    }
+    .broker-section {
+        background: linear-gradient(135deg, rgba(102,126,234,0.05), rgba(118,75,162,0.05));
+        border: 2px dashed #667eea;
+        border-radius: 16px;
+        padding: 24px;
+        margin-top: 8px;
+    }
+    .broker-section .section-title {
+        border-bottom: none;
+        margin-top: 0;
+    }
+    .broker-locked {
+        background: rgba(0,0,0,0.03);
+        border: 2px dashed #ccc;
+        border-radius: 16px;
+        padding: 24px;
+        text-align: center;
+        margin-top: 8px;
+        color: #888;
+    }
+    .broker-locked .lock-icon {
+        font-size: 36px;
+        margin-bottom: 10px;
+    }
+    .broker-locked p {
+        font-size: 14px;
+        line-height: 1.6;
+    }
+    .broker-locked a {
+        color: #667eea;
+        font-weight: 600;
+        text-decoration: none;
+    }
+    .logo-preview {
+        margin-top: 10px;
+        max-width: 200px;
+        max-height: 80px;
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+        padding: 6px;
+        background: white;
+    }
+    .logo-current {
+        font-size: 13px;
+        color: #888;
+        margin-bottom: 6px;
+    }
+    @media (max-width: 560px) {
+        .form-row { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2 style="font-size:22px; font-weight:700; color:#333; margin-bottom:4px;">Meu Perfil</h2>
+<p style="color:#888; font-size:14px; margin-bottom:4px;">{{ user.email }}</p>
+
+<form method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <!-- ── DADOS PESSOAIS ── -->
+    <p class="section-title">👤 Dados Pessoais</p>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label for="id_first_name">Nome</label>
+            <input type="text" name="first_name" id="id_first_name" value="{{ user.first_name }}" placeholder="Seu nome">
+        </div>
+        <div class="form-group">
+            <label for="id_last_name">Sobrenome</label>
+            <input type="text" name="last_name" id="id_last_name" value="{{ user.last_name }}" placeholder="Seu sobrenome">
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label for="id_telefone">Telefone</label>
+            <input type="text" name="telefone" id="id_telefone" value="{{ user.telefone|default:'' }}" placeholder="(11) 9 9999-9999">
+        </div>
+        <div class="form-group">
+            <label for="id_cpf">CPF</label>
+            <input type="text" name="cpf" id="id_cpf" value="{{ profile.cpf|default:'' }}" placeholder="000.000.000-00">
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="id_renda_mensal">Renda Mensal (R$)</label>
+        <input type="number" name="renda_mensal" id="id_renda_mensal" step="0.01" min="0"
+               value="{{ profile.renda_mensal|default:'' }}" placeholder="Ex: 8000.00">
+    </div>
+
+    <!-- ── CORRETOR / WHITE-LABEL ── -->
+    <p class="section-title">
+        🏢 Perfil de Corretor
+        <span class="badge-premium">Profissional</span>
+    </p>
+
+    {% if tem_white_label %}
+    <div class="broker-section">
+        <p style="font-size:13px; color:#667eea; margin-bottom:16px;">
+            ✅ Seu plano inclui <strong>PDF White-Label</strong> – os dados abaixo aparecem no cabeçalho dos relatórios enviados aos seus clientes.
+        </p>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="id_creci">Nº CRECI</label>
+                <input type="text" name="creci" id="id_creci" value="{{ profile.creci|default:'' }}" placeholder="Ex: 12345-F">
+            </div>
+            <div class="form-group">
+                <label for="id_nome_empresa">Nome da Imobiliária / Empresa</label>
+                <input type="text" name="nome_empresa" id="id_nome_empresa" value="{{ profile.nome_empresa|default:'' }}" placeholder="Ex: Imóveis Premium Ltda">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="id_logo_empresa">Logo da Empresa</label>
+            {% if profile.logo_empresa %}
+                <p class="logo-current">Logo atual:</p>
+                <img src="{{ profile.logo_empresa.url }}" alt="Logo atual" class="logo-preview"><br><br>
+            {% endif %}
+            <input type="file" name="logo_empresa" id="id_logo_empresa" accept="image/*">
+            <small style="color:#888; font-size:12px;">PNG transparente recomendado. Máx. 500 KB.</small>
+        </div>
+    </div>
+
+    {% else %}
+    <div class="broker-locked">
+        <div class="lock-icon">🔒</div>
+        <p>
+            O <strong>Perfil de Corretor</strong> está disponível no <strong>Plano Profissional</strong>.<br>
+            Com ele, seus relatórios PDF saem com <em>logo, CRECI e contato da sua imobiliária</em> — passando muito mais credibilidade para seus clientes.<br><br>
+            <a href="{% url 'upgrade_premium' %}">👉 Ver planos e fazer upgrade</a>
+        </p>
+    </div>
+    {% endif %}
+
+    <!-- ── PREFERÊNCIAS ── -->
+    <p class="section-title">🔔 Notificações</p>
+    <div class="checkbox-group">
+        <input type="checkbox" name="notificacoes_email" id="notif_email"
+               {% if profile.receber_notificacoes %}checked{% endif %}>
+        <label for="notif_email">Receber notificações por e-mail</label>
+    </div>
+
+    <!-- ── SUBMIT ── -->
+    <button type="submit" class="btn btn-primary" style="margin-top: 16px;">💾 Salvar Perfil</button>
+</form>
+
+<div class="auth-footer" style="margin-top:10px;">
+    <a href="{% url 'dashboard' %}">← Voltar ao Dashboard</a>
+</div>
+{% endblock %}

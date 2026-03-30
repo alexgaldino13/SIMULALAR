@@ -154,18 +154,24 @@ def profile_view(request):
     profile = user.profile
     
     if request.method == 'POST':
-        # Atualiza dados do usuário
+        # Atualiza dados básicos do usuário
         user.first_name = request.POST.get('first_name', user.first_name)
         user.last_name = request.POST.get('last_name', user.last_name)
         user.telefone = request.POST.get('telefone', user.telefone)
         
-        # Atualiza dados do perfil
+        # Atualiza dados do perfil pessoal
         profile.cpf = request.POST.get('cpf', profile.cpf)
-        profile.renda_mensal = request.POST.get('renda_mensal', profile.renda_mensal)
+        profile.renda_mensal = request.POST.get('renda_mensal', profile.renda_mensal) or None
         
         # Atualiza preferências de notificação
         profile.notificacoes_email = request.POST.get('notificacoes_email') == 'on'
         profile.notificacoes_push = request.POST.get('notificacoes_push') == 'on'
+        
+        # Dados de Corretor (White-Label PDF)
+        profile.creci = request.POST.get('creci', profile.creci)
+        profile.nome_empresa = request.POST.get('nome_empresa', profile.nome_empresa)
+        if 'logo_empresa' in request.FILES:
+            profile.logo_empresa = request.FILES['logo_empresa']
         
         try:
             user.save()
@@ -176,9 +182,20 @@ def profile_view(request):
         
         return redirect('profile')
     
+    # Verifica se o usuário tem plano com PDF White-Label ativo
+    from .subscription_models import Subscription
+    from django.utils import timezone
+    tem_white_label = Subscription.objects.filter(
+        usuario=user,
+        status='ATIVA',
+        data_expiracao__gt=timezone.now(),
+        plano__pdf_white_label=True
+    ).exists()
+    
     context = {
         'user': user,
         'profile': profile,
+        'tem_white_label': tem_white_label,
     }
     
     return render(request, 'simulacao/auth/profile.html', context)

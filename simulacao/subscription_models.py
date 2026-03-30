@@ -65,6 +65,11 @@ class SubscriptionPlan(models.Model):
         default=False,
         verbose_name="Suporte Prioritário"
     )
+    pdf_white_label = models.BooleanField(
+        default=False,
+        verbose_name="PDF White-Label para Corretores",
+        help_text="Permite ao corretor personalizar o PDF com logo e dados de contato"
+    )
     
     # Desconto
     desconto_percentual = models.DecimalField(

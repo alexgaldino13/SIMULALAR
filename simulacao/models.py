@@ -96,6 +96,28 @@ class UserProfile(models.Model):
         verbose_name="Avatar"
     )
     
+    # Dados de Corretor (White-Label PDF)
+    creci = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        verbose_name="CRECI",
+        help_text="Número de registro no CRECI (Conselho Regional de Corretores de Imóveis)"
+    )
+    nome_empresa = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name="Nome da Empresa/Imobiliária"
+    )
+    logo_empresa = models.ImageField(
+        upload_to='logos_corretores/',
+        blank=True,
+        null=True,
+        verbose_name="Logo da Empresa",
+        help_text="Logo que aparecerá no cabeçalho do PDF (recomendado: PNG transparente, max 500KB)"
+    )
+    
     # Metadados
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)

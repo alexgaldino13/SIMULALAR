@@ -290,6 +290,7 @@ def exportar_simulacao_pdf(request, sim_id):
     """
     Exporta os dados de uma simulação salva para um arquivo PDF com formatação profissional.
     Feature exclusiva para usuários Premium.
+    Corretores com Plano Profissional recebem cabeçalho White-Label personalizado.
     """
     try:
         simulacao = SavedSimulation.objects.get(id=sim_id, user=request.user)
@@ -297,15 +298,68 @@ def exportar_simulacao_pdf(request, sim_id):
         messages.error(request, "Simulação não encontrada ou não pertence a você.")
         return redirect('dashboard')
 
+    # Verifica se o plano do usuário suporta White-Label
+    from .subscription_models import Subscription
+    from django.utils import timezone as tz
+    from reportlab.platypus import Image as RLImage
+    import os
+
+    tem_white_label = Subscription.objects.filter(
+        usuario=request.user,
+        status='ATIVA',
+        data_expiracao__gt=tz.now(),
+        plano__pdf_white_label=True
+    ).exists()
+
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
     elements = []
     styles = getSampleStyleSheet()
 
-    # Título do Relatório
-    elements.append(Paragraph(f"Relatório de Simulação: {simulacao.nome}", styles['Title']))
-    elements.append(Spacer(1, 12))
-    
+    # ── CABEÇALHO ──────────────────────────────────────────────────────────────
+    if tem_white_label:
+        # Cabeçalho personalizado do corretor
+        profile = request.user.profile
+        header_data = [[]]
+        header_style = []
+
+        # Logo (coluna esquerda)
+        if profile.logo_empresa and os.path.exists(profile.logo_empresa.path):
+            logo_img = RLImage(profile.logo_empresa.path, width=120, height=50, kind='proportional')
+            header_data[0].append(logo_img)
+        else:
+            header_data[0].append(Paragraph("<b>🏠 ImobCalc</b>", styles['Title']))
+
+        # Info do corretor (coluna direita)
+        nome_completo = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.email
+        info_lines = [f"<b>{nome_completo}</b>"]
+        if profile.nome_empresa:
+            info_lines.append(profile.nome_empresa)
+        if profile.creci:
+            info_lines.append(f"CRECI: {profile.creci}")
+        if request.user.telefone:
+            info_lines.append(f"Tel: {request.user.telefone}")
+
+        info_text = "<br/>".join(info_lines)
+        header_data[0].append(Paragraph(info_text, styles['Normal']))
+
+        header_table = Table(header_data, colWidths=[220, '*'])
+        header_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+            ('LINEBELOW', (0, 0), (-1, 0), 1.5, colors.HexColor('#667eea')),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ]))
+        elements.append(header_table)
+        elements.append(Spacer(1, 10))
+
+        elements.append(Paragraph(f"Relatório de Simulação: <b>{simulacao.titulo if hasattr(simulacao, 'titulo') else sim_id}</b>", styles['Heading2']))
+    else:
+        # Cabeçalho padrão ImobCalc
+        elements.append(Paragraph(f"Relatório de Simulação: {simulacao.titulo if hasattr(simulacao, 'titulo') else sim_id}", styles['Title']))
+
+    elements.append(Spacer(1, 8))
+
     # Metadados
     elements.append(Paragraph(f"<b>Data da Simulação:</b> {simulacao.criado_em.strftime('%d/%m/%Y %H:%M')}", styles['Normal']))
     elements.append(Spacer(1, 24))
