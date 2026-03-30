@@ -62,3 +62,26 @@ python manage.py runserver
 4. **Campos de resumo vazios** - Removido `floatformat` redundante no template `wizard_v2_resultados.html`
 5. **TypeError wizard_views_v2.py** - `parcela_inicial` agora retorna float.
 6. **Custo Total + Aluguel** - Removido `R$` e `floatformat` no template `wizard_v2_resultados.html`.
+
+---
+
+## ✅ SESSÃO DE 29/03/2026
+
+### ✅ Item 6.7 - Testes de Assinatura Premium
+- Criado `simulacao/tests/test_premium_subscription.py` com 4 testes:
+  - Redirecionamento de usuário não autenticado
+  - Redirecionamento de usuário Free
+  - Acesso de usuário com assinatura Premium ativa
+  - Redirecionamento de usuário com assinatura expirada
+- Todos os 4 testes passaram ✅
+
+### ✨ Nova Feature: PDF White-Label para Corretores
+- **Migration 0005** aplicada com os novos campos
+- **`subscription_models.py`** - novo campo `pdf_white_label` em `SubscriptionPlan`
+- **`models.py`** - novos campos em `UserProfile`: `creci`, `nome_empresa`, `logo_empresa`
+- **`auth_views.py`** - `profile_view` atualizada para salvar dados do corretor e upload de logo
+- **`profile.html`** - página de perfil criada com seção de corretor (bloqueada para planos sem White-Label)
+- **`views.py`** - `exportar_simulacao_pdf` injeta cabeçalho personalizado quando plano permite
+
+### 📌 Próximo item
+**6.8 - Testes de links afiliados** (`views.py`, `urls.py`, `models.py`)

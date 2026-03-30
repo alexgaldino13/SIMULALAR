@@ -17,6 +17,8 @@
 |------|-----------|----------|--------|
 | **6.8** | Testes de links afiliados | views.py, urls.py, models.py | ⏳ PENDENTE |
 
+> **🌟 Nova Feature Entregue:** PDF White-Label para Corretores (Plano Profissional) - `models.py`, `subscription_models.py`, `auth_views.py`, `views.py`, `profile.html`, migration `0005`
+
 ### 📋 DETALHAMENTO DA TAREFA
 
 **Objetivo:** Validar o rastreamento e redirecionamento de links afiliados.
@@ -106,10 +108,10 @@ Acesse: http://localhost:8000 e faça uma simulação completa para verificar se
 
 ## 📅 ÚLTIMA ATUALIZAÇÃO
 
-**Data:** 29 de Março de 2026 - 12:30
+**Data:** 29 de Março de 2026 - 22:10
 **Desenvolvedor:** Vercept (Gemini)  
-**Progresso:** 80% da Fase 6 (8 de 10 itens concluídos)
-**Último item concluído:** ✅ Item 6.7 - Testes de assinatura Premium
+**Progresso:** 80% da Fase 6 + 🌟 Feature PDF White-Label para Corretores
+**Último item concluído:** ✅ PDF White-Label para Corretores (Plano Profissional)
 **Próximo item:** ⏳ Testes de links afiliados (Item 6.8)
 **FASE 5 - Design e UX:** ✅ COMPLETA
 **FASE 6 - Testes Finais:** 🔄 Em andamento (80%)
@@ -124,6 +126,7 @@ Acesse: http://localhost:8000 e faça uma simulação completa para verificar se
 
 | Data | Comando | Arquivos alterados | Status |
 |------|---------|-------------------|--------|
+| 29/03 | PDF White-Label para Corretores | models.py, subscription_models.py, auth_views.py, views.py, profile.html | ✅ Concluído |
 | 29/03 | Testes de assinatura Premium (Item 6.7) | test_premium_subscription.py | ✅ Concluído |
 | 26/03 | Integração AdMob / Correção JSON Bugs | admob-integration.js, test_admob_integration.py | ✅ Concluído |
 | 26/03 | Testes de cálculos financeiros (Item 6.5) | calculadora_financeira.py, test_calculos.py | ✅ Concluído |
