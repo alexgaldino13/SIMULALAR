@@ -3,7 +3,7 @@
  */
 
 // Domínio de produção (placeholder - configure quando comprar o domínio)
-const PROD_URL = 'https://api.imobcalc.com.br';
+const PROD_URL = 'https://simulalar-production.up.railway.app';
 
 // IP Local para desenvolvimento
 const DEV_URL = 'http://192.168.0.11:8000';
