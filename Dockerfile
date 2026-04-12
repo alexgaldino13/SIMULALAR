@@ -26,7 +26,7 @@ ENV PORT=8080
 ENV DEBUG=False
 
 # Collect static files
-RUN python manage.py collectstatic --noinput
+RUN SECRET_KEY=build-only-key DATABASE_URL=sqlite:///:memory: python manage.py collectstatic --noinput
 
 # Run with Gunicorn
 CMD ["sh", "-c", "python manage.py migrate && gunicorn ImobCalc.wsgi:application --bind 0.0.0.0:$PORT"]
