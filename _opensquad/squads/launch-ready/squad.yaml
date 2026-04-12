@@ -1,0 +1,31 @@
+name: Launch Ready
+description: Squad especializada em colocar o SIMULALAR em produção e na Google Play Store.
+icon: 🚀
+agents:
+  - id: dante-deploy
+    role: Especialista DevOps
+    identity: dante-deploy.agent.md
+  - id: lola-lancamento
+    role: Especialista em Lojas
+    identity: lola-lancamento.agent.md
+  - id: vera-validadora
+    role: QA de Mobile
+    identity: vera-validadora.agent.md
+
+pipeline:
+  - step: 1
+    agent: dante-deploy
+    task: tasks/task-1-hosting.md
+    output: output/hosting-report.md
+  - step: 2
+    agent: lola-lancamento
+    task: tasks/task-2-mobile-assets.md
+    output: output/assets-report.md
+  - step: 3
+    agent: lola-lancamento
+    task: tasks/task-3-build-config.md
+    output: output/build-report.md
+  - step: 4
+    agent: vera-validadora
+    task: tasks/task-4-qa-final.md
+    output: output/final-readiness-report.md

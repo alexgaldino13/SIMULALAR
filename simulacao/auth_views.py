@@ -11,6 +11,11 @@ from django.core.mail import send_mail
 from django.conf import settings
 from .models import CustomUser, UserProfile
 from django.db import transaction
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.authtoken.models import Token
+from .serializers import UserRegistrationSerializer
 
 
 def login_view(request):
@@ -199,6 +204,29 @@ def profile_view(request):
     }
     
     return render(request, 'simulacao/auth/profile.html', context)
+
+
+# --- API VIEWS ---
+
+class APIRegistrationView(APIView):
+    """
+    API para registro de novos usuários.
+    Retorna o Token de autenticação após o registro.
+    """
+    permission_classes = []  # Aberto para todos
+    
+    def post(self, request):
+        serializer = UserRegistrationSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            token, created = Token.objects.get_or_create(user=user)
+            return Response({
+                'token': token.key,
+                'user_id': user.id,
+                'email': user.email,
+                'first_name': user.first_name
+            }, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 def password_reset_request_view(request):

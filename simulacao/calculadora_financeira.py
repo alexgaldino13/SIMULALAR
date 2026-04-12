@@ -10,6 +10,53 @@ from simulacao.formatacao import (
 )
 
 # ----------------------------------------------------------------------
+# CONSTANTES DE MERCADO (Benchmark 2024/2026)
+# ----------------------------------------------------------------------
+TAXA_ADMINISTRACAO_MENSAL_PADRAO = Decimal('25.00') # Padrão SBPE
+LIMITE_RENDA_MCMV_FAIXA_1 = Decimal('2850.00')      # Atualizado 2024 (Benchmark Auditoria)
+LIMITE_RENDA_MCMV_FAIXA_2 = Decimal('5000.00')
+LIMITE_RENDA_MCMV_MAX = Decimal('8000.00')
+TAXA_JUROS_PADRAO = Decimal('8.5')                   # Benchmark SBPE 2024
+
+# ----------------------------------------------------------------------
+# FUNÇÕES AUXILIARES DE SEGURO
+# ----------------------------------------------------------------------
+
+def obter_taxa_mip_por_idade(idade):
+    """
+    Retorna a taxa mensal de seguro MIP (Morte e Invalidez Permanente) 
+    baseada na faixa etária do participante com maior renda.
+    Valores atualizados 2024/2026 (Benchmark Caixa/Santander).
+    """
+    idade = int(idade)
+    if idade <= 30:
+        return Decimal('0.011') # 0.011% ao mês
+    elif idade <= 40:
+        return Decimal('0.018') # 0.018% ao mês
+    elif idade <= 50:
+        return Decimal('0.032') # 0.032% ao mês
+    elif idade <= 60:
+        # Reajuste de 0.065 para 0.082 (Benchmark 2024)
+        return Decimal('0.082') 
+    elif idade <= 70:
+        # Reajuste de 0.145 para 0.165 (Benchmark 2024)
+        return Decimal('0.165')
+    else:
+        # Reajuste de 0.250 para 0.280 (> 70 anos)
+        return Decimal('0.280')
+
+def calcular_seguro_dfi(valor_imovel):
+    """
+    Calcula o valor mensal do seguro DFI (Danos Físicos ao Imóvel).
+    Média de mercado: 0.005% sobre o valor do imóvel.
+    """
+    valor_dec = Decimal(str(valor_imovel))
+    # Coeficiente padrão 0.005%
+    taxa_dfi = Decimal('0.00005') 
+    return (valor_dec * taxa_dfi)
+
+
+# ----------------------------------------------------------------------
 # FUNÇÃO 1: CÁLCULO PRICE/SAC (COM LÓGICA DE AMORTIZAÇÃO FGTS) - CORRIGIDA
 # ----------------------------------------------------------------------
 
@@ -24,10 +71,21 @@ def calcular_price_sac(metodo, valor_principal, taxa_anual, prazo_meses, seguro_
     taxa_admin_mensal_dec = Decimal(str(taxa_admin_mensal))
     fgts_saldo_amortizacao_dec = Decimal(str(kwargs.get('fgts_saldo', 0.0)))
     
-    # NOVOS PARAMETROS FGTS
+    # NOVOS PARAMETROS FGTS E IDADE
     usar_fgts = kwargs.get('usar_fgts_financiamento', False)
     tipo_amortizacao = kwargs.get('tipo_amortizacao_fgts', 'reduzir_prazo')
     mes_uso = kwargs.get('mes_uso_fgts_financiamento', 1)
+    idade = kwargs.get('idade', 30)
+    
+    # Se o seguro_mensal for 0 (default), calculamos via MIP baseado na idade
+    if seguro_mensal_dec == 0:
+        taxa_mip_mensal = obter_taxa_mip_por_idade(idade)
+        # O seguro MIP é aplicado sobre o SALDO DEVEDOR. 
+        # Aqui definimos a taxa, o valor será calculado dentro do loop.
+        is_mip_dinamico = True
+    else:
+        is_mip_dinamico = False
+        taxa_mip_mensal = seguro_mensal_dec # Se veio taxa fixa (ex: 0.030)
     
     # 1. Inicialização de Variáveis
     taxa_mensal = taxa_anual / 12 / 100 # taxa_anual já é Decimal vindo da função 4
@@ -123,19 +181,32 @@ def calcular_price_sac(metodo, valor_principal, taxa_anual, prazo_meses, seguro_
             
         juros_mensal = saldo_devedor * taxa_mensal
         
-        # Acumula juros e taxas
-        total_juros += juros_mensal
-        total_seguros_taxas += seguro_mensal_dec + taxa_admin_mensal_dec
-        
+        if is_mip_dinamico:
+            # Seguro MIP = Taxa * Saldo Devedor / 100
+            seguro_mes = (saldo_devedor * taxa_mip_mensal) / 100
+            # CÁLCULO DINÂMICO DFI: Baseado no valor do imóvel (Ref: Auditoria 2024)
+            seguro_mes += calcular_seguro_dfi(valor_principal)
+        else:
+            # Caso antigo: percentual fixo sobre o saldo ou valor fixo
+            # Se for < 1, tratamos como percentual. Se for > 1, valor fixo.
+            if taxa_mip_mensal < 1:
+                seguro_mes = (saldo_devedor * taxa_mip_mensal) / 100
+            else:
+                seguro_mes = taxa_mip_mensal
+
         if metodo == 'price':
             amortizacao = parcela_fixa - juros_mensal
             # CORRIGIDO: Agora Decimal + Decimal
-            parcela = parcela_fixa + seguro_mensal_dec + taxa_admin_mensal_dec
+            parcela = parcela_fixa + seguro_mes + taxa_admin_mensal_dec
             
         elif metodo == 'sac':
             amortizacao = amortizacao_fixa
             # CORRIGIDO: Agora Decimal + Decimal
-            parcela = amortizacao + juros_mensal + seguro_mensal_dec + taxa_admin_mensal_dec
+            parcela = amortizacao + juros_mensal + seguro_mes + taxa_admin_mensal_dec
+        
+        # Acumula totais para resumo
+        total_juros += juros_mensal
+        total_seguros_taxas += seguro_mes + taxa_admin_mensal_dec
         
         # Aplica a amortização
         if saldo_devedor > Decimal('0.001') and amortizacao > 0:
@@ -222,8 +293,10 @@ def simular_aluguel_investimento(
     fgts_saldo, rendimento_fgts, fgts_mensal_percent, aporte_13,
     renda_familiar_bruta, 
     valorizacao_imovel,
-    taxa_anual_financiamento
+    taxa_anual_financiamento,
+    **kwargs
 ):
+
     """
     Simula o cenário Aluguel + Investimento mês a mês.
     """
@@ -253,6 +326,9 @@ def simular_aluguel_investimento(
     aluguel_mensal_atual = aluguel_inicial_dec 
     total_gasto_aluguel = Decimal(0)
     valor_imovel_final = valor_imovel_total_dec 
+    
+    # Taxa de Administração (Default 9.3% - QuintoAndar)
+    taxa_adm_aluguel = Decimal(str(kwargs.get('taxa_adm_aluguel', 9.3))) / 100
 
     # Capital Inicial é a Entrada (Investida) + Recursos Próprios Iniciais
     capital_inicial = entrada_total_dec + recursos_proprios_iniciais_dec
@@ -270,8 +346,10 @@ def simular_aluguel_investimento(
         deposito_fgts_mensal = renda_familiar_bruta_dec * fgts_mensal_percent
         fgts_saldo_atual += deposito_fgts_mensal
         
-        # C) PAGAMENTO DO ALUGUEL
+        # C) PAGAMENTO DO ALUGUEL E RECEBIMENTO LÍQUIDO (Se investidor)
         total_gasto_aluguel += aluguel_mensal_atual
+        aluguel_liquido = aluguel_mensal_atual * (1 - taxa_adm_aluguel)
+
         
         # Decisão de onde o aluguel é pago
         if opcao_pagamento_aluguel == 'investimento':
@@ -739,17 +817,19 @@ def calcular_mcmv(valor_imovel, renda_familiar_mensal, valor_entrada, prazo_mese
     """
     from decimal import Decimal
     
-    # Determinar faixa MCMV baseado na renda
+    # Determinar faixa MCMV baseado na renda (Atualizado 2024/2026)
     renda_anual = renda_familiar_mensal * 12
     
     subsidio = Decimal('0')
-    if renda_familiar_mensal <= 2640:
+    if renda_familiar_mensal <= LIMITE_RENDA_MCMV_FAIXA_1:
         faixa = 'faixa1'
         taxa_juros = Decimal('0.04')  # 4% ao ano
         subsidio_percent = Decimal('0.90')  # até 90% de subsídio
-    elif renda_familiar_mensal <= 4400:
+    elif renda_familiar_mensal <= LIMITE_RENDA_MCMV_FAIXA_2:
         faixa = 'faixa2'
         taxa_juros = Decimal('0.045')  # 4.5% ao ano
+
+
         subsidio_percent = Decimal('0.50')
     elif renda_familiar_mensal <= 8000:
         faixa = 'faixa3'
@@ -784,6 +864,7 @@ def calcular_mcmv(valor_imovel, renda_familiar_mensal, valor_entrada, prazo_mese
         'qualificado': True,
         'faixa': faixa,
         'metodo': f'MCMV - Faixa {faixa[-1]}',
+        'taxa_juros': taxa_juros,
         'taxa_juros_anual': float(taxa_juros) * 100,
         'subsidio': round(subsidio, 2),
         'valor_financiado': round(valor_financiado, 2),
@@ -793,5 +874,6 @@ def calcular_mcmv(valor_imovel, renda_familiar_mensal, valor_entrada, prazo_mese
         'custo_total': round(custo_total, 2),
         'patrimonio_final': valor_imovel
     }
+
 
     

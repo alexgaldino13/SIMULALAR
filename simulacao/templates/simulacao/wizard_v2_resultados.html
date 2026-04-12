@@ -212,6 +212,10 @@
     
     <main id="main-content" role="main" aria-label="Resultados da simulação">
     <div class="container">
+        <div class="results-layout">
+        {% include "components/lead_capture.html" %}
+        
+        <div id="detailed-results" style="display: none;">
         <div class="header">
             <h1>🎯 Seus Resultados Personalizados</h1>
             <p>Baseado no seu perfil e objetivos</p>
@@ -250,6 +254,9 @@
                     <span class="metric-label">Custo Total</span>
                     <span class="metric-value">{{ resultado.total_custo }}</span>
                 </div>
+                <p style="font-size: 11px; color: #888; margin-top: -10px; margin-bottom: 10px;">
+                    Inclui Seguros **Morte/Invalidez** e **Seguro do Imóvel**.
+                </p>
                 
                 <div class="metric">
                     <span class="metric-label">Prazo</span>
@@ -269,9 +276,9 @@
         {% if margem_credito %}
         <section class="highlight-card" aria-labelledby="margem-credito">
             <h4 id="margem-credito">💳 Sua Margem de Crédito</h4>
-            <p><strong>Renda Considerada pelo Banco:</strong> R$ {{ margem_credito.renda_total_considerada|floatformat:2 }}</p>
-            <p><strong>Margem Disponível (30%):</strong> R$ {{ margem_credito.margem_30_porcento|floatformat:2 }}/mês</p>
-            <p><strong>Capacidade de Financiamento (20 anos):</strong> R$ {{ margem_credito.margem_30_porcento|floatformat:2 }} x 240 meses = R$ {{ margem_credito.margem_30_porcento|mul:240|floatformat:2 }}</p>
+            <p><strong>Renda Considerada pelo Banco:</strong> {{ margem_credito.renda_total_considerada|currency }}</p>
+            <p><strong>Margem Disponível (30%):</strong> {{ margem_credito.margem_30_porcento|currency }}/mês</p>
+            <p><strong>Capacidade de Financiamento (20 anos):</strong> {{ margem_credito.margem_30_porcento|currency }} x 240 meses = {{ margem_credito.margem_30_porcento|mul:240|currency }}</p>
             {% if margem_credito.desconto_aplicado > 0 %}
             <p style="font-size: 14px; margin-top: 10px;">💡 Outras rendas foram consideradas com desconto de {{ margem_credito.desconto_aplicado|floatformat:0 }}%</p>
             {% endif %}
@@ -281,10 +288,10 @@
         {% if fgts_futuro %}
         <section class="highlight-card" aria-labelledby="fgts-projecao">
             <h4 id="fgts-projecao">🏦 Projeção do seu FGTS</h4>
-            <p><strong>Depósito Mensal:</strong> R$ {{ fgts_futuro.deposito_mensal|floatformat:2 }}</p>
-            <p><strong>Total Depositado ({{ fgts_futuro.meses }} meses):</strong> R$ {{ fgts_futuro.total_depositado|floatformat:2 }}</p>
-            <p><strong>Rendimento Acumulado:</strong> R$ {{ fgts_futuro.rendimento_acumulado|floatformat:2 }}</p>
-            <p><strong>Saldo Final Projetado:</strong> R$ {{ fgts_futuro.saldo_final|floatformat:2 }}</p>
+            <p><strong>Depósito Mensal:</strong> {{ fgts_futuro.deposito_mensal|currency }}</p>
+            <p><strong>Total Depositado ({{ fgts_futuro.meses }} meses):</strong> {{ fgts_futuro.total_depositado|currency }}</p>
+            <p><strong>Rendimento Acumulado:</strong> {{ fgts_futuro.rendimento_acumulado|currency }}</p>
+            <p><strong>Saldo Final Projetado:</strong> {{ fgts_futuro.saldo_final|currency }}</p>
             <p style="font-size: 14px; margin-top: 10px;">💡 Baseado em: 8% do salário CLT + {{ fgts_futuro.taxa_efetiva_anual|floatformat:1 }}% a.a.</p>
         </section>
         {% endif %}
@@ -294,16 +301,16 @@
             <h4 style="color: white;">🎯 Cenário Especial: Você tem {{ cenario_80.percentual_capital_disponivel|floatformat:0 }}% do valor!</h4>
             
             <p style="margin-top: 15px;"><strong>Opção A - {{ cenario_80.opcao_a.descricao }}:</strong></p>
-            <p>Valor a financiar: R$ {{ cenario_80.opcao_a.valor_financiado|floatformat:2 }}</p>
-            <p>Parcela mensal: R$ {{ cenario_80.opcao_a.parcela_mensal|floatformat:2 }}</p>
-            <p>Custo total: R$ {{ cenario_80.opcao_a.custo_total_financiamento|floatformat:2 }}</p>
-            <p>Patrimônio final: R$ {{ cenario_80.opcao_a.patrimonio_final|floatformat:2 }}</p>
+            <p>Valor a financiar: {{ cenario_80.opcao_a.valor_financiado|currency }}</p>
+            <p>Parcela mensal: {{ cenario_80.opcao_a.parcela_mensal|currency }}</p>
+            <p>Custo total: {{ cenario_80.opcao_a.custo_total_financiamento|currency }}</p>
+            <p>Patrimônio final: {{ cenario_80.opcao_a.patrimonio_final|currency }}</p>
             
             <p style="margin-top: 15px;"><strong>Opção B - {{ cenario_80.opcao_b.descricao }}:</strong></p>
-            <p>Capital investido: R$ {{ cenario_80.opcao_b.capital_investido|floatformat:2 }}</p>
-            <p>Aluguel mensal: R$ {{ cenario_80.opcao_b.aluguel_mensal|floatformat:2 }}</p>
-            <p>Valor final do investimento: R$ {{ cenario_80.opcao_b.valor_final_investimento|floatformat:2 }}</p>
-            <p>Patrimônio final: R$ {{ cenario_80.opcao_b.patrimonio_final|floatformat:2 }}</p>
+            <p>Capital investido: {{ cenario_80.opcao_b.capital_investido|currency }}</p>
+            <p>Aluguel mensal: {{ cenario_80.opcao_b.aluguel_mensal|currency }}</p>
+            <p>Valor final do investimento: {{ cenario_80.opcao_b.valor_final_investimento|currency }}</p>
+            <p>Patrimônio final: {{ cenario_80.opcao_b.patrimonio_final|currency }}</p>
             
             <p style="margin-top: 20px; font-size: 18px; border-top: 2px solid white; padding-top: 15px;"><strong>🏆 {{ cenario_80.comparacao.recomendacao }}</strong></p>
             <p style="font-size: 14px; margin-top: 5px;">Diferença patrimonial: R$ {{ cenario_80.comparacao.diferenca_patrimonial|floatformat:2 }} ({{ cenario_80.comparacao.vantagem_percentual|floatformat:1 }}% do imóvel)</p>
@@ -314,9 +321,9 @@
         <section class="highlight-card" aria-labelledby="destaques">
             <h4 id="destaques">📊 Destaques</h4>
             <p><strong>Mais Econômico:</strong> {{ analise.destaques.mais_economico.cenario }} 
-               (R$ {{ analise.destaques.mais_economico.valor|floatformat:2 }})</p>
+               ({{ analise.destaques.mais_economico.valor|currency }})</p>
             <p><strong>Menor Parcela:</strong> {{ analise.destaques.menor_parcela.cenario }} 
-               (R$ {{ analise.destaques.menor_parcela.valor|floatformat:2 }})</p>
+               ({{ analise.destaques.menor_parcela.valor|currency }})</p>
             <p><strong>Menor Prazo:</strong> {{ analise.destaques.menor_prazo.cenario }} 
                ({{ analise.destaques.menor_prazo.anos|floatformat:1 }} anos)</p>
         </section>
@@ -385,3 +392,4 @@
     </main>
 </body>
 </html>
+

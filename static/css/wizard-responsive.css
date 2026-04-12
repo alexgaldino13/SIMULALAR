@@ -225,9 +225,11 @@ a:focus {
     text-decoration: underline;
 }
 
-.poll-card:focus {
-    outline: 3px solid #4A90E2;
-    outline-offset: 2px;
+.poll-card:focus,
+.poll-card:focus-within {
+    outline: 3px solid #ff9800; /* Laranja vibrante para alto contraste */
+    outline-offset: 4px;
+    box-shadow: 0 0 0 6px rgba(255, 152, 0, 0.2);
 }
 
 *:focus:not(:focus-visible) {

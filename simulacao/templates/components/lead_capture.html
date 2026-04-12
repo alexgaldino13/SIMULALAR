@@ -1,0 +1,70 @@
+<div id="lead-capture-section" style="background: white; border-radius: 20px; padding: 40px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.1); margin-bottom: 40px; position: relative; overflow: hidden; border: 2px solid #667eea;">
+    <div style="position: absolute; top: 0; right: 0; background: #667eea; color: white; padding: 5px 20px; border-bottom-left-radius: 15px; font-size: 12px; font-weight: 700; text-transform: uppercase;">Acesso Premium</div>
+    
+    <h2 style="font-size: 28px; color: #333; margin-bottom: 15px; font-weight: 800;">Estamos quase lá! 🚀</h2>
+    <p style="color: #666; font-size: 16px; margin-bottom: 30px; max-width: 500px; margin-left: auto; margin-right: auto;">
+        Sua simulação está pronta. Informe onde deseja receber o <strong>Relatório Detalhado em PDF</strong> com todas as comparações de mercado.
+    </p>
+    
+    <form id="lead-form" class="row g-3 justify-content-center">
+        <div class="col-md-5">
+            <input type="text" id="lead-nome" name="nome" class="form-control" placeholder="Seu Nome Completo" required style="height: 55px; border-radius: 12px; border: 2px solid #eee;">
+        </div>
+        <div class="col-md-5">
+            <input type="text" id="lead-whatsapp" name="whatsapp" class="form-control currency-input-whatsapp" placeholder="Seu WhatsApp (com DDD)" required style="height: 55px; border-radius: 12px; border: 2px solid #eee;">
+        </div>
+        <div class="col-md-10 mt-4">
+            <button type="button" id="btn-unlock-results" class="btn btn-primary btn-lg w-100" style="height: 60px; border-radius: 50px; font-weight: 800; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); border: none; box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);">
+                Ver Resultados e Gerar PDF Gratis →
+            </button>
+            <p class="text-muted small mt-2">Ao clicar, você concorda com nossa <a href="#">Política de Privacidade</a>.</p>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.getElementById('btn-unlock-results').addEventListener('click', function() {
+        const nome = document.getElementById('lead-nome').value;
+        const zap = document.getElementById('lead-whatsapp').value;
+        
+        if (!nome || !zap) {
+            alert('Por favor, preencha seu nome e WhatsApp para ver o relatório completo.');
+            return;
+        }
+
+        // Enviar para API de Leads
+        fetch('/api/v1/capturar-lead/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: new URLSearchParams({
+                'nome': nome,
+                'whatsapp': zap,
+                'origem': 'WEB',
+                'valor_imovel': '{{ resultado_geral.valor_imovel|default:"" }}',
+                'perfil': '{{ request.session.wizard_v2_data.perfil_objetivos.perfil_usuario|default:"" }}'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Efeito de transição
+                document.getElementById('lead-capture-section').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('lead-capture-section').style.display = 'none';
+                    document.getElementById('detailed-results').style.display = 'block';
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }, 500);
+            } else {
+                alert('Erro ao processar: ' + (data.error || 'Tente novamente.'));
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            alert('Erro de conexão. Tente novamente.');
+        });
+    });
+</script>
+

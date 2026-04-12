@@ -1,0 +1,45 @@
+squad_code: "auditor-financeiro-premium"
+purpose: "Revisar toda a lógica financeira do app sob a visão de um usuário real, testando cenários críticos e corrigindo erros de cálculo e UX de acordo com referências bancárias."
+domain: "analysis"
+
+company:
+  name: "LALA MIX"
+  tone: "Inovador, educativo, humano e confiável."
+  products: "Tech Dicas (YouTube) e SIMULALAR (Real Estate Tech)."
+
+language: "Português (Brasil)"
+
+context:
+  data_sources: "Referências Bancárias (Inter, Santander, Caixa, Sicoob, Serasa, QuintoAndar) e código fonte do app (D:\\PROJETOS\\FI)."
+  decisions: "Refatoração imediata do código financeiro e de UX."
+  output_format: "Checklist de Correção (técnico e focado em arquivos/linhas)."
+
+tools_needed:
+  - "apify"
+  - "web-browsing"
+  - "code-execution"
+  - "file-system"
+
+investigation:
+  enabled: true
+  profiles:
+    - url: "https://proprietario.quintoandar.com.br/novo-imovel/quanto-cobrar-de-aluguel"
+      platform: "website"
+      investigation_mode: "full_site"
+    - url: "https://inter.co/pra-voce/financiamento-imobiliario/residencial/"
+      platform: "website"
+      investigation_mode: "full_site"
+    - url: "https://www.santander.com.br/atendimento-para-voce/simuladores/simulador-credito-imobiliario"
+      platform: "website"
+      investigation_mode: "full_site"
+    - url: "https://www.caixa.gov.br/voce/habitacao/Paginas/default.aspx"
+      platform: "website"
+      investigation_mode: "full_site"
+    - url: "https://www.sicoob.com.br/web/creditoimobiliario/simulador"
+      platform: "website"
+      investigation_mode: "full_site"
+    - url: "https://www.serasa.com.br/calculadoras/simulador-financiamento-imobiliario/"
+      platform: "website"
+      investigation_mode: "full_site"
+
+target_formats: []

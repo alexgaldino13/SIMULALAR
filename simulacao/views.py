@@ -22,6 +22,13 @@ from reportlab.graphics.shapes import Drawing
 from reportlab.graphics.charts.lineplots import LinePlot
 from reportlab.graphics.widgets.markers import makeMarker
 
+def landing_page(request):
+    """
+    Exibe a página de entrada do ImobCalc com marketing e comparativo de planos.
+    """
+    planos = SubscriptionPlan.objects.filter(ativo=True).order_by('preco')
+    return render(request, 'simulacao/landing_page.html', {'planos': planos})
+
 def simulacao_view(request):
     """
     View antiga - mantida para compatibilidade
@@ -518,3 +525,55 @@ def api_links_afiliados(request):
     data = [{'id': l.id, 'nome': l.nome, 'tipo': l.tipo, 'url': f'/afiliado/{l.id}/', 'logo': l.logo.url if l.logo else None, 'descricao': l.descricao} for l in links]
     
     return JsonResponse({'links': data})
+
+from django.views.decorators.csrf import csrf_exempt
+from .models import WizardLead
+
+@csrf_exempt
+def api_capturar_lead(request):
+    """
+    API para capturar leads do Wizard (Web e Mobile).
+    Fundamental para a estratégia CPL (Cost Per Lead).
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método não permitido'}, status=405)
+    
+    try:
+        # Tenta carregar dados de JSON (Mobile) ou POST (Web)
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+        else:
+            data = request.POST
+            
+        nome = data.get('nome')
+        whatsapp = data.get('whatsapp')
+        email = data.get('email', '')
+        origem = data.get('origem', 'WEB')
+        
+        if not nome or not whatsapp:
+            return JsonResponse({'error': 'Nome e WhatsApp são obrigatórios'}, status=400)
+            
+        # Contexto opcional
+        valor_imovel = data.get('valor_imovel')
+        perfil = data.get('perfil')
+        cidade = data.get('cidade')
+        
+        lead = WizardLead.objects.create(
+            nome=nome,
+            whatsapp=whatsapp,
+            email=email,
+            origem=origem,
+            valor_imovel=Decimal(str(valor_imovel)) if valor_imovel else None,
+            perfil=perfil,
+            cidade=cidade
+        )
+
+        
+        return JsonResponse({
+            'success': True, 
+            'lead_id': lead.id,
+            'message': 'Lead capturado com sucesso! Relatório desbloqueado.'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)

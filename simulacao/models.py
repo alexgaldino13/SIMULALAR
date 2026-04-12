@@ -129,6 +129,30 @@ class UserProfile(models.Model):
     def __str__(self):
         return f"Perfil de {self.user.username}"
 
+class ParametrosMercado(models.Model):
+    """
+    Configurações personalizáveis de mercado para cada usuário.
+    """
+    usuario = models.OneToOneField(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE, 
+        related_name='parametros'
+    )
+    
+    # Índices de Valorização e Inflação
+    valorizacao_imovel_aa = models.DecimalField(max_digits=5, decimal_places=2, default=5.00, verbose_name="Valorização do Imóvel (% a.a.)")
+    inflacao_aa = models.DecimalField(max_digits=5, decimal_places=2, default=4.50, verbose_name="Inflação / IPCA (% a.a.)")
+    
+    # Taxas de Investimento
+    taxa_selic_aa = models.DecimalField(max_digits=5, decimal_places=2, default=10.50, verbose_name="Taxa SELIC/CDI (% a.a.)")
+    rendimento_poupanca_aa = models.DecimalField(max_digits=5, decimal_places=2, default=6.17, verbose_name="Rendimento Poupança (% a.a.)")
+    
+    # Parâmetros de Financiamento
+    comprometimento_renda_max = models.IntegerField(default=30, verbose_name="Comprometimento de Renda Máximo (%)")
+    itbi_registro_percentual = models.DecimalField(max_digits=4, decimal_places=2, default=4.00, verbose_name="ITBI + Registro (%)")
+
+    def __str__(self):
+        return f"Parâmetros de {self.usuario.username}"
 
 # ======================================================================
 # MODELOS DE SIMULAÇÕES SALVAS
@@ -392,3 +416,38 @@ class CliqueAfiliado(models.Model):
     class Meta:
         verbose_name = 'Clique em Afiliado'
         verbose_name_plural = 'Cliques em Afiliados'
+
+class WizardLead(models.Model):
+    """
+    Captura de contatos qualificados interessados em relatórios ou financiamento.
+    Fundamental para a estratégia de monetização CPL.
+    """
+    nome = models.CharField(max_length=200, verbose_name="Nome Completo")
+    whatsapp = models.CharField(max_length=25, verbose_name="WhatsApp")
+    email = models.EmailField(blank=True, null=True, verbose_name="E-mail")
+    
+    # Contexto do Lead
+    valor_imovel = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
+    perfil = models.CharField(max_length=50, blank=True, null=True)
+    cidade = models.CharField(max_length=100, blank=True, null=True)
+    
+    # Metadados
+    simulacao_vinculada = models.ForeignKey(
+        SavedSimulation, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True
+    )
+    origem = models.CharField(max_length=20, default='WEB', choices=[('WEB', 'Web'), ('MOBILE', 'Mobile')])
+    consentimento_lgpd = models.BooleanField(default=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Lead do Wizard"
+        verbose_name_plural = "Leads do Wizard"
+        ordering = ['-criado_em']
+
+    def __str__(self):
+        return f"{self.nome} - {self.whatsapp}"
+
+

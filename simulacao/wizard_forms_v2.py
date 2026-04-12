@@ -65,6 +65,20 @@ class WizardPerfilObjetivosForm(BaseWizardForm):
         help_text="🏠 Importante para calcular seus gastos atuais"
     )
     
+    idade_comprador = forms.IntegerField(
+        label="Qual a sua idade?",
+        required=True,
+        min_value=18,
+        max_value=100,
+        initial=30,
+        widget=forms.NumberInput(attrs={
+            'inputmode': 'numeric',
+            'class': 'form-control',
+            'placeholder': 'Ex: 30'
+        }),
+        help_text="🎂 Necessário para o cálculo do seguro (MIP) e prazo máximo"
+    )
+    
     aluguel_atual = forms.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -333,6 +347,24 @@ class WizardImovelDesejadoForm(BaseWizardForm):
                     f"Faltam R$ {faltam:,.2f}. Considere o cenário 'Guardar Dinheiro' para juntar a diferença."
                 )
         
+        # Validação Regra 80 Anos (Idade + Prazo)
+        prazo_anos = cleaned_data.get('prazo_desejado_anos')
+        perfil_objetivos = self.wizard_data.get('perfil_objetivos', {})
+        idade = int(perfil_objetivos.get('idade_comprador', 0))
+        
+        if idade and prazo_anos:
+            if idade + prazo_anos > 80:
+                limite_prazo = 80 - idade
+                if limite_prazo > 0:
+                    self.add_error('prazo_desejado_anos', 
+                        f"⚠️ Regra de Ouro: A soma da idade ({idade}) + o prazo ({prazo_anos}) não pode ultrapassar 80 anos. "
+                        f"Para sua idade, o prazo máximo é de {limite_prazo} anos."
+                    )
+                else:
+                    self.add_error('prazo_desejado_anos', 
+                        f"⚠️ Infelizmente, pela sua idade ({idade}), o financiamento bancário tradicional não é permitido (limite de 80 anos excedido)."
+                    )
+        
         return cleaned_data
 
 
@@ -468,15 +500,14 @@ class WizardCenariosForm(BaseWizardForm):
         label="Taxa de retorno esperada do investimento (% a.a.)",
         required=False,
         initial=Decimal('9.50'),
-        widget=forms.NumberInput(attrs={
-            'step': '0.01',
-            'min': '0',
-            'max': '50',
-            'class': 'form-control',
-            'placeholder': '9.50'
+        widget=forms.TextInput(attrs={
+            'inputmode': 'decimal',
+            'class': 'form-control percent-input',
+            'placeholder': '9.50%'
         }),
-        help_text="📈 Poupança ~6%, CDB ~12%, Ações ~15%+ (com risco)"
+        help_text="📈 Poupança ~6%, CDB ~12%, Ações ~15%+ (com risco). No SIMULALAR, calculamos o poder do seu dinheiro no tempo!"
     )
+
     
     def clean(self):
         cleaned_data = super().clean()

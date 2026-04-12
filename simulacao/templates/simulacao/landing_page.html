@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block head_title %}ImobCalc - O melhor simulador imobiliário do Brasil{% endblock %}
+
+{% block extra_head %}
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --accent-color: #ffd700;
+    }
+
+    .hero-section {
+        background: var(--primary-gradient);
+        color: white;
+        padding: 100px 0 150px 0;
+        clip-path: ellipse(150% 100% at 50% 0%);
+        text-align: center;
+    }
+
+    .hero-title {
+        font-size: 3.5rem;
+        font-weight: 800;
+        margin-bottom: 20px;
+        text-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+
+    .hero-subtitle {
+        font-size: 1.4rem;
+        opacity: 0.9;
+        max-width: 700px;
+        margin: 0 auto 40px auto;
+    }
+
+    .cta-button {
+        background: white;
+        color: #764ba2;
+        padding: 18px 45px;
+        font-size: 1.2rem;
+        font-weight: 700;
+        border-radius: 50px;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        display: inline-block;
+    }
+
+    .cta-button:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+        color: #667eea;
+    }
+
+    .features-section {
+        margin-top: -80px;
+        padding-bottom: 80px;
+    }
+
+    .feature-card {
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        text-align: center;
+        box-shadow: 0 15px 45px rgba(0,0,0,0.05);
+        transition: transform 0.3s ease;
+        height: 100%;
+    }
+
+    .feature-card:hover {
+        transform: translateY(-10px);
+    }
+
+    .feature-icon {
+        font-size: 3rem;
+        background: var(--primary-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 20px;
+    }
+
+    .pricing-section {
+        padding: 80px 0;
+        background-color: #f8f9fa;
+    }
+
+    .comparison-table-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 30px;
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+    }
+
+    .pricing-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .pricing-table th, .pricing-table td {
+        padding: 25px;
+        text-align: center;
+        border-bottom: 1px solid #eee;
+    }
+
+    .pricing-table th {
+        background: #fdfdfd;
+        font-weight: 700;
+        font-size: 1.2rem;
+        color: #333;
+    }
+
+    .pricing-table .feature-name {
+        text-align: left;
+        font-weight: 500;
+        color: #555;
+    }
+
+    .pricing-table .check-yes {
+        color: #10b981;
+        font-size: 1.2rem;
+    }
+
+    .pricing-table .check-no {
+        color: #ef4444;
+        font-size: 1.2rem;
+        opacity: 0.5;
+    }
+
+    .plan-header {
+        padding: 30px 0;
+        color: white;
+    }
+
+    .plan-free { background: #6c757d; }
+    .plan-premium { background: var(--primary-gradient); }
+
+    .price-tag {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin: 10px 0;
+    }
+
+    .price-sub {
+        font-size: 0.9rem;
+        opacity: 0.8;
+    }
+
+    .premium-badge {
+        background: var(--accent-color);
+        color: #333;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        vertical-align: middle;
+        text-transform: uppercase;
+        margin-left: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <h1 class="hero-title">O imóvel dos seus sonhos,<br>com o plano perfeito.</h1>
+        <p class="hero-subtitle">
+            O ImobCalc é o simulador mais avançado e simples do Brasil. Compare SAC, Price, Consórcio e Aluguel em segundos e tome a melhor decisão financeira da sua vida.
+        </p>
+        <a href="{% url 'simulacao_principal' %}" class="cta-button">
+            Fazer Simulação Grátis <i class="fas fa-rocket ms-2"></i>
+        </a>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="features-section">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <i class="fas fa-chart-line feature-icon"></i>
+                    <h3>7 Cenários Reais</h3>
+                    <p class="text-muted">Analisamos desde financiamento tradicional até consórcio e estratégias de investimento.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <i class="fas fa-brain feature-icon"></i>
+                    <h3>Inteligência de Wizard</h3>
+                    <p class="text-muted">Um guia passo a passo que entende sua realidade financeira e recomenda a melhor opção.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <i class="fas fa-file-pdf feature-icon"></i>
+                    <h3>Relatórios Premium</h3>
+                    <p class="text-muted">Gere documentos PDF e Excel profissionais para você ou seus clientes.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Pricing Section (Tabela Comparativa) -->
+<section class="pricing-section">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">Escolha seu Plano</h2>
+            <p class="text-muted">Gratuito para sempre, ou profissional para quem quer ir além.</p>
+        </div>
+
+        <div class="comparison-table-container">
+            <table class="pricing-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40%;">Funcionalidade</th>
+                        <th style="width: 30%;" class="plan-header plan-free text-white">Grátis</th>
+                        <th style="width: 30%;" class="plan-header plan-premium text-white">Premium <span class="premium-badge">PRO</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="feature-name">Simulações Completas</td>
+                        <td class="check-yes"><i class="fas fa-check"></i></td>
+                        <td class="check-yes"><i class="fas fa-check-double"></i></td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">Publicidade</td>
+                        <td class="text-muted small">Exibe Anúncios</td>
+                        <td class="check-yes"><strong>Sem Anúncios</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">Exportação PDF Profissional</td>
+                        <td class="check-no"><i class="fas fa-times"></i></td>
+                        <td class="check-yes"><i class="fas fa-check"></i></td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">Exportação Excel para Cálculos</td>
+                        <td class="check-no"><i class="fas fa-times"></i></td>
+                        <td class="check-yes"><i class="fas fa-check"></i></td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">Cenários de Investidor Extra</td>
+                        <td class="check-no"><i class="fas fa-times"></i></td>
+                        <td class="check-yes"><i class="fas fa-check"></i></td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">PDF White-Label (Corretores)</td>
+                        <td class="check-no"><i class="fas fa-times"></i></td>
+                        <td class="check-yes"><i class="fas fa-star text-warning"></i></td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td></td>
+                        <td>
+                            <div class="price-tag">R$ 0</div>
+                            <a href="{% url 'register' %}" class="btn btn-outline-secondary rounded-pill px-4">Começar Agora</a>
+                        </td>
+                        <td>
+                            {% if planos %}
+                                {% with plano=planos.0 %}
+                                <div class="price-tag">R$ {{ plano.preco_mensal_equivalente|floatformat:2 }}<span class="fs-6 text-white-50">/mês*</span></div>
+                                <p class="small text-white-50">Assinando plano {{ plano.nome }}</p>
+                                {% endwith %}
+                            {% else %}
+                                <div class="price-tag">R$ 29,90</div>
+                            {% endif %}
+                            <a href="{% url 'upgrade_premium' %}" class="btn btn-warning rounded-pill px-4 fw-bold">Assinar Premium</a>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <p class="text-center mt-4 text-muted small">* Os valores e planos variam conforme a duração contratada.</p>
+    </div>
+</section>
+
+<!-- App Section -->
+<section class="py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h2 class="fw-bold mb-4">Leve o ImobCalc no seu bolso</h2>
+                <p class="lead text-muted mb-4">Baixe nosso aplicativo para Android e iOS e faça simulações de qualquer lugar, mesmo sem internet.</p>
+                <div class="d-flex gap-3">
+                    <a href="#"><img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" height="50" alt="Google Play"></a>
+                    <a href="#"><img src="https://upload.wikimedia.org/wikipedia/commons/3/3c/Download_on_the_App_Store_Badge_US-UK_RGB_blk_092917.svg" height="50" alt="App Store"></a>
+                </div>
+            </div>
+            <div class="col-md-6 text-center">
+                <div class="p-5">
+                     <i class="fas fa-mobile-alt fa-10x text-secondary opacity-25"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

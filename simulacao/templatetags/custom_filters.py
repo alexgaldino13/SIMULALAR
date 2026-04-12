@@ -10,3 +10,8 @@ def mul(value, arg):
         return float(value) * float(arg)
     except (ValueError, TypeError):
         return 0
+
+@register.filter
+def currency(value):
+    from simulacao.formatacao import formatar_moeda_brl
+    return formatar_moeda_brl(value)

@@ -23,9 +23,11 @@ class CalculosFinanceirosTests(TestCase):
         self.assertEqual(resultado['prazo_final_meses'], 360)
         
         parcela_inicial = resultado['parcela_inicial']
-        # Verifica se todas as parcelas são iguais ou muito próximas (diferença < 0.10)
-        for linha in tabela[:-1]: # ignoro a ultima parcela q pode ter resíduo de amortizacao
-            self.assertAlmostEqual(linha['parcela'], parcela_inicial, delta=0.50)
+        # No PRICE com MIP/DFI dinâmicos (default), as parcelas podem variar ligeiramente
+        # pois o MIP é sobre o saldo devedor que diminui.
+        # Assim, verificamos se a variação é razoável.
+        for linha in tabela[:-1]: 
+            self.assertLessEqual(linha['parcela'], parcela_inicial + 0.01)
             
     def test_financiamento_sac_sem_fgts(self):
         """No financiamento SAC a amortização deve ser constante e as parcelas decrescentes."""

@@ -29,8 +29,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Adiciona evento de clique a cada card
         cards.forEach(card => {
+            const radio = card.querySelector('input[type="radio"]');
+            if (radio) {
+                // Remove radio da navegação por TAB para evitar "dupla tab"
+                // O foco será controlado pelo .poll-card (tabindex="0")
+                radio.setAttribute('tabindex', '-1');
+            }
+
             card.addEventListener('click', () => {
-                const radio = card.querySelector('input[type="radio"]');
                 if (radio && !radio.checked) {
                     // 1. Marca o radio button correspondente
                     radio.checked = true;
@@ -142,14 +148,32 @@ document.addEventListener('DOMContentLoaded', function() {
                     input.dataset.rawValue = e.target.rawValue;
                 }
             });
-            
-            const form = input.closest('form');
-            if (form && !form.dataset.cleaveHandlerAdded) {
+        });
+
+        const percentInputs = document.querySelectorAll('.percent-input');
+        percentInputs.forEach(input => {
+            new Cleave(input, {
+                numeral: true,
+                numeralDecimalMark: ',',
+                delimiter: '.',
+                numeralDecimalScale: 2,
+                numeralPositiveOnly: true,
+                suffix: '%',
+                onValueChanged: function(e) {
+                    input.dataset.rawValue = e.target.rawValue;
+                }
+            });
+        });
+        
+        // Form Global Submit Handler to restore raw values
+        const forms = document.querySelectorAll('form');
+        forms.forEach(form => {
+            if (!form.dataset.cleaveHandlerAdded) {
                 form.dataset.cleaveHandlerAdded = 'true';
                 form.addEventListener('submit', function() {
-                    const inputs = form.querySelectorAll('.currency-input');
-                    inputs.forEach(inp => {
-                        if (inp.dataset.rawValue) {
+                    const maskedInputs = form.querySelectorAll('.currency-input, .percent-input');
+                    maskedInputs.forEach(inp => {
+                        if (inp.dataset.rawValue !== undefined) {
                             inp.value = inp.dataset.rawValue;
                         }
                     });
@@ -157,6 +181,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
 
     // Inicializar formatação monetária
 

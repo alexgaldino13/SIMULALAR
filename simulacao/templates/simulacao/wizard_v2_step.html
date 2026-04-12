@@ -279,9 +279,12 @@
                 </div>
             {% endfor %}
             
+            {% include "components/specialist_tips.html" %}
+            
             <div class="button-group">
+
                 {% if can_go_back %}
-                    <a href="{% url 'wizard_v2_step' step=current_step|add:'-1' %}" class="btn btn-secondary">
+                    <a href="{% url 'wizard_v2_step' step=current_step|add:'-1' %}" class="btn btn-secondary btn-voltar">
                         ← Voltar
                     </a>
                 {% endif %}
@@ -308,3 +311,4 @@
     {% endif %}
 </body>
 </html>
+

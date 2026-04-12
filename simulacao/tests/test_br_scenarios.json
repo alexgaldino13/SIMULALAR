@@ -1,0 +1,127 @@
+[
+  {
+    "model": "simulacao.savedsimulation",
+    "pk": 1,
+    "fields": {
+      "nome_simulacao": "SAC - Jovem Casal",
+      "dados_wizard": {
+        "perfil": "comprador",
+        "prioridade": "economia",
+        "renda_familiar_bruta": 8500.0,
+        "valor_imovel": 350000.0,
+        "poupanca": 50000.0,
+        "fgts_saldo": 20000.0,
+        "objetivo": "morar",
+        "prazo_anos": 30,
+        "sistema_amortizacao": "SAC"
+      }
+    }
+  },
+  {
+    "model": "simulacao.savedsimulation",
+    "pk": 2,
+    "fields": {
+      "nome_simulacao": "PRICE - MCMV",
+      "dados_wizard": {
+        "perfil": "comprador",
+        "prioridade": "parcelas_suaves",
+        "renda_familiar_bruta": 5000.0,
+        "valor_imovel": 220000.0,
+        "poupanca": 44000.0,
+        "objetivo": "morar",
+        "prazo_anos": 30,
+        "sistema_amortizacao": "PRICE",
+        "mcmv": true
+      }
+    }
+  },
+  {
+    "model": "simulacao.savedsimulation",
+    "pk": 3,
+    "fields": {
+      "nome_simulacao": "Consórcio - Estrategista de Lance",
+      "dados_wizard": {
+        "perfil": "investidor",
+        "prioridade": "economia",
+        "valor_imovel": 200000.0,
+        "poupanca": 50000.0,
+        "tipo_lance": "embutido",
+        "objetivo": "investir",
+        "prazo_anos": 15,
+        "metodo": "consorcio"
+      }
+    }
+  },
+  {
+    "model": "simulacao.savedsimulation",
+    "pk": 4,
+    "fields": {
+      "nome_simulacao": "Aluguel + Inv - Perfil Conservador",
+      "dados_wizard": {
+        "perfil": "explorando",
+        "poupanca": 100000.0,
+        "aluguel_atual": 20000.0,
+        "valor_imovel_desejado": 500000.0,
+        "tipo_investimento": "CDB",
+        "taxa_investimento_aa": 12.0
+      }
+    }
+  },
+  {
+    "model": "simulacao.savedsimulation",
+    "pk": 5,
+    "fields": {
+      "nome_simulacao": "Guardar Dinheiro - Morando com Pais",
+      "dados_wizard": {
+        "perfil": "comprador",
+        "renda_familiar_bruta": 5000.0,
+        "valor_imovel": 250000.0,
+        "aporte_mensal": 3000.0,
+        "taxa_rendimento_am": 0.8,
+        "custo_moradia": 0.0
+      }
+    }
+  },
+  {
+    "model": "simulacao.savedsimulation",
+    "pk": 6,
+    "fields": {
+      "nome_simulacao": "SAC - Autônomo Renda Alta",
+      "dados_wizard": {
+        "perfil": "investidor",
+        "renda_familiar_bruta": 20000.0,
+        "tipo_contrato": "autonomo",
+        "valor_imovel": 900000.0,
+        "poupanca": 180000.0,
+        "prazo_anos": 30,
+        "sistema_amortizacao": "SAC"
+      }
+    }
+  },
+  {
+    "model": "simulacao.savedsimulation",
+    "pk": 7,
+    "fields": {
+      "nome_simulacao": "PRICE - Comparação juros",
+      "dados_wizard": {
+        "valor_imovel": 400000.0,
+        "poupanca": 80000.0,
+        "prazo_anos": 30,
+        "sistema_amortizacao": "PRICE"
+      }
+    }
+  },
+  {
+    "model": "simulacao.savedsimulation",
+    "pk": 8,
+    "fields": {
+      "nome_simulacao": "SAC - Comparação juros",
+      "dados_wizard": {
+        "valor_imovel": 400000.0,
+        "poupanca": 80000.0,
+        "prazo_anos": 30,
+        "sistema_amortizacao": "SAC"
+      }
+    }
+  }
+]

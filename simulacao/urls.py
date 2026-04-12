@@ -4,6 +4,7 @@ from . import views
 from . import wizard_views_v2
 from . import auth_views
 from . import lgpd_views 
+from . import api_views
 from .monetizacao_views import SubscriptionStatusView, AdViewTrackingView, GooglePlayBillingWebhookView
 
 urlpatterns = [
@@ -29,8 +30,12 @@ urlpatterns = [
     path('privacy/', lgpd_views.privacy_policy_view, name='privacy_policy'),
     path('audit-logs/', lgpd_views.audit_logs_view, name='audit_logs'),
     
-    # Redireciona direto para o Wizard V2 (nova versão)
-    path('', wizard_views_v2.wizard_v2, name='simulacao_principal'),
+    # Landing Page (Nova porta de entrada)
+    path('', views.landing_page, name='landing_page'),
+    path('landing/', views.landing_page, name='landing_page_explicit'),
+    
+    # Redireciona direto para o Wizard V2 (mantendo o nome antigo para compatibilidade interna)
+    path('simulacao-direta/', wizard_views_v2.wizard_v2, name='simulacao_principal'),
     
     # URLs do Wizard V2 (versão reorganizada com IA)
     path('wizard-v2/', wizard_views_v2.wizard_v2, name='wizard_v2'),
@@ -51,6 +56,15 @@ urlpatterns = [
     path('exportar/excel/<int:sim_id>/', views.exportar_simulacao_excel, name='exportar_excel'),
     path('exportar/pdf/<int:sim_id>/', views.exportar_simulacao_pdf, name='exportar_pdf'),
             
+    # --- API ENDPOINTS ---
+    path('api/v1/register/', auth_views.APIRegistrationView.as_view(), name='api_register'),
+    path('api/v1/wizard/calculate/', wizard_views_v2.APICalculateWizardView.as_view(), name='api_wizard_calculate'),
+    path('api/v1/dashboard/', api_views.APIDashboardView.as_view(), name='api_dashboard'),
+    path('api/v1/simulation/save/', api_views.APISaveSimulationView.as_view(), name='api_simulation_save'),
+    path('api/v1/simulations/', api_views.APISimulationListView.as_view(), name='api_simulation_list'),
+    path('api/v1/simulation/<int:pk>/delete/', api_views.APIDeleteSimulationView.as_view(), name='api_simulation_delete'),
+    
+    # --- AUTHENTICATION ---
     # APIs para AdMob/Monetizacao
     path('api/assinaturas/status/', SubscriptionStatusView.as_view(), name='api_assinatura_status'),
     path('api/monetizacao/ad-view/', AdViewTrackingView.as_view(), name='api_registrar_ad_view'),

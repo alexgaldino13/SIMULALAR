@@ -1,0 +1,21 @@
+<div class="specialist-tip-container" style="margin-top: 25px; padding: 20px; background: rgba(102, 126, 234, 0.05); border-left: 4px solid #667eea; border-radius: 8px;">
+    <div style="display: flex; align-items: flex-start; gap: 15px;">
+        <div style="font-size: 24px;">💡</div>
+        <div>
+            <h4 style="color: #4A90E2; margin-bottom: 5px; font-weight: 700;">Visão do Especialista</h4>
+            <p id="specialist-text" style="color: #555; font-size: 14px; line-height: 1.6;">
+                {% if current_step == 1 %}
+                    Definir bem o seu perfil é o primeiro passo para economizar milhares de reais. Compradores e investidores têm métricas de sucesso completamente diferentes.
+                {% elif current_step == 2 %}
+                    Sua renda formal (CLT) é o que o banco mais valoriza. Sabia que outras rendas podem ter um "desconto" de até 25% na análise de crédito bancária?
+                {% elif current_step == 3 %}
+                    O capital que você já tem é o que define o seu poder de negociação. Se você já tem um imóvel, ele pode ser a chave para um upgrade estratégico.
+                {% elif current_step == 4 %}
+                    A Regra dos 80 Anos é implacável: Bancos limitam o financiamento para que termine antes do comprador completar 80 anos. Fique atento ao prazo!
+                {% elif current_step == 5 %}
+                    A mágica acontece aqui. Comparar SAC vs Price pode significar uma economia de mais de R$ 50 mil em juros ao final de 30 anos.
+                {% endif %}
+            </p>
+        </div>
+    </div>
+</div>
