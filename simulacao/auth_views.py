@@ -66,6 +66,14 @@ def register_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
     
+    # Pre-fill com dados do lead se disponíveis na sessão (Fase 12)
+    initial_data = {
+        'first_name': request.session.get('lead_nome', '').split(' ')[0],
+        'last_name': ' '.join(request.session.get('lead_nome', '').split(' ')[1:]),
+        'telefone': request.session.get('lead_whatsapp', ''),
+        'email': request.session.get('lead_email', ''),
+    }
+
     if request.method == 'POST':
         email = request.POST.get('email')
         password = request.POST.get('password')
@@ -109,12 +117,18 @@ def register_view(request):
                     login(request, user)
                     
                     messages.success(request, f'Conta criada com sucesso! Bem-vindo, {first_name}!')
-                    return redirect('dashboard')
+
+                    # Redireciona para o próximo passo se existir (Fase 12)
+                    next_url = request.GET.get('next', 'dashboard')
+                    return redirect(next_url)
                     
             except Exception as e:
                 messages.error(request, f'Erro ao criar conta: {str(e)}')
     
-    return render(request, 'simulacao/auth/register.html')
+    context = {
+        'initial': initial_data,
+    }
+    return render(request, 'simulacao/auth/register.html', context)
 
 
 def logout_view(request):

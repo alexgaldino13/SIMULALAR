@@ -1,5 +1,6 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
+import LoginScreen from '../screens/LoginScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import SimulationDetailScreen from '../screens/SimulationDetailScreen';
 import SavedSimulationsScreen from '../screens/SavedSimulationsScreen';
@@ -10,7 +11,8 @@ const Stack = createStackNavigator();
 
 export const MainNavigator = () => {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator initialRouteName="Auth" screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Auth" component={LoginScreen} />
       <Stack.Screen name="Dashboard" component={DashboardScreen} />
       <Stack.Screen name="Wizard" component={WizardNavigator} />
       <Stack.Screen name="SimulationDetail" component={SimulationDetailScreen} />
@@ -19,3 +21,4 @@ export const MainNavigator = () => {
     </Stack.Navigator>
   );
 };
+

@@ -1,0 +1,22 @@
+name: Studio Visual
+description: Squad focado em automação de UI/UX, desde o design (Stitch) até a codificação (Expo).
+icon: 🎨
+agents:
+  - id: leo-visual
+    role: Designer de UI/UX IA
+    identity: agents/leo-visual.agent.md
+  - id: bia-frontend
+    role: Especialista Expo/React Native
+    identity: agents/bia-frontend.agent.md
+
+pipeline:
+  - step: 1
+    name: "Criação de Blueprint"
+    agent: leo-visual
+    task: "tasks/gerar-blueprint.md"
+    output: "output/design-blueprint.md"
+  - step: 2
+    name: "Desenvolvimento de Tela"
+    agent: bia-frontend
+    task: "tasks/converter-para-code.md"
+    output: "output/code-report.md"

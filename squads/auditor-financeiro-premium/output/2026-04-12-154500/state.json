@@ -1,0 +1,19 @@
+{
+  "squad": "auditor-financeiro-premium",
+  "status": "completed",
+  "step": { "current": 5, "total": 5, "label": "Veredito e Checklist Final" },
+  "agents": [
+    { "id": "rita-referencia", "name": "Rita Referência", "icon": "🔍", "status": "done", "desk": { "col": 1, "row": 1 } },
+    { "id": "dante-dados", "name": "Dante Dados", "icon": "📊", "status": "done", "desk": { "col": 2, "row": 1 } },
+    { "id": "vera-veredito", "name": "Vera Veredito", "icon": "✅", "status": "done", "desk": { "col": 3, "row": 1 } }
+  ],
+  "handoff": {
+    "from": "vera-veredito",
+    "to": "user",
+    "message": "Auditoria concluída. Checklist de refatoração gerado.",
+    "completedAt": "2026-04-12T15:55:00Z"
+  },
+  "startedAt": "2026-04-12T15:45:00Z",
+  "updatedAt": "2026-04-12T15:55:00Z",
+  "completedAt": "2026-04-12T15:55:00Z"
+}

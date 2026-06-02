@@ -20,8 +20,8 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
         <div class="container">
-            <a class="navbar-brand fw-bold" href="{% url 'dashboard' %}">
-                <i class="fas fa-home me-2"></i>ImobCalc
+            <a class="navbar-brand fw-bold" href="{% if user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'landing_page' %}{% endif %}">
+                <img src="{% static 'img/simulalar_logo.png' %}" alt="SIMULALAR Logo" height="30" class="me-2 d-inline-block align-text-top" style="border-radius: 6px;"> SIMULALAR
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -87,7 +87,11 @@
     <!-- Footer -->
     <footer class="bg-white py-4 mt-5 border-top">
         <div class="container text-center text-muted small">
-            <p class="mb-0">ImobCalc &copy; {% now "Y" %} - Todos os direitos reservados.</p>
+            <p class="mb-2">SIMULALAR &copy; {% now "Y" %} - Todos os direitos reservados.</p>
+            <div class="d-flex justify-content-center gap-3">
+                <a href="{% url 'privacy_policy' %}" class="text-decoration-none text-muted">Política de Privacidade</a>
+                <a href="{% url 'terms_of_service' %}" class="text-decoration-none text-muted">Termos de Uso</a>
+            </div>
         </div>
     </footer>
 

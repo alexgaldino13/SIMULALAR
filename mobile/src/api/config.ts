@@ -6,7 +6,7 @@
 const PROD_URL = 'https://simulalar-production.up.railway.app';
 
 // IP Local para desenvolvimento
-const DEV_URL = 'http://192.168.0.11:8000';
+const DEV_URL = 'http://192.168.0.15:8000';
 
 // Alterna automaticamente: No simulador/expo usa DEV, no build final usa PROD
 export const BASE_URL = __DEV__ ? DEV_URL : PROD_URL;

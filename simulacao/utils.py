@@ -1,10 +1,36 @@
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 import math
 import locale
 
 # ----------------------------------------------------------------------
 # FUNÇÃO DE UTILIDADE: FORMATAÇÃO BRL (R$) - CORRIGIDA (ROBUSTA DEFINITIVA)
 # ----------------------------------------------------------------------
+
+def safe_decimal(value, default=0):
+    """Converte valor para Decimal de forma segura, tratando formatos brasileiros e outros tipos."""
+    if value is None:
+        return Decimal(str(default))
+    if isinstance(value, Decimal):
+        return value
+    if isinstance(value, (int, float)):
+        return Decimal(str(value))
+
+    val_str = str(value).strip()
+    if not val_str:
+        return Decimal(str(default))
+
+    # Remove símbolos de moeda e espaços
+    val_str = val_str.replace('R$', '').replace('$', '').replace(' ', '')
+
+    # Tratamento de formato brasileiro: 1.234,56 -> 1234.56
+    if ',' in val_str:
+        # 1.234,56 -> 1234.56
+        val_str = val_str.replace('.', '').replace(',', '.')
+
+    try:
+        return Decimal(val_str)
+    except (InvalidOperation, ValueError):
+        return Decimal(str(default))
 
 def formatar_moeda_brl(valor):
     """Formata float para string de moeda brasileira (R$ 1.234.567,89)."""
@@ -635,19 +661,26 @@ def guardar_dinheiro(
     prazo_meses_int = int(prazo_meses)
     
     # Inicializacao
+    saldo_poupanca = Decimal('0') # Começa do zero, ou da entrada se já tiver?
+    # Em guardar_dinheiro_paciencia, d['valor_entrada_inicial'] é passado.
     saldo_poupanca = valor_entrada_inicial_dec
+
     total_gasto_aluguel = Decimal(0)
     aluguel_atual = valor_aluguel_dec
-    
+    meses_necessarios = 0
+
     # Loop mes a mes
     for mes in range(1, prazo_meses_int + 1):
         saldo_poupanca *= (1 + taxa_rendimento_mensal_dec)
         saldo_poupanca += valor_mensal_guardar_dec
         fgts_saldo_dec *= (1 + taxa_rendimento_mensal_dec)
-        deposito_fgts = renda_familiar_bruta_dec * fgts_mensal_percent_dec
+        deposito_fgts = (renda_familiar_bruta_dec * fgts_mensal_percent_dec) / 100
         fgts_saldo_dec += deposito_fgts
         total_gasto_aluguel += aluguel_atual
         
+        if meses_necessarios == 0 and (saldo_poupanca + fgts_saldo_dec) >= Decimal(str(valor_imovel)):
+            meses_necessarios = mes
+
         if mes % 12 == 0 and mes < prazo_meses_int:
             aluguel_atual *= (1 + taxa_reajuste_aluguel_anual_dec)
     
@@ -658,7 +691,8 @@ def guardar_dinheiro(
         'fgts_final': float(fgts_saldo_dec),
         'saldo_total_final': float(saldo_total_final),
         'total_gasto_aluguel': float(total_gasto_aluguel),
-        'tempo_para_comprar_anos': 0,
-        'tempo_para_comprar_meses': 0,
+        'meses_para_comprar': meses_necessarios,
+        'tempo_para_comprar_anos': meses_necessarios // 12,
+        'tempo_para_comprar_meses': meses_necessarios % 12,
         'viavel': saldo_total_final >= Decimal(str(valor_imovel))
     }

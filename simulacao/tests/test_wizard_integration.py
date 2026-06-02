@@ -7,138 +7,152 @@ class WizardIntegrationTest(TestCase):
     
     def setUp(self):
         self.client = Client()
-        self.wizard_url = reverse('wizard_v2')
+        # Wizard V2 uses step as part of the URL /wizard-v2/<step>/
+        self.wizard_step_url = lambda s: reverse('wizard_v2_step', kwargs={'step': s})
     
     def test_wizard_flow_complete(self):
         """Testa o fluxo completo do wizard do início ao fim"""
         
-        # Step 1: Perfil do usuário
-        response = self.client.post(self.wizard_url, {
-            'wizard_v2-current_step': '0',
-            '0-idade': '30',
-            '0-renda_mensal': '5000',
-            '0-tem_fgts': 'sim',
-            '0-valor_fgts': '20000',
-        })
+        # Step 1: Perfil & Objetivos
+        response = self.client.post(self.wizard_step_url(1), {
+            'perfil_usuario': 'comprador_morar',
+            'prioridade_principal': 'pagar_menos',
+            'onde_mora_atualmente': 'aluga',
+            'idade_comprador': '30',
+            'aluguel_atual': '1500',
+            'tempo_mora_atualmente': '1_3'
+        }, follow=True)
         self.assertEqual(response.status_code, 200)
-        
-        # Step 2: Características do imóvel
-        response = self.client.post(self.wizard_url, {
-            'wizard_v2-current_step': '1',
-            '1-valor_imovel': '300000',
-            '1-valor_entrada': '60000',
-            '1-cidade': 'São Paulo',
-            '1-tipo_imovel': 'apartamento',
-        })
+        self.assertContains(response, 'Trabalho')
+
+        # Step 2: Trabalho & Renda
+        response = self.client.post(self.wizard_step_url(2), {
+            'tipo_contrato': 'clt',
+            'renda_familiar_bruta': '8000',
+            'outras_rendas': '1000',
+            'renda_estavel': 'estavel',
+            'quantos_dependentes': '1'
+        }, follow=True)
         self.assertEqual(response.status_code, 200)
-        
-        # Step 3: Condições de financiamento
-        response = self.client.post(self.wizard_url, {
-            'wizard_v2-current_step': '2',
-            '2-prazo_anos': '20',
-            '2-sistema_amortizacao': 'SAC',
-            '2-taxa_juros': '9.5',
-        })
+        self.assertContains(response, 'Finanças')
+
+        # Step 3: Finanças Atuais
+        response = self.client.post(self.wizard_step_url(3), {
+            'saldo_dinheiro_guardado': '60000',
+            'saldo_fgts': '20000',
+            'valor_imovel_proprio': '0',
+            'despesas_mensais_fixas': '2000'
+        }, follow=True)
         self.assertEqual(response.status_code, 200)
-        
-        # Step 4: Custos adicionais
-        response = self.client.post(self.wizard_url, {
-            'wizard_v2-current_step': '3',
-            '3-itbi': '2',
-            '3-registro': '1500',
-            '3-avaliacao': '800',
-        })
+        self.assertContains(response, 'Imóvel Desejado')
+
+        # Step 4: Imóvel Desejado
+        response = self.client.post(self.wizard_step_url(4), {
+            'valor_imovel_desejado': '400000',
+            'prazo_desejado_anos': '30',
+            'cidade': 'São Paulo',
+            'custas_documentacao_forma': 'financiado'
+        }, follow=True)
         self.assertEqual(response.status_code, 200)
-        
-        # Verificar se chegou ao resultado final
-        self.assertContains(response, 'Resultado da Simulação')
+        self.assertContains(response, 'Cenários')
+
+        # Step 5: Cenários
+        response = self.client.post(self.wizard_step_url(5), {
+            'comparar_financiamento_sac': 'on',
+            'comparar_financiamento_price': 'on',
+            'usar_fgts': 'on'
+        }, follow=True)
+
+        self.assertEqual(response.status_code, 200)
+        # Deve chegar na página de resultados
+        self.assertContains(response, 'Resultados')
     
     def test_wizard_validation_errors(self):
         """Testa validações de campos obrigatórios"""
         
-        # Tentar enviar step 1 sem dados
-        response = self.client.post(self.wizard_url, {
-            'wizard_v2-current_step': '0',
+        # Tentar enviar step 1 sem idade
+        response = self.client.post(self.wizard_step_url(1), {
+            'perfil_usuario': 'comprador_morar',
+            'prioridade_principal': 'pagar_menos',
+            'onde_mora_atualmente': 'aluga',
+            # 'idade_comprador': missing
+            'tempo_mora_atualmente': '1_3'
         })
         
-        # Deve retornar erros de validação
-        self.assertFormError(response, 'form', 'idade', 'Este campo é obrigatório.')
+        # Deve retornar erros de validação na página
+        self.assertContains(response, 'Este campo é obrigatório')
     
     def test_wizard_back_navigation(self):
         """Testa navegação para trás no wizard"""
         
-        # Avançar para step 2
-        self.client.post(self.wizard_url, {
-            'wizard_v2-current_step': '0',
-            '0-idade': '30',
-            '0-renda_mensal': '5000',
+        # Step 1 -> Step 2
+        self.client.post(self.wizard_step_url(1), {
+            'perfil_usuario': 'comprador_morar',
+            'prioridade_principal': 'pagar_menos',
+            'onde_mora_atualmente': 'aluga',
+            'idade_comprador': '30',
+            'aluguel_atual': '1500',
+            'tempo_mora_atualmente': '1_3'
         })
         
-        # Voltar para step 1
-        response = self.client.post(self.wizard_url, {
-            'wizard_v2-current_step': '1',
-            'wizard_goto_step': '0',
-        })
+        # Acessar Step 1 novamente via GET
+        response = self.client.get(self.wizard_step_url(1))
         
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Perfil do Usuário')
+        self.assertContains(response, 'Perfil')
+        self.assertContains(response, 'value="30"') # Verifica se manteve dado
     
     def test_wizard_session_persistence(self):
         """Testa se os dados são mantidos na sessão"""
         
         # Enviar dados do step 1
-        self.client.post(self.wizard_url, {
-            'wizard_v2-current_step': '0',
-            '0-idade': '35',
-            '0-renda_mensal': '8000',
+        self.client.post(self.wizard_step_url(1), {
+            'perfil_usuario': 'comprador_morar',
+            'prioridade_principal': 'pagar_menos',
+            'onde_mora_atualmente': 'aluga',
+            'idade_comprador': '35',
+            'aluguel_atual': '2000',
+            'tempo_mora_atualmente': '1_3'
         })
         
-        # Voltar e verificar se dados foram mantidos
-        response = self.client.get(self.wizard_url)
-        self.assertContains(response, '35')  # Idade deve estar preenchida
+        # Verificar dados na sessão
+        session = self.client.session
+        wizard_data = session.get('wizard_v2_data', {})
+        self.assertEqual(wizard_data['perfil_objetivos']['idade_comprador'], 35.0)
 
 
 class WizardCalculationTest(TestCase):
     """Testes de cálculos do wizard"""
     
+    def setUp(self):
+        self.client = Client()
+        self.wizard_step_url = lambda s: reverse('wizard_v2_step', kwargs={'step': s})
+
     def test_sac_calculation(self):
-        """Testa cálculo SAC"""
-        client = Client()
-        
-        response = client.post(reverse('wizard_v2'), {
-            'wizard_v2-current_step': '0',
-            '0-idade': '30',
-            '0-renda_mensal': '5000',
-            '0-tem_fgts': 'nao',
-            '0-valor_fgts': '0',
-        })
-        
-        response = client.post(reverse('wizard_v2'), {
-            'wizard_v2-current_step': '1',
-            '1-valor_imovel': '200000',
-            '1-valor_entrada': '40000',
-            '1-cidade': 'São Paulo',
-            '1-tipo_imovel': 'apartamento',
-        })
-        
-        response = client.post(reverse('wizard_v2'), {
-            'wizard_v2-current_step': '2',
-            '2-prazo_anos': '15',
-            '2-sistema_amortizacao': 'SAC',
-            '2-taxa_juros': '10',
-        })
+        """Testa cálculo SAC via Wizard V2"""
+        # Preenche os 5 passos
+        self.client.post(self.wizard_step_url(1), {'perfil_usuario': 'comprador_morar', 'prioridade_principal': 'pagar_menos', 'onde_mora_atualmente': 'aluga', 'idade_comprador': '30', 'aluguel_atual': '0', 'tempo_mora_atualmente': '1_3'})
+        self.client.post(self.wizard_step_url(2), {'tipo_contrato': 'clt', 'renda_familiar_bruta': '10000', 'outras_rendas': '0', 'renda_estavel': 'estavel', 'quantos_dependentes': '0'})
+        self.client.post(self.wizard_step_url(3), {'saldo_dinheiro_guardado': '100000', 'saldo_fgts': '0', 'valor_imovel_proprio': '0', 'despesas_mensais_fixas': '0'})
+        self.client.post(self.wizard_step_url(4), {'valor_imovel_desejado': '500000', 'prazo_desejado_anos': '30', 'cidade': 'SP', 'custas_documentacao_forma': 'a_vista'})
+        response = self.client.post(self.wizard_step_url(5), {'comparar_financiamento_sac': 'on'}, follow=True)
         
         # Verificar se o cálculo foi realizado
+        self.assertContains(response, 'Financiamento SAC')
         self.assertContains(response, 'Parcela Inicial')
-        self.assertContains(response, 'Parcela Final')
-    
+
     def test_price_calculation(self):
-        """Testa cálculo PRICE"""
-        client = Client()
+        """Testa cálculo PRICE via Wizard V2"""
+        # Preenche os 5 passos
+        self.client.post(self.wizard_step_url(1), {'perfil_usuario': 'comprador_morar', 'prioridade_principal': 'pagar_menos', 'onde_mora_atualmente': 'aluga', 'idade_comprador': '30', 'aluguel_atual': '0', 'tempo_mora_atualmente': '1_3'})
+        self.client.post(self.wizard_step_url(2), {'tipo_contrato': 'clt', 'renda_familiar_bruta': '10000', 'outras_rendas': '0', 'renda_estavel': 'estavel', 'quantos_dependentes': '0'})
+        self.client.post(self.wizard_step_url(3), {'saldo_dinheiro_guardado': '100000', 'saldo_fgts': '0', 'valor_imovel_proprio': '0', 'despesas_mensais_fixas': '0'})
+        self.client.post(self.wizard_step_url(4), {'valor_imovel_desejado': '500000', 'prazo_desejado_anos': '30', 'cidade': 'SP', 'custas_documentacao_forma': 'a_vista'})
+        response = self.client.post(self.wizard_step_url(5), {'comparar_financiamento_price': 'on'}, follow=True)
         
-        # Similar ao teste SAC, mas com sistema PRICE
-        # ... (implementar fluxo completo)
-        pass
+        # Verificar se o cálculo foi realizado
+        self.assertContains(response, 'Financiamento PRICE')
+        self.assertContains(response, 'Parcela Inicial')
 
 
 class WizardUITest(TestCase):
@@ -147,15 +161,14 @@ class WizardUITest(TestCase):
     def test_progress_bar(self):
         """Testa se a barra de progresso é exibida"""
         client = Client()
-        response = client.get(reverse('wizard_v2'))
+        response = client.get(reverse('wizard_v2_step', kwargs={'step': 1}))
         
         self.assertContains(response, 'progress-bar')
-        self.assertContains(response, 'Step 1')
+        self.assertContains(response, 'Etapa 1')
     
     def test_responsive_classes(self):
         """Testa se classes responsivas estão presentes"""
         client = Client()
-        response = client.get(reverse('wizard_v2'))
+        response = client.get(reverse('wizard_v2_step', kwargs={'step': 1}))
         
         self.assertContains(response, 'wizard-container')
-        self.assertContains(response, 'wizard-responsive')

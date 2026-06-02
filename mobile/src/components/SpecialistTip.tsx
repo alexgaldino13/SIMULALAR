@@ -1,5 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface SpecialistTipProps {
   text: string;
@@ -8,12 +10,14 @@ interface SpecialistTipProps {
 export const SpecialistTip: React.FC<SpecialistTipProps> = ({ text }) => {
   return (
     <View style={styles.container}>
-      <View style={styles.iconContainer}>
-        <Text style={styles.icon}>💡</Text>
-      </View>
-      <View style={styles.textContainer}>
-        <Text style={styles.title}>Visão do Especialista</Text>
-        <Text style={styles.text}>{text}</Text>
+      <View style={styles.gradient}>
+        <View style={styles.header}>
+          <View style={styles.iconCircle}>
+            <Ionicons name="sparkles" size={16} color="#FFD700" />
+          </View>
+          <Text style={styles.title}>DICA DO ESPECIALISTA</Text>
+        </View>
+        <Text style={styles.text}>{text || ''}</Text>
       </View>
     </View>
   );
@@ -21,35 +25,40 @@ export const SpecialistTip: React.FC<SpecialistTipProps> = ({ text }) => {
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(106, 17, 203, 0.08)',
-    borderRadius: 14,
+    marginVertical: 20,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(106, 17, 203, 0.3)',
+  },
+  gradient: {
     padding: 18,
-    marginTop: 25,
-    marginBottom: 10,
-    borderLeftWidth: 4,
-    borderLeftColor: '#6a11cb',
   },
-  iconContainer: {
-    marginRight: 15,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  icon: {
-    fontSize: 24,
-  },
-  textContainer: {
-    flex: 1,
+  iconCircle: {
+    width: 30, 
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255, 215, 0, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
   },
   title: {
-    color: '#a29bfe',
-    fontSize: 14,
-    fontWeight: '800',
-    marginBottom: 4,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+    color: '#FFD700',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 1.5,
   },
   text: {
-    color: '#ddd',
-    fontSize: 13,
-    lineHeight: 18,
+    color: '#fff',
+    fontSize: 14,
+    lineHeight: 22,
+    opacity: 0.8,
+    fontStyle: 'italic',
   },
 });

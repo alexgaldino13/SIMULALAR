@@ -4,13 +4,11 @@ import {
   Text, 
   View, 
   TouchableOpacity, 
-  SafeAreaView, 
-  KeyboardAvoidingView, 
-  Platform, 
-  ScrollView 
+  ScrollView,
+  Platform,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { StatusBar } from 'expo-status-bar';
 
 interface WizardStepProps {
   currentStep: number;
@@ -22,6 +20,7 @@ interface WizardStepProps {
   children: React.ReactNode;
   nextLabel?: string;
   hideBack?: boolean;
+  loading?: boolean;
 }
 
 export const WizardStep: React.FC<WizardStepProps> = ({
@@ -34,33 +33,35 @@ export const WizardStep: React.FC<WizardStepProps> = ({
   children,
   nextLabel = 'Continuar',
   hideBack = false,
+  loading = false,
 }) => {
-  const progress = currentStep / totalSteps;
+  const progress = currentStep / (totalSteps || 5);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="light" />
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
-        style={styles.keyboardView}
-      >
+    <View style={styles.container}>
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: '#0f0c29' }]} />
+      
+      <View style={styles.keyboardView}>
         {/* HEADER & PROGRESS */}
         <View style={styles.header}>
-          <View style={styles.progressContainer}>
-            <View style={styles.progressBarBackground}>
-              <View 
-                style={[
-                  styles.progressBarFill, 
-                  { width: `${progress * 100}%` }
-                ]} 
-              />
+          <View style={styles.progressHeader}>
+            <View style={styles.progressContainer}>
+              <View style={styles.progressBarBackground}>
+                <View
+                  style={{
+                    height: '100%',
+                    backgroundColor: '#6a11cb',
+                    width: `${Math.min(Math.max(progress, 0), 1) * 100}%` as any
+                  }}
+                />
+              </View>
+              <Text style={styles.progressText}>ETAPA {String(currentStep)} de {String(totalSteps)}</Text>
             </View>
-            <Text style={styles.progressText}>Passo {currentStep} de {totalSteps}</Text>
           </View>
 
           <View style={styles.titleContainer}>
-            <Text style={styles.title}>{title}</Text>
-            {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+            <Text style={styles.title}>{String(title)}</Text>
+            {subtitle ? <Text style={styles.subtitle}>{String(subtitle)}</Text> : null}
           </View>
         </View>
 
@@ -68,85 +69,94 @@ export const WizardStep: React.FC<WizardStepProps> = ({
         <ScrollView 
           style={styles.content} 
           contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
         >
           {children}
         </ScrollView>
 
         {/* FOOTER */}
         <View style={styles.footer}>
-          {!hideBack && (
+          {hideBack === false ? (
             <TouchableOpacity 
               style={styles.backButton} 
               onPress={onBack}
-              activeOpacity={0.7}
+              disabled={loading === true}
             >
-              <Ionicons name="arrow-back" size={24} color="#fff" />
+              <Ionicons name="chevron-back" size={24} color={loading ? "#444" : "#fff"} />
             </TouchableOpacity>
-          )}
+          ) : null}
           
           <TouchableOpacity 
-            style={[styles.nextButton, hideBack && styles.nextButtonFull]} 
+            style={[
+                hideBack === true ? [styles.nextButton, styles.nextButtonFull] : styles.nextButton,
+                loading === true ? { opacity: 0.7 } : {}
+            ]}
             onPress={onNext}
-            activeOpacity={0.8}
+            disabled={loading === true}
           >
-            <Text style={styles.nextButtonText}>{nextLabel}</Text>
-            <Ionicons name="arrow-forward" size={20} color="#fff" style={{ marginLeft: 8 }} />
+            <View style={[styles.nextButtonGradient, { backgroundColor: '#6a11cb' }]}>
+              {loading === true ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <Text style={styles.nextButtonText}>{String(nextLabel)}</Text>
+                  <Ionicons name="chevron-forward" size={20} color="#fff" />
+                </>
+              )}
+            </View>
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0c29', // Dark premium background
+    backgroundColor: '#0f0c29',
   },
   keyboardView: {
     flex: 1,
   },
   header: {
     paddingHorizontal: 25,
-    paddingTop: 20,
+    paddingTop: 50,
     paddingBottom: 10,
   },
-  progressContainer: {
+  progressHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 20,
+  },
+  progressContainer: {
+    flex: 1,
   },
   progressBarBackground: {
     height: 6,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 3,
     overflow: 'hidden',
     marginBottom: 8,
   },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: '#6a11cb',
-    borderRadius: 3,
-  },
   progressText: {
-    color: '#888',
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1.5,
   },
   titleContainer: {
-    marginTop: 5,
+    marginBottom: 10,
   },
   title: {
     color: '#fff',
-    fontSize: 28,
-    fontWeight: '800',
+    fontSize: 26,
+    fontWeight: 'bold',
     marginBottom: 6,
+    letterSpacing: 0.5,
   },
   subtitle: {
-    color: '#aaa',
-    fontSize: 16,
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 15,
     lineHeight: 22,
   },
   content: {
@@ -161,14 +171,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 25,
     paddingVertical: 20,
+    backgroundColor: 'transparent',
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.05)',
-    backgroundColor: '#0f0c29',
   },
   backButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
+    width: 60,
+    height: 60,
+    borderRadius: 18,
     backgroundColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -178,17 +188,16 @@ const styles = StyleSheet.create({
   },
   nextButton: {
     flex: 1,
-    height: 56,
-    backgroundColor: '#6a11cb',
-    borderRadius: 16,
+    height: 60,
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+  nextButtonGradient: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 4,
-    shadowColor: '#6a11cb',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    borderRadius: 18,
   },
   nextButtonFull: {
     marginLeft: 0,

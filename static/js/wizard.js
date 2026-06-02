@@ -136,18 +136,26 @@ document.addEventListener('DOMContentLoaded', function() {
         const currencyInputs = document.querySelectorAll('.currency-input');
         
         currencyInputs.forEach(input => {
+            // Inicializa Cleave para cada input de moeda
             new Cleave(input, {
                 numeral: true,
-                numeralThousandsGroupStyle: 'thousand',
                 numeralDecimalMark: ',',
                 delimiter: '.',
-                prefix: 'R$ ',
                 numeralDecimalScale: 2,
                 numeralPositiveOnly: true,
                 onValueChanged: function(e) {
+                    // Armazena o valor bruto (sem formatação) para envio ao servidor
                     input.dataset.rawValue = e.target.rawValue;
                 }
             });
+
+            // Se o input já tem valor inicial (ex: vindo do Django), formata
+            if (input.value) {
+                // Se o valor contiver apenas dígitos e ponto (formato americano/django), converte para virgula
+                if (input.value.includes('.') && !input.value.includes(',')) {
+                    input.value = input.value.replace('.', ',');
+                }
+            }
         });
 
         const percentInputs = document.querySelectorAll('.percent-input');
@@ -173,8 +181,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 form.addEventListener('submit', function() {
                     const maskedInputs = form.querySelectorAll('.currency-input, .percent-input');
                     maskedInputs.forEach(inp => {
-                        if (inp.dataset.rawValue !== undefined) {
+                        // Se o Cleave capturou um rawValue, usa ele para o POST
+                        if (inp.dataset.rawValue !== undefined && inp.dataset.rawValue !== "") {
                             inp.value = inp.dataset.rawValue;
+                        } else {
+                            // Fallback para campos preenchidos mas não alterados
+                            inp.value = inp.value.replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, '');
                         }
                     });
                 });

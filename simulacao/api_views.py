@@ -19,13 +19,35 @@ class APIDashboardView(APIView):
         if not profile:
             profile = UserProfile.objects.create(user=user)
 
-        recent_simulations = SavedSimulation.objects.filter(user=user).order_by('-criado_em')[:5]
-        total_simulations = SavedSimulation.objects.filter(user=user).count()
+        simulations = SavedSimulation.objects.filter(user=user)
+        recent_simulations = simulations.order_by('-criado_em')[:5]
+        total_simulations = simulations.count()
+        favorite_count = simulations.filter(is_favorito=True).count()
+
+        # Cálculos de Volume (Baseados no campo 'valor_imovel_desejado' dentro do JSON dados_wizard)
+        # Como é um JSONField, usaremos a sintaxe de consulta do Django ou iteração simples se o volume for pequeno.
+        total_volume = 0
+        avg_property_value = 0
+        
+        if total_simulations > 0:
+            for sim in simulations:
+                try:
+                    valor = sim.dados_wizard.get('imovel_desejado', {}).get('valor_imovel_desejado', 0)
+                    total_volume += float(valor)
+                except (AttributeError, ValueError, TypeError):
+                    continue
+            avg_property_value = total_volume / total_simulations
 
         data = {
             'profile': UserProfileSerializer(profile).data,
             'recent_simulations': SavedSimulationSerializer(recent_simulations, many=True).data,
             'total_simulations': total_simulations,
+            'favorite_count': favorite_count,
+            'stats': {
+                'total_volume': total_volume,
+                'avg_property_value': avg_property_value,
+                'last_simulation': recent_simulations[0].criado_em if recent_simulations.exists() else None,
+            }
         }
 
         return Response(data, status=status.HTTP_200_OK)

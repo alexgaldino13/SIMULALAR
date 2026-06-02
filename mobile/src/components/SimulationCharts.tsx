@@ -3,6 +3,10 @@ import { View, Text, Dimensions, StyleSheet } from 'react-native';
 import { BarChart } from 'react-native-chart-kit';
 
 export default function SimulationCharts({ results }: any) {
+  if (!results || !results.resultados) {
+    return null;
+  }
+
   const windowWidth = Dimensions.get('window').width - 40;
 
   // Extrair e limpar dados

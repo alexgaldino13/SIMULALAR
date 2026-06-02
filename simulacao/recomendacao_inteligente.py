@@ -140,18 +140,26 @@ def analisar_perfil_e_recomendar(wizard_data, resultados):
     else:  # equilibrio
         # Prioridade: Equilíbrio (usa scoring)
         scores = {}
+
+        max_custo = max((m['custo_total'] for m in metricas.values()), default=0)
+        max_parcela = max((m['parcela_inicial'] for m in metricas.values()), default=0)
+        max_prazo = max((m['prazo_anos'] for m in metricas.values()), default=0)
+
         for nome, metrica in metricas.items():
             # Normaliza valores (0-100, quanto maior melhor)
-            score_custo = 100 * (1 - metrica['custo_total'] / max(m['custo_total'] for m in metricas.values()))
-            score_parcela = 100 * (1 - metrica['parcela_inicial'] / max(m['parcela_inicial'] for m in metricas.values()))
-            score_prazo = 100 * (1 - metrica['prazo_anos'] / max(m['prazo_anos'] for m in metricas.values()))
+            score_custo = 100 * (1 - metrica['custo_total'] / max_custo) if max_custo > 0 else 100
+            score_parcela = 100 * (1 - metrica['parcela_inicial'] / max_parcela) if max_parcela > 0 else 100
+            score_prazo = 100 * (1 - metrica['prazo_anos'] / max_prazo) if max_prazo > 0 else 100
             
             # Score total (pesos iguais)
             scores[nome] = (score_custo + score_parcela + score_prazo) / 3
         
-        melhor_equilibrio = max(scores.items(), key=lambda x: x[1])
-        analise['recomendacao_principal'] = melhor_equilibrio[0]
-        analise['motivo_recomendacao'] = "🏆 Esta opção oferece o melhor equilíbrio entre custo, parcela e prazo."
+        if scores:
+            melhor_equilibrio = max(scores.items(), key=lambda x: x[1])
+            analise['recomendacao_principal'] = melhor_equilibrio[0]
+            analise['motivo_recomendacao'] = "🏆 Esta opção oferece o melhor equilíbrio entre custo, parcela e prazo."
+        else:
+            analise['motivo_recomendacao'] = "🏆 Explore os cenários acima para ver a melhor opção para você."
     
     # PERSONALIZAÇÃO POR PERFIL DE USUÁRIO
     

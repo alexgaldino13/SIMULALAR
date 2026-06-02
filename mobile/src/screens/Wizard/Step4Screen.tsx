@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, Alert } from 'react-native';
+import { StyleSheet, Text, View, Alert, ScrollView } from 'react-native';
 import { TextInputMask } from 'react-native-masked-text';
 import { useSimulation } from '../../context/SimulationContext';
 import { WizardStep } from '../../components/WizardStep';
 import { SpecialistTip } from '../../components/SpecialistTip';
 import { OptionCard } from '../../components/OptionCard';
-
+import { HelpIcon } from '../../components/HelpIcon';
 
 export default function Step4Screen({ navigation }: any) {
   const { data, updateData } = useSimulation();
@@ -13,11 +13,11 @@ export default function Step4Screen({ navigation }: any) {
 
   const handleNext = () => {
     if (!localData.valor_imovel_desejado || localData.valor_imovel_desejado <= 0) {
-      Alert.alert('Valor Inválido', 'Por favor, informe o valor do imóvel que você deseja simular.');
+      Alert.alert('Valor do Sonho', 'Informe o valor aproximado do imóvel! 🏠');
       return;
     }
     if (!localData.prazo_desejado_anos || localData.prazo_desejado_anos <= 0) {
-      Alert.alert('Prazo Inválido', 'Informe em quantos anos você pretende pagar o imóvel.');
+      Alert.alert('Prazo', 'Em quanto tempo você planeja pagar seu imóvel?');
       return;
     }
 
@@ -25,11 +25,7 @@ export default function Step4Screen({ navigation }: any) {
     const idade = data.perfil_objetivos.idade_comprador;
     if (idade + localData.prazo_desejado_anos > 80) {
       const prazoMax = 80 - idade;
-      if (prazoMax <= 0) {
-          Alert.alert('Prazo Não Permitido', `Infelizmente, pela sua idade (${idade} anos), o financiamento tradicional não é permitido (limite de 80 anos excedido).`);
-      } else {
-          Alert.alert('Prazo Excedido', `A soma da idade (${idade}) + o prazo (${localData.prazo_desejado_anos}) não pode ultrapassar 80 anos. Seu prazo máximo é de ${prazoMax} anos.`);
-      }
+      Alert.alert('Ajuste de Prazo', `A "Regra dos 80 Anos" limita seu financiamento. Com ${idade} anos, seu prazo máximo é de ${prazoMax} anos.`);
       return;
     }
 
@@ -41,99 +37,117 @@ export default function Step4Screen({ navigation }: any) {
     <WizardStep
       currentStep={4}
       totalSteps={5}
-      title="Imóvel Desejado"
-      subtitle="O objetivo que vamos simular agora"
+      title="O Imóvel 🏠"
+      subtitle="Agora vamos definir o valor e o tempo do seu projeto."
       onNext={handleNext}
       onBack={() => navigation.goBack()}
     >
-      <Text style={styles.label}>Qual o valor do imóvel desejado?</Text>
-      <View style={styles.inputContainer}>
-        <TextInputMask
-          type={'money'}
-          options={{
-            precision: 2,
-            separator: ',',
-            delimiter: '.',
-            unit: 'R$ ',
-            suffixUnit: ''
-          }}
-          style={styles.input}
-          placeholder="R$ 0,00"
-          placeholderTextColor="#555"
-          value={localData.valor_imovel_desejado.toString()}
-          includeRawValueInChangeText={true}
-          onChangeText={(text, raw) => {
-            setLocalData({ ...localData, valor_imovel_desejado: raw ? parseFloat(raw) : 0 });
-          }}
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.labelRow}>
+          <Text style={styles.humanLabel}>Qual o valor do imóvel desejado?</Text>
+          <HelpIcon
+            title="Valor de Mercado"
+            description="O preço de venda do imóvel que você quer comprar."
+          />
+        </View>
+        <View style={styles.inputContainer}>
+          <TextInputMask
+            type={'money'}
+            options={{
+              precision: 2,
+              separator: ',',
+              delimiter: '.',
+              unit: 'R$ ',
+              suffixUnit: ''
+            }}
+            style={styles.input}
+            placeholder="R$ 0,00"
+            placeholderTextColor="#555"
+            value={localData.valor_imovel_desejado.toFixed(2).replace('.', ',')}
+            includeRawValueInChangeText={true}
+            onChangeText={(text, raw) => {
+              setLocalData({ ...localData, valor_imovel_desejado: raw ? parseFloat(raw) : 0 });
+            }}
+          />
+        </View>
+
+        <View style={styles.labelRow}>
+          <Text style={styles.humanLabel}>Em quantos anos quer pagar?</Text>
+          <HelpIcon
+            title="Prazo"
+            description="No Brasil, o prazo máximo comum é de 35 anos. Quanto maior o prazo, menor a parcela."
+          />
+        </View>
+        <View style={styles.inputContainer}>
+          <TextInputMask
+            type={'only-numbers'}
+            style={styles.input}
+            placeholder="30"
+            placeholderTextColor="#555"
+            value={localData.prazo_desejado_anos.toString()}
+            onChangeText={(v) => setLocalData({ ...localData, prazo_desejado_anos: parseInt(v) || 0 })}
+          />
+          <Text style={styles.inputSuffix}>anos</Text>
+        </View>
+
+        <SpecialistTip
+          text="Dica: A soma da sua idade com o prazo não pode passar de 80. Fique atento a isso! ⏱️"
         />
-      </View>
 
-      <Text style={styles.label}>Em quantos anos quer pagar?</Text>
-      <View style={styles.inputContainer}>
-        <TextInputMask
-          type={'only-numbers'}
-          style={styles.input}
-          placeholder="30"
-          placeholderTextColor="#555"
-          value={localData.prazo_desejado_anos.toString()}
-          onChangeText={(v) => setLocalData({ ...localData, prazo_desejado_anos: parseInt(v) || 0 })}
+        <View style={[styles.labelRow, { marginTop: 10 }]}>
+          <Text style={styles.humanLabel}>Custas de Documentação (ITBI)</Text>
+          <HelpIcon
+            title="Taxas de Cartório"
+            description="ITBI e Registro custam cerca de 4 a 5% do valor do bem."
+          />
+        </View>
+        <OptionCard
+          label="Vou pagar à vista"
+          value="a_vista"
+          description="Pagar taxas no ato (economiza juros)"
+          selected={localData.custas_documentacao_forma === 'a_vista'}
+          onSelect={(v) => setLocalData({ ...localData, custas_documentacao_forma: v })}
         />
-        <Text style={styles.inputSuffix}>anos</Text>
-      </View>
-
-      <SpecialistTip 
-        text="A Regra dos 80 Anos é implacável: Bancos limitam o financiamento para que termine antes do comprador completar 80 anos. Fique atento ao prazo!"
-      />
-
-
-      <Text style={[styles.sectionTitle, { marginTop: 10 }]}>Custas de Documentação (~R$ 15k)</Text>
-      <OptionCard
-        label="À vista"
-        value="a_vista"
-        description="Pagar ITBI e Registro no ato (precisa de + entrada)"
-        selected={localData.custas_documentacao_forma === 'a_vista'}
-        onSelect={(v) => setLocalData({ ...localData, custas_documentacao_forma: v })}
-      />
-      <OptionCard
-        label="Financiado"
-        value="financiado"
-        description="Diluir taxas nas parcelas do banco"
-        selected={localData.custas_documentacao_forma === 'financiado'}
-        onSelect={(v) => setLocalData({ ...localData, custas_documentacao_forma: v })}
-      />
+        <OptionCard
+          label="Quero financiar as taxas"
+          value="financiado"
+          description="Diluir no financiamento do banco"
+          selected={localData.custas_documentacao_forma === 'financiado'}
+          onSelect={(v) => setLocalData({ ...localData, custas_documentacao_forma: v })}
+        />
+      </ScrollView>
     </WizardStep>
   );
 }
 
 const styles = StyleSheet.create({
-  label: {
-    color: '#aaa',
-    fontSize: 14,
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 10,
-    fontWeight: '600',
+    marginLeft: 5,
   },
-  sectionTitle: {
+  humanLabel: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginVertical: 15,
+    fontSize: 16,
+    fontWeight: '600',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 14,
+    borderRadius: 18,
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.1)',
-    height: 60,
+    height: 62,
     paddingHorizontal: 20,
     marginBottom: 20,
   },
   inputSuffix: {
-    color: '#888',
+    color: '#6a11cb',
     fontSize: 16,
     marginLeft: 10,
-    fontWeight: '600',
+    fontWeight: '900',
   },
   input: {
     flex: 1,

@@ -69,6 +69,7 @@ class WizardStep1Serializer(serializers.Serializer):
     ])
     aluguel_atual = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, default=0)
     tempo_mora_atualmente = serializers.CharField(max_length=50, required=False)
+    idade_comprador = serializers.IntegerField(min_value=18, max_value=100, default=30)
 
 class WizardStep2Serializer(serializers.Serializer):
     renda_familiar_bruta = serializers.DecimalField(max_digits=15, decimal_places=2)
@@ -79,9 +80,10 @@ class WizardStep2Serializer(serializers.Serializer):
         ('aposentado', 'Aposentado'),
         ('outro', 'Outro'),
     ])
-    renda_estavel = serializers.CharField(max_length=50)
+    renda_estavel = serializers.CharField(max_length=50, required=False, default='estavel')
     recebe_13_salario = serializers.BooleanField(default=True)
     quantos_dependentes = serializers.IntegerField(min_value=0, default=1)
+    tipo_trabalho = serializers.CharField(max_length=50, required=False, default='privado')
     outras_rendas = serializers.DecimalField(max_digits=15, decimal_places=2, required=False, default=0)
 
 class WizardStep3Serializer(serializers.Serializer):

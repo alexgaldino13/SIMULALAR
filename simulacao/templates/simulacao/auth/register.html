@@ -10,22 +10,22 @@
     
     <div class="form-group">
         <label for="first_name">Nome</label>
-        <input type="text" id="first_name" name="first_name" placeholder="Seu nome" required autofocus>
+        <input type="text" id="first_name" name="first_name" placeholder="Seu nome" value="{{ initial.first_name }}" required autofocus>
     </div>
 
     <div class="form-group">
         <label for="last_name">Sobrenome</label>
-        <input type="text" id="last_name" name="last_name" placeholder="Seu sobrenome" required>
+        <input type="text" id="last_name" name="last_name" placeholder="Seu sobrenome" value="{{ initial.last_name }}" required>
     </div>
 
     <div class="form-group">
         <label for="email">Email</label>
-        <input type="email" id="email" name="email" placeholder="seu@email.com" required>
+        <input type="email" id="email" name="email" placeholder="seu@email.com" value="{{ initial.email }}" required>
     </div>
 
     <div class="form-group">
         <label for="telefone">Telefone (opcional)</label>
-        <input type="tel" id="telefone" name="telefone" placeholder="(11) 99999-9999">
+        <input type="tel" id="telefone" name="telefone" placeholder="(11) 99999-9999" value="{{ initial.telefone }}">
     </div>
 
     <div class="form-group">
@@ -46,12 +46,12 @@
 
     <div class="checkbox-group">
         <input type="checkbox" id="aceito_termos" name="aceito_termos" required>
-        <label for="aceito_termos">Aceito os <a href="#" target="_blank">Termos de Uso</a></label>
+        <label for="aceito_termos">Aceito os <a href="{% url 'terms_of_service' %}" target="_blank">Termos de Uso</a></label>
     </div>
 
     <div class="checkbox-group">
         <input type="checkbox" id="aceito_privacidade" name="aceito_privacidade" required>
-        <label for="aceito_privacidade">Aceito a <a href="#" target="_blank">Política de Privacidade</a></label>
+        <label for="aceito_privacidade">Aceito a <a href="{% url 'privacy_policy' %}" target="_blank">Política de Privacidade</a></label>
     </div>
 
     <button type="submit" class="btn btn-primary">Criar Conta</button>

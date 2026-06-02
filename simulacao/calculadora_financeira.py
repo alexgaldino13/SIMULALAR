@@ -13,10 +13,10 @@ from simulacao.formatacao import (
 # CONSTANTES DE MERCADO (Benchmark 2024/2026)
 # ----------------------------------------------------------------------
 TAXA_ADMINISTRACAO_MENSAL_PADRAO = Decimal('25.00') # Padrão SBPE
-LIMITE_RENDA_MCMV_FAIXA_1 = Decimal('2850.00')      # Atualizado 2024 (Benchmark Auditoria)
+LIMITE_RENDA_MCMV_FAIXA_1 = Decimal('3200.00')      # Atualizado 2025 (Benchmark Auditoria)
 LIMITE_RENDA_MCMV_FAIXA_2 = Decimal('5000.00')
-LIMITE_RENDA_MCMV_MAX = Decimal('8000.00')
-TAXA_JUROS_PADRAO = Decimal('8.5')                   # Benchmark SBPE 2024
+LIMITE_RENDA_MCMV_MAX = Decimal('13000.00')      # Atualizado 2026 (Benchmark Auditoria)
+TAXA_JUROS_PADRAO = Decimal('10.5')                   # Benchmark SBPE 2026
 
 # ----------------------------------------------------------------------
 # FUNÇÕES AUXILIARES DE SEGURO
@@ -36,8 +36,8 @@ def obter_taxa_mip_por_idade(idade):
     elif idade <= 50:
         return Decimal('0.032') # 0.032% ao mês
     elif idade <= 60:
-        # Reajuste de 0.065 para 0.082 (Benchmark 2024)
-        return Decimal('0.082') 
+        # Reajuste de 0.082 para 0.155 (Benchmark 2025)
+        return Decimal('0.082')
     elif idade <= 70:
         # Reajuste de 0.145 para 0.165 (Benchmark 2024)
         return Decimal('0.165')
@@ -56,6 +56,36 @@ def calcular_seguro_dfi(valor_imovel):
     return (valor_dec * taxa_dfi)
 
 
+def calcular_cet_legal(valor_financiado, parcelas_lista):
+    """
+    Calcula o Custo Efetivo Total (CET) anualizado conforme normas do Banco Central.
+    Usa o método Newton-Raphson para encontrar a taxa interna de retorno.
+    """
+    from scipy.optimize import newton
+
+    # Filtra apenas parcelas que representam pagamentos (ignora amortizações extras de FGTS na tabela)
+    fluxo = [float(p) for p in parcelas_lista if p > 0]
+
+    if not fluxo or float(valor_financiado) <= 0:
+        return 0.0
+
+    def vpl(i_mensal):
+        # f(i) = Principal - Sum(Parcela_t / (1+i)^t)
+        res = float(valor_financiado)
+        for t, parcela in enumerate(fluxo, 1):
+            res -= parcela / ((1 + i_mensal) ** t)
+        return res
+
+    try:
+        # Resolve para a taxa mensal (chute inicial 1%)
+        taxa_mensal = newton(vpl, x0=0.01, maxiter=100)
+        # Anualiza a taxa (CET Anual)
+        cet_anual = ((1 + taxa_mensal) ** 12 - 1) * 100
+        return round(float(cet_anual), 2)
+    except Exception:
+        return 0.0
+
+
 # ----------------------------------------------------------------------
 # FUNÇÃO 1: CÁLCULO PRICE/SAC (COM LÓGICA DE AMORTIZAÇÃO FGTS) - CORRIGIDA
 # ----------------------------------------------------------------------
@@ -70,12 +100,22 @@ def calcular_price_sac(metodo, valor_principal, taxa_anual, prazo_meses, seguro_
     seguro_mensal_dec = Decimal(str(seguro_mensal))
     taxa_admin_mensal_dec = Decimal(str(taxa_admin_mensal))
     fgts_saldo_amortizacao_dec = Decimal(str(kwargs.get('fgts_saldo', 0.0)))
-    
+    valor_principal_dec = Decimal(str(valor_principal))
+    taxa_anual_dec = Decimal(str(taxa_anual))
+
     # NOVOS PARAMETROS FGTS E IDADE
     usar_fgts = kwargs.get('usar_fgts_financiamento', False)
     tipo_amortizacao = kwargs.get('tipo_amortizacao_fgts', 'reduzir_prazo')
     mes_uso = kwargs.get('mes_uso_fgts_financiamento', 1)
     idade = kwargs.get('idade', 30)
+    
+    # FGTS Periódico (Matemática Real: Salário Crescente + Rendimentos)
+    intervalo_fgts_meses = kwargs.get('intervalo_fgts_meses', 24)
+    taxa_crescimento_salarial_anual = Decimal(str(kwargs.get('taxa_crescimento_salarial_anual', 0.045))) # 4.5% a.a (Inflação modesta)
+    taxa_rendimento_fgts_mensal = (Decimal('1.03') ** (Decimal('1')/Decimal('12'))) - Decimal('1') # 3% a.a equivalente mensal
+    
+    renda_familiar_atual = Decimal(str(kwargs.get('renda_familiar', 0.0)))
+    saldo_fgts_acumulado = Decimal('0.0')
     
     # Se o seguro_mensal for 0 (default), calculamos via MIP baseado na idade
     if seguro_mensal_dec == 0:
@@ -88,16 +128,16 @@ def calcular_price_sac(metodo, valor_principal, taxa_anual, prazo_meses, seguro_
         taxa_mip_mensal = seguro_mensal_dec # Se veio taxa fixa (ex: 0.030)
     
     # 1. Inicialização de Variáveis
-    taxa_mensal = taxa_anual / 12 / 100 # taxa_anual já é Decimal vindo da função 4
-    saldo_devedor = valor_principal # valor_principal já é Decimal vindo da função 4
+    taxa_mensal_dec = taxa_anual_dec / 12 / 100
+    saldo_devedor = valor_principal_dec
     tabela = []
 
-    if taxa_mensal == 0 and saldo_devedor > 0:
+    if taxa_mensal_dec == 0 and saldo_devedor > 0:
         return []
 
     # Variáveis mutáveis do financiamento
     prazo_atual = prazo_meses
-    amortizacao_fixa = valor_principal / prazo_meses # SAC inicial
+    amortizacao_fixa = valor_principal_dec / prazo_meses # SAC inicial
     parcela_fixa = Decimal(0) # Price inicial
     
     # Variáveis de Soma (para o resumo)
@@ -105,13 +145,11 @@ def calcular_price_sac(metodo, valor_principal, taxa_anual, prazo_meses, seguro_
     total_seguros_taxas = Decimal(0)
     
     # 2. Cálculo do Fator de Pagamento Inicial (Price)
-    if metodo == 'price' and taxa_mensal > 0 and prazo_atual > 0:
+    if metodo == 'price' and taxa_mensal_dec > 0 and prazo_atual > 0:
         try:
             # Fórmula da Parcela Fixa (PMT)
-            # Operação com ** é mais precisa com float, mas a biblioteca decimal suporta.
-            # Mantemos como Decimal, mas garantimos que parcela_fixa seja Decimal(0) em caso de erro.
-            fator = (taxa_mensal * (1 + taxa_mensal) ** prazo_atual) / (((1 + taxa_mensal) ** prazo_atual) - 1)
-            parcela_fixa = valor_principal * fator
+            fator = (taxa_mensal_dec * (1 + taxa_mensal_dec) ** prazo_atual) / (((1 + taxa_mensal_dec) ** prazo_atual) - 1)
+            parcela_fixa = valor_principal_dec * fator
         except ZeroDivisionError:
             parcela_fixa = Decimal(0)
 
@@ -130,10 +168,10 @@ def calcular_price_sac(metodo, valor_principal, taxa_anual, prazo_meses, seguro_
             
             if tipo_amortizacao == 'reduzir_prazo':
                 
-                if metodo == 'price' and taxa_mensal > 0 and parcela_fixa > 0:
+                if metodo == 'price' and taxa_mensal_dec > 0 and parcela_fixa > 0:
                     # CONVERSÃO PARA FLOAT NECESSÁRIA PARA math.log (Correção Crítica)
                     parcela_fixa_float = float(parcela_fixa)
-                    taxa_mensal_float = float(taxa_mensal)
+                    taxa_mensal_float = float(taxa_mensal_dec)
                     saldo_devedor_float = float(saldo_devedor)
                     
                     try:
@@ -147,14 +185,17 @@ def calcular_price_sac(metodo, valor_principal, taxa_anual, prazo_meses, seguro_
                         
                 elif metodo == 'sac':
                     if prazo_restante > 0:
-                        # Recalcula a amortização constante com o novo saldo
-                        amortizacao_fixa = saldo_devedor / prazo_restante
+                        # No SAC, Reduzir Prazo significa MANTER a amortização constante (amortizacao_fixa).
+                        # O saldo menor fará o financiamento terminar antes naturalmente.
+                        # Recalculamos apenas o prazo_atual estimado para o relatório.
+                        prazo_restante_novo = math.ceil(float(saldo_devedor / amortizacao_fixa))
+                        prazo_atual = mes_original + prazo_restante_novo - 1
             
             elif tipo_amortizacao == 'reduzir_parcela':
                 
-                if metodo == 'price' and prazo_restante > 0 and taxa_mensal > 0:
+                if metodo == 'price' and prazo_restante > 0 and taxa_mensal_dec > 0:
                     # Recalcula a Parcela Fixa (mantendo como Decimal)
-                    fator_novo = (taxa_mensal * (1 + taxa_mensal) ** prazo_restante) / (((1 + taxa_mensal) ** prazo_restante) - 1)
+                    fator_novo = (taxa_mensal_dec * (1 + taxa_mensal_dec) ** prazo_restante) / (((1 + taxa_mensal_dec) ** prazo_restante) - 1)
                     parcela_fixa = saldo_devedor * fator_novo
                 
                 elif metodo == 'sac' and prazo_restante > 0:
@@ -174,18 +215,78 @@ def calcular_price_sac(metodo, valor_principal, taxa_anual, prazo_meses, seguro_
             
             if saldo_devedor <= Decimal('0.001'):
                 break
+
+        # --- RENTABILIZA FGTS E REAJUSTA SALÁRIO ---
+        if usar_fgts:
+            # Rende saldo anterior + adiciona parcela deste mês (8% sobre salário)
+            saldo_fgts_acumulado = saldo_fgts_acumulado * (Decimal('1') + taxa_rendimento_fgts_mensal)
+            saldo_fgts_acumulado += renda_familiar_atual * Decimal('0.08')
+            
+            # A cada 12 meses, aplica a taxa anual de reajuste salarial (ex: inflação)
+            if mes_original > 1 and mes_original % 12 == 0:
+                renda_familiar_atual = renda_familiar_atual * (Decimal('1') + taxa_crescimento_salarial_anual)
+
+        # --- LÓGICA DE AMORTIZAÇÃO EXTRA COM FGTS PERIÓDICO ---
+        if usar_fgts and mes_original > 1 and (mes_original - mes_uso) % intervalo_fgts_meses == 0 and saldo_fgts_acumulado > 0:
+            valor_amortizado_periodico = min(saldo_devedor, saldo_fgts_acumulado)
+            
+            if valor_amortizado_periodico > 0:
+                saldo_anterior = saldo_devedor
+                saldo_devedor -= valor_amortizado_periodico
+                saldo_fgts_acumulado -= valor_amortizado_periodico # Deduz o que usou
+                
+                prazo_restante = prazo_atual - mes_original + 1 
+                
+                if tipo_amortizacao == 'reduzir_prazo':
+                    if metodo == 'price' and taxa_mensal_dec > 0 and parcela_fixa > 0:
+                        parcela_fixa_float = float(parcela_fixa)
+                        taxa_mensal_float = float(taxa_mensal_dec)
+                        saldo_devedor_float = float(saldo_devedor)
+                        try:
+                            novo_n = math.log(parcela_fixa_float / (parcela_fixa_float - taxa_mensal_float * saldo_devedor_float)) / math.log(1 + taxa_mensal_float)
+                            prazo_restante = math.ceil(novo_n)
+                            prazo_atual = mes_original + prazo_restante - 1 
+                        except ValueError:
+                            prazo_restante = 0 
+                            prazo_atual = mes_original 
+                            
+                    elif metodo == 'sac':
+                        if prazo_restante > 0:
+                            # Mantém amortização constante, reduzindo o tempo
+                            prazo_restante_novo = math.ceil(float(saldo_devedor / amortizacao_fixa))
+                            prazo_atual = mes_original + prazo_restante_novo - 1
+                
+                elif tipo_amortizacao == 'reduzir_parcela':
+                    if metodo == 'price' and prazo_restante > 0 and taxa_mensal_dec > 0:
+                        fator_novo = (taxa_mensal_dec * (1 + taxa_mensal_dec) ** prazo_restante) / (((1 + taxa_mensal_dec) ** prazo_restante) - 1)
+                        parcela_fixa = saldo_devedor * fator_novo
+                    elif metodo == 'sac' and prazo_restante > 0:
+                        amortizacao_fixa = saldo_devedor / prazo_restante
+                
+                tabela.append({
+                    'mes': mes_original - Decimal('0.05'),
+                    'saldo_inicial': float(saldo_anterior), 
+                    'juros': 0.0,
+                    'amortizacao': float(valor_amortizado_periodico),
+                    'parcela': 0.0,
+                    'saldo_final': float(saldo_devedor),
+                    'tipo': 'FGTS_Periodico'
+                })
+                
+                if saldo_devedor <= Decimal('0.001'):
+                    break
         
         # B) CÁLCULO DO MÊS NORMAL
         if mes_original > prazo_atual:
             break
             
-        juros_mensal = saldo_devedor * taxa_mensal
+        juros_mensal = saldo_devedor * taxa_mensal_dec
         
         if is_mip_dinamico:
             # Seguro MIP = Taxa * Saldo Devedor / 100
             seguro_mes = (saldo_devedor * taxa_mip_mensal) / 100
             # CÁLCULO DINÂMICO DFI: Baseado no valor do imóvel (Ref: Auditoria 2024)
-            seguro_mes += calcular_seguro_dfi(valor_principal)
+            seguro_mes += calcular_seguro_dfi(valor_principal_dec)
         else:
             # Caso antigo: percentual fixo sobre o saldo ou valor fixo
             # Se for < 1, tratamos como percentual. Se for > 1, valor fixo.
@@ -230,20 +331,34 @@ def calcular_price_sac(metodo, valor_principal, taxa_anual, prazo_meses, seguro_
         
         mes_original += 1
         
-    # Encontrar a primeira parcela válida (não FGTS/entrada, valor > 0)
+    # Encontrar a primeira e última parcelas válidas
     primeira_parcela = 0.0
+    ultima_parcela = 0.0
     if tabela:
+        # Pega a primeira que não é FGTS
         for linha in tabela:
             if linha.get('parcela', 0) > 0:
                 primeira_parcela = float(linha['parcela'])
                 break
+        # Pega a última que não é FGTS
+        for linha in reversed(tabela):
+            if linha.get('parcela', 0) > 0:
+                ultima_parcela = float(linha['parcela'])
+                break
+
+    # Cálculo do CET (Custo Efetivo Total)
+    parcelas_fluxo = [l.get('parcela', 0) for l in tabela]
+    cet_anual = calcular_cet_legal(valor_principal_dec, parcelas_fluxo)
 
     return {
         'tabela': tabela,
         'parcela_inicial': primeira_parcela,
+        'ultima_parcela': ultima_parcela,
         'total_juros': float(total_juros),
         'total_seguros_taxas': float(total_seguros_taxas),
-        'prazo_final_meses': mes_original - 1 # O número do último mês simulado
+        'prazo_final_meses': mes_original - 1, # O número do último mês simulado
+        'total_principal': float(valor_principal_dec),
+        'cet_anual': cet_anual
     }
 
 # ----------------------------------------------------------------------
@@ -854,12 +969,15 @@ def calcular_mcmv(valor_imovel, renda_familiar_mensal, valor_entrada, prazo_mese
         valor_financiado = 0
         parcela_media = 0
         custo_total = valor_entrada
+        cet_anual = 0.0
     else:
         # Calcular parcela (SAC simplificado)
         taxa_mensal = float(taxa_juros) / 12
         parcela_media = float(valor_financiado) * (taxa_mensal * (1 + taxa_mensal)**prazo_meses) / ((1 + taxa_mensal)**prazo_meses - 1)
         custo_total = parcela_media * prazo_meses + float(valor_entrada)
-    
+        # CET para MCMV (incluindo apenas juros, já que MCMV tem taxas muito baixas)
+        cet_anual = calcular_cet_legal(valor_financiado, [parcela_media] * prazo_meses)
+
     return {
         'qualificado': True,
         'faixa': faixa,
@@ -872,7 +990,8 @@ def calcular_mcmv(valor_imovel, renda_familiar_mensal, valor_entrada, prazo_mese
         'parcela_media': round(parcela_media, 2),
         'parcela_final': round(parcela_media * 0.9, 2),
         'custo_total': round(custo_total, 2),
-        'patrimonio_final': valor_imovel
+        'patrimonio_final': valor_imovel,
+        'cet_anual': cet_anual
     }
 
 

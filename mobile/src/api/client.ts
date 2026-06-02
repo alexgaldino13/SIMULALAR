@@ -1,6 +1,12 @@
 import axios from 'axios';
 import { BASE_URL, TIMEOUT } from './config';
 
+let authToken: string | null = null;
+
+export const setAuthToken = (token: string | null) => {
+  authToken = token;
+};
+
 const apiClient = axios.create({
   baseURL: BASE_URL,
   timeout: TIMEOUT,
@@ -9,13 +15,12 @@ const apiClient = axios.create({
   },
 });
 
-// Interceptor para adicionar o token se disponível (exemplo futuro)
-// apiClient.interceptors.request.use((config) => {
-//   const token = localStorage.getItem('token'); // No mobile seria AsyncStorage
-//   if (token) {
-//     config.headers.Authorization = `Token ${token}`;
-//   }
-//   return config;
-// });
+// Interceptor para adicionar o token se disponível
+apiClient.interceptors.request.use((config) => {
+  if (authToken) {
+    config.headers.Authorization = `Token ${authToken}`;
+  }
+  return config;
+});
 
 export default apiClient;

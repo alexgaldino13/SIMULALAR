@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Animated } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface OptionCardProps {
   label: string;
@@ -18,61 +19,118 @@ export const OptionCard: React.FC<OptionCardProps> = ({
   description,
   icon
 }) => {
-  const scaleAnim = React.useRef(new Animated.Value(selected ? 1.02 : 1)).current;
-
-  React.useEffect(() => {
-    Animated.spring(scaleAnim, {
-      toValue: selected ? 1.02 : 1,
-      useNativeDriver: true,
-      friction: 8,
-      tension: 40
-    }).start();
-  }, [selected]);
+  const isSelected = selected === true;
 
   return (
-    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-      <TouchableOpacity 
-        style={[styles.card, selected ? styles.cardSelected : null]} 
-        onPress={() => onSelect(value)}
-        activeOpacity={0.8}
-      >
-        <View style={styles.content}>
-          <View style={styles.headerRow}>
-            {icon && <Text style={styles.icon}>{icon}</Text>}
-            <Text style={[styles.label, selected ? styles.labelSelected : null]}>{label}</Text>
+    <TouchableOpacity
+      style={[
+        styles.card,
+        isSelected ? { borderColor: '#6a11cb', borderWidth: 2, backgroundColor: 'rgba(106,17,203,0.1)' } : {}
+      ]}
+      onPress={() => onSelect(value)}
+      activeOpacity={0.8}
+    >
+      <View style={styles.content}>
+        <View style={styles.headerRow}>
+          {!!icon ? (
+            <View style={styles.iconContainer}>
+              <Text style={styles.icon}>{String(icon)}</Text>
+            </View>
+          ) : null}
+          <View style={styles.labelContainer}>
+            <Text style={styles.label}>{String(label || '')}</Text>
+            {!!description ? (
+              <Text style={styles.description} numberOfLines={2}>
+                {String(description)}
+              </Text>
+            ) : null}
           </View>
-          {description && (
-            <Text style={[styles.description, selected ? styles.descriptionSelected : null]}>
-              {description}
-            </Text>
-          )}
         </View>
+      </View>
 
-        <View style={[styles.radioOuter, selected ? styles.radioOuterSelected : null]}>
-          {selected && (
-            <View style={styles.radioInner} />
-          )}
+      <View style={[styles.radioOuter, isSelected ? { borderColor: '#6a11cb' } : {}]}>
+        {isSelected ? (
+          <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#6a11cb' }} />
+        ) : null}
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+const CardContent = ({ label, description, icon, selected }: any) => {
+  const isSelected = selected === true;
+
+  const iconContainerStyle = StyleSheet.flatten([
+    styles.iconContainer,
+    isSelected ? styles.iconContainerSelected : {}
+  ]);
+
+  const labelStyle = StyleSheet.flatten([
+    styles.label,
+    isSelected ? styles.labelSelected : {}
+  ]);
+
+  const descriptionStyle = StyleSheet.flatten([
+    styles.description,
+    isSelected ? styles.descriptionSelected : {}
+  ]);
+
+  const radioOuterStyle = StyleSheet.flatten([
+    styles.radioOuter,
+    isSelected ? styles.radioOuterSelected : {}
+  ]);
+
+  return (
+    <>
+      <View style={styles.content}>
+        <View style={styles.headerRow}>
+          {icon ? (
+            <View style={iconContainerStyle}>
+              <Text style={styles.icon}>{String(icon)}</Text>
+            </View>
+          ) : null}
+          <View style={styles.labelContainer}>
+            <Text style={labelStyle}>{String(label || '')}</Text>
+            {description ? (
+              <Text style={descriptionStyle} numberOfLines={2}>
+                {String(description)}
+              </Text>
+            ) : null}
+          </View>
         </View>
-      </TouchableOpacity>
-    </Animated.View>
+      </View>
+
+      <View style={radioOuterStyle}>
+        {isSelected ? (
+          <LinearGradient
+            colors={['#6a11cb', '#2575fc']}
+            style={styles.radioInner}
+          />
+        ) : null}
+      </View>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 16,
-    padding: 20,
+  cardWrapper: {
     marginBottom: 12,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  card: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 20,
   },
   cardSelected: {
-    backgroundColor: 'rgba(106, 17, 203, 0.1)',
-    borderColor: '#6a11cb',
+    borderColor: 'rgba(106, 17, 203, 0.5)',
+    borderWidth: 1.5,
   },
   content: {
     flex: 1,
@@ -81,34 +139,47 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+  },
+  iconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 15,
+  },
+  iconContainerSelected: {
+    backgroundColor: 'rgba(106, 17, 203, 0.2)',
   },
   icon: {
-    fontSize: 20,
-    marginRight: 10,
+    fontSize: 22,
+  },
+  labelContainer: {
+    flex: 1,
   },
   label: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 17,
+    fontWeight: 'bold',
   },
   labelSelected: {
     color: '#fff',
   },
   description: {
-    color: '#999',
+    color: 'rgba(255,255,255,0.4)',
     fontSize: 13,
-    marginTop: 4,
+    marginTop: 2,
     lineHeight: 18,
   },
   descriptionSelected: {
     color: 'rgba(255,255,255,0.7)',
   },
   radioOuter: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -121,6 +192,5 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#6a11cb',
   },
 });

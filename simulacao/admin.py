@@ -17,7 +17,19 @@ from .subscription_admin import (
 from .conversion_admin import ConversionEventAdmin, LeadAlertAdmin
 
 # Importa os modelos de afiliados
-from .models import LinkAfiliado, CliqueAfiliado
+from .models import LinkAfiliado, CliqueAfiliado, SavedSimulation, SimulationShare
+
+@admin.register(SavedSimulation)
+class SavedSimulationAdmin(admin.ModelAdmin):
+    list_display = ['titulo', 'user', 'criado_em', 'is_favorito']
+    list_filter = ['criado_em', 'is_favorito']
+    search_fields = ['titulo', 'user__username', 'user__email']
+
+@admin.register(SimulationShare)
+class SimulationShareAdmin(admin.ModelAdmin):
+    list_display = ['token', 'simulacao', 'visualizacoes', 'ativo', 'criado_em']
+    list_filter = ['ativo', 'criado_em']
+    search_fields = ['token', 'simulacao__titulo']
 
 @admin.register(LinkAfiliado)
 class LinkAfiliadoAdmin(admin.ModelAdmin):

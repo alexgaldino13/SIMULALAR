@@ -84,7 +84,6 @@ class WizardPerfilObjetivosForm(BaseWizardForm):
         decimal_places=2,
         label="Quanto você paga de aluguel por mês? (R$)",
         required=False,
-        initial=Decimal('1500.00'),
         widget=forms.TextInput(attrs={
             'inputmode': 'numeric',
             'class': 'form-control currency-input',
@@ -119,7 +118,6 @@ class WizardTrabalhoRendaForm(BaseWizardForm):
         decimal_places=2,
         label="Renda Familiar CLT/Formal (R$)",
         required=True,
-        initial=Decimal('8000.00'),
         widget=forms.TextInput(attrs={
             'inputmode': 'numeric',
             'class': 'form-control currency-input',
@@ -183,7 +181,6 @@ class WizardTrabalhoRendaForm(BaseWizardForm):
         decimal_places=2,
         label="Outras Rendas Comprovadas (R$)",
         required=False,
-        initial=Decimal('0.00'),
         widget=forms.TextInput(attrs={
             'inputmode': 'numeric',
             'class': 'form-control currency-input',
@@ -204,7 +201,6 @@ class WizardFinancasAtuaisForm(BaseWizardForm):
         decimal_places=2,
         label="Valor do seu imóvel próprio (R$ 0 se não tiver)",
         required=False,
-        initial=Decimal('0.00'),
         widget=forms.TextInput(attrs={
             'inputmode': 'numeric',
             'class': 'form-control currency-input',
@@ -218,7 +214,6 @@ class WizardFinancasAtuaisForm(BaseWizardForm):
         decimal_places=2,
         label="Quanto você tem guardado? (R$)",
         required=True,
-        initial=Decimal('50000.00'),
         widget=forms.TextInput(attrs={
             'inputmode': 'numeric',
             'class': 'form-control currency-input',
@@ -232,7 +227,6 @@ class WizardFinancasAtuaisForm(BaseWizardForm):
         decimal_places=2,
         label="Saldo de FGTS disponível? (R$)",
         required=False,
-        initial=Decimal('0.00'),
         widget=forms.TextInput(attrs={
             'inputmode': 'numeric',
             'class': 'form-control currency-input',
@@ -246,7 +240,6 @@ class WizardFinancasAtuaisForm(BaseWizardForm):
         decimal_places=2,
         label="Outras despesas mensais fixas (R$)",
         required=False,
-        initial=Decimal('2000.00'),
         widget=forms.TextInput(attrs={
             'inputmode': 'numeric',
             'class': 'form-control currency-input',
@@ -267,7 +260,6 @@ class WizardImovelDesejadoForm(BaseWizardForm):
         decimal_places=2,
         label="Qual o valor do imóvel que deseja? (R$)",
         required=True,
-        initial=Decimal('500000.00'),
         widget=forms.TextInput(attrs={
             'inputmode': 'numeric',
             'class': 'form-control currency-input',
@@ -428,7 +420,6 @@ class WizardCenariosForm(BaseWizardForm):
         decimal_places=2,
         label="Quanto tem disponível para lance? (R$)",
         required=False,
-        initial=Decimal('0.00'),
         widget=forms.TextInput(attrs={
             'inputmode': 'numeric',
             'class': 'form-control currency-input',

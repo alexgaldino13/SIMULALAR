@@ -1,0 +1,18 @@
+steps:
+  - step: 1
+    name: "Definição Visual"
+    type: "agent"
+    agent: "leo-visual"
+    execution: "inline"
+    task: "gerar-blueprint"
+    input_file: "output/user-request.md"
+    output_file: "output/design-blueprint.md"
+
+  - step: 2
+    name: "Codificação React Native"
+    type: "agent"
+    agent: "bia-frontend"
+    execution: "inline"
+    task: "converter-para-code"
+    input_file: "output/design-blueprint.md"
+    output_file: "output/code-report.md"

@@ -49,9 +49,9 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
-            align-items: center;
+            align-items: flex-start; /* Evita cortar topo em telas menores */
             justify-content: center;
-            padding: 20px;
+            padding: 40px 20px; /* Mais respiro */
         }
         
         .wizard-container {
@@ -281,6 +281,8 @@
             
             {% include "components/specialist_tips.html" %}
             
+            {% include "components/ad_banner.html" %}
+            
             <div class="button-group">
 
                 {% if can_go_back %}
@@ -305,9 +307,9 @@
     
     <!-- JavaScript - usar minificado em produção -->
     {% if DEBUG %}
-        <script src="{% static 'js/wizard.js' %}"></script>
+        <script src="{% static 'js/wizard.js' %}?v=2"></script>
     {% else %}
-        <script src="{% static 'js/wizard.min.js' %}"></script>
+        <script src="{% static 'js/wizard.min.js' %}?v=2"></script>
     {% endif %}
 </body>
 </html>

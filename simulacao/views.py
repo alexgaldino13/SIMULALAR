@@ -22,6 +22,32 @@ from reportlab.graphics.shapes import Drawing
 from reportlab.graphics.charts.lineplots import LinePlot
 from reportlab.graphics.widgets.markers import makeMarker
 
+from django.utils import timezone
+from django.db import connection
+
+def health_check(request):
+    """
+    Endpoint para monitoramento de saúde do sistema (Fase 12 - Monitoramento).
+    Verifica se o servidor e o banco de dados estão operacionais.
+    """
+    health = {
+        'status': 'healthy',
+        'database': 'connected',
+        'server_time': timezone.now().isoformat(),
+        'version': '1.5.0-scale',
+        'environment': 'production' if not settings.DEBUG else 'development'
+    }
+
+    try:
+        # Tenta uma query simples no banco
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+    except Exception as e:
+        health['status'] = 'unhealthy'
+        health['database'] = f'error: {str(e)}'
+
+    return JsonResponse(health)
+
 def landing_page(request):
     """
     Exibe a página de entrada do ImobCalc com marketing e comparativo de planos.
@@ -557,7 +583,12 @@ def api_capturar_lead(request):
         valor_imovel = data.get('valor_imovel')
         perfil = data.get('perfil')
         cidade = data.get('cidade')
-        
+
+        # Salva dados na sessão para evitar redigitação (Fase 12)
+        request.session['lead_nome'] = nome
+        request.session['lead_whatsapp'] = whatsapp
+        request.session['lead_email'] = email
+
         lead = WizardLead.objects.create(
             nome=nome,
             whatsapp=whatsapp,

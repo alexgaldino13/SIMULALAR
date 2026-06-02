@@ -6,6 +6,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Seus Resultados - Simulador Financeiro</title>
+
+    <!-- OpenGraph / Social Sharing Tags (Fase 12) -->
+    <meta property="og:title" content="Minha Simulação de Imóvel - SIMULALAR">
+    <meta property="og:description" content="Simulei a compra de um imóvel de R$ {{ valor_imovel|currency }}. Veja os resultados detalhados!">
+    <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'img/simulalar_logo.png' %}">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
     <style>
         * {
             margin: 0;
@@ -229,6 +241,9 @@
         </div>
         {% endif %}
         
+        <!-- Bloco de Anúncio entre Recomendação e Grid -->
+        {% include "components/ad_banner.html" %}
+        
         <div id="resultados" class="cards-grid" role="region" aria-label="Resultados das simulações">
             {% for nome, resultado in resultados.items %}
             <article class="result-card {% if nome == analise.recomendacao_principal %}recommended{% endif %}" role="article" aria-labelledby="resultado-{{ nome }}">
@@ -249,11 +264,25 @@
                     <span class="metric-label">Parcela Inicial</span>
                     <span class="metric-value">{{ resultado.parcela_inicial }}</span>
                  </div>
+                 
+                {% if resultado.ultima_parcela %}
+                <div class="metric">
+                    <span class="metric-label">Última Parcela</span>
+                    <span class="metric-value">{{ resultado.ultima_parcela }}</span>
+                 </div>
+                {% endif %}
                 
                 <div class="metric">
                     <span class="metric-label">Custo Total</span>
                     <span class="metric-value">{{ resultado.total_custo }}</span>
                 </div>
+
+                {% if resultado.cet_anual %}
+                <div class="metric">
+                    <span class="metric-label">CET (Custo Efetivo Total)</span>
+                    <span class="metric-value">{{ resultado.cet_anual }} ao ano</span>
+                </div>
+                {% endif %}
                 <p style="font-size: 11px; color: #888; margin-top: -10px; margin-bottom: 10px;">
                     Inclui Seguros **Morte/Invalidez** e **Seguro do Imóvel**.
                 </p>
@@ -352,9 +381,18 @@
         {% endif %}
         
         <div class="button-group">
-            <a href="{% url 'wizard_v2_reset' %}" class="btn btn-primary">
-                🔄 Nova Simulação
-            </a>
+            {% if is_public_view %}
+                <a href="{% url 'landing_page' %}" class="btn btn-primary shadow-sm fw-bold">
+                    🚀 Quero fazer minha própria simulação
+                </a>
+            {% else %}
+                <a href="{% url 'wizard_v2_reset' %}" class="btn btn-primary">
+                    🔄 Nova Simulação
+                </a>
+                <a href="{% url 'wizard_v2_gerar_compartilhamento' %}" class="btn shadow-sm" style="background: #25d366; color: white; font-weight: 600;">
+                    <i class="fas fa-share-alt me-2"></i> Compartilhar Resultados
+                </a>
+            {% endif %}
         </div>
     </div>
 

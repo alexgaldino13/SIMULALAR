@@ -1,0 +1,19 @@
+{
+  "squad": "launch-ready",
+  "status": "completed",
+  "step": { "current": 4, "total": 4, "label": "Checklist Final de QA" },
+  "agents": [
+    { "id": "dante-deploy", "name": "Dante Deploy", "icon": "🚀", "status": "done", "desk": { "col": 1, "row": 1 } },
+    { "id": "lola-lancamento", "name": "Lola Lançamento", "icon": "📱", "status": "done", "desk": { "col": 2, "row": 1 } },
+    { "id": "vera-validadora", "name": "Vera Validadora", "icon": "⚖️", "status": "done", "desk": { "col": 3, "row": 1 } }
+  ],
+  "handoff": {
+    "from": "vera-validadora",
+    "to": "user",
+    "message": "Veredito GO! Projeto pronto para o build final.",
+    "completedAt": "2026-04-12T16:25:00Z"
+  },
+  "startedAt": "2026-04-12T16:05:00Z",
+  "updatedAt": "2026-04-12T16:25:00Z",
+  "completedAt": "2026-04-12T16:25:00Z"
+}

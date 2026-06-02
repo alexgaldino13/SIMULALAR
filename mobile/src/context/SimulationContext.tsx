@@ -16,6 +16,7 @@ export interface SimulationData {
     recebe_13_salario: boolean;
     quantos_dependentes: number;
     outras_rendas: number;
+    tipo_trabalho: string;
   };
   financas_atuais: {
     valor_imovel_proprio: number;
@@ -62,6 +63,7 @@ const initialData: SimulationData = {
     recebe_13_salario: true,
     quantos_dependentes: 1,
     outras_rendas: 0,
+    tipo_trabalho: 'privado',
   },
   financas_atuais: {
     valor_imovel_proprio: 0,
@@ -94,7 +96,10 @@ const initialData: SimulationData = {
 
 interface SimulationContextType {
   data: SimulationData;
+  leadCaptured: boolean;
+  leadInfo: { nome: string; whatsapp: string } | null;
   updateData: (stepName: keyof SimulationData, stepData: any) => void;
+  setLeadCaptured: (captured: boolean, info?: { nome: string; whatsapp: string }) => void;
   resetData: () => void;
 }
 
@@ -102,6 +107,8 @@ const SimulationContext = createContext<SimulationContextType | undefined>(undef
 
 export const SimulationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [data, setData] = useState<SimulationData>(initialData);
+  const [leadCaptured, setLeadCapturedState] = useState(false);
+  const [leadInfo, setLeadInfo] = useState<{ nome: string; whatsapp: string } | null>(null);
 
   const updateData = (stepName: keyof SimulationData, stepData: any) => {
     setData((prev) => ({
@@ -110,10 +117,19 @@ export const SimulationProvider: React.FC<{ children: ReactNode }> = ({ children
     }));
   };
 
-  const resetData = () => setData(initialData);
+  const setLeadCaptured = (captured: boolean, info?: { nome: string; whatsapp: string }) => {
+    setLeadCapturedState(captured);
+    if (info) setLeadInfo(info);
+  };
+
+  const resetData = () => {
+    setData(initialData);
+    setLeadCapturedState(false);
+    setLeadInfo(null);
+  };
 
   return (
-    <SimulationContext.Provider value={{ data, updateData, resetData }}>
+    <SimulationContext.Provider value={{ data, leadCaptured, leadInfo, updateData, setLeadCaptured, resetData }}>
       {children}
     </SimulationContext.Provider>
   );

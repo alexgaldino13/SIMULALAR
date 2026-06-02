@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView, Alert, ActivityIndicator, Linking } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { authService } from '../api/authService';
 import SimulationCharts from '../components/SimulationCharts';
@@ -12,7 +13,6 @@ export default function SimulationDetailScreen({ route, navigation }: any) {
   const results = simulation.resultados;
 
   const handleExportPDF = () => {
-    // URL do relatório no backend centralizada em config.ts
     const pdfUrl = `${BASE_URL}${API_CONFIG.ENDPOINTS.EXPORT_PDF(simulation.id)}`; 
     Linking.openURL(pdfUrl).catch(err => {
       console.error('Erro ao abrir link:', err);
@@ -33,7 +33,7 @@ export default function SimulationDetailScreen({ route, navigation }: any) {
             setDeleting(true);
             try {
               await authService.deleteSimulation(simulation.id);
-              navigation.goBack();
+              navigation.navigate('Dashboard'); // Voltar para dashboard após exclusão
             } catch (error) {
               Alert.alert('Erro', 'Não foi possível excluir a simulação.');
             } finally {
@@ -45,71 +45,110 @@ export default function SimulationDetailScreen({ route, navigation }: any) {
     );
   };
 
-  const ResultCard = ({ title, data, type }: any) => (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>{title}</Text>
-        <Ionicons name={type === 'consorcio' ? 'dice-outline' : 'trending-down'} size={20} color="#6a11cb" />
-      </View>
-      
-      <View style={styles.detailRow}>
-        <Text style={styles.detailLabel}>Parcela Inicial</Text>
-        <Text style={styles.detailValue}>{data.parcela_inicial || 'N/A'}</Text>
-      </View>
+  const ResultCard = ({ title, data, type }: any) => {
+    const isConsorcio = type === 'consorcio';
+    const accentColor = isConsorcio ? '#FFD700' : '#6a11cb';
+    
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>{title}</Text>
+          <View style={[styles.cardIconCircle, { backgroundColor: `${accentColor}20` }]}>
+            <Ionicons 
+              name={isConsorcio ? 'dice-outline' : 'trending-down'} 
+              size={18} 
+              color={accentColor} 
+            />
+          </View>
+        </View>
+        
+        <View style={styles.cardContent}>
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Parcela Inicial</Text>
+            <Text style={styles.detailValue}>{data.parcela_inicial || 'N/A'}</Text>
+          </View>
 
-      <View style={styles.detailRow}>
-        <Text style={styles.detailLabel}>Custo Total</Text>
-        <Text style={styles.detailValue}>{data.total_custo || 'N/A'}</Text>
-      </View>
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Custo Total</Text>
+            <Text style={[styles.detailValue, { color: '#fff' }]}>{data.total_custo || 'N/A'}</Text>
+          </View>
 
-      <View style={styles.detailRow}>
-        <Text style={styles.detailLabel}>Prazo Final</Text>
-        <Text style={styles.detailValue}>{data.prazo_final_anos} anos</Text>
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Prazo Final</Text>
+            <Text style={styles.detailValue}>{data.prazo_final_anos} anos</Text>
+          </View>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
+      <LinearGradient colors={['#0f0c29', '#302b63', '#24243e']} style={StyleSheet.absoluteFill} />
+      
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backIconButton}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Detalhes</Text>
-        <TouchableOpacity onPress={handleDelete} disabled={deleting}>
+        <Text style={styles.headerTitle}>Detalhes da Simulação</Text>
+        <TouchableOpacity onPress={handleDelete} disabled={deleting} style={styles.deleteButton}>
           {deleting ? (
-            <ActivityIndicator color="#ff4444" />
+            <ActivityIndicator size="small" color="#ff4444" />
           ) : (
-            <Ionicons name="trash-outline" size={24} color="#ff4444" />
+            <Ionicons name="trash-outline" size={22} color="#ff4444" />
           )}
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.simTitle}>{simulation.titulo}</Text>
-        <Text style={styles.simDate}>Criado em {new Date(simulation.criado_em).toLocaleDateString('pt-BR')}</Text>
-
-        {/* RECOMENDAÇÃO INTELIGENTE (BANNER) */}
-        <View style={styles.recommendationBanner}>
-          <View style={styles.bannerHeader}>
-            <Ionicons name="sparkles" size={24} color="#FFD700" />
-            <Text style={styles.bannerTitle}>RECOMENDAÇÃO SIMULALAR</Text>
-          </View>
-          <Text style={styles.recommendationText}>
-            {results.analise?.texto_principal || 'Análise indisponível para esta simulação.'}
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.titleSection}>
+          <Text style={styles.simTitle}>{simulation.titulo}</Text>
+          <Text style={styles.simDate}>
+            <Ionicons name="calendar-outline" size={14} color="#666" /> Criado em {new Date(simulation.criado_em).toLocaleDateString('pt-BR')}
           </Text>
         </View>
 
-        <SimulationCharts results={results} />
+        {/* RECOMENDAÇÃO INTELIGENTE (GLASS CARD) */}
+        <View style={styles.recommendationBanner}>
+          <LinearGradient 
+            colors={['rgba(106, 17, 203, 0.3)', 'rgba(37, 117, 252, 0.1)']}
+            style={styles.recommendationGradient}
+          >
+            <View style={styles.bannerHeader}>
+              <View style={styles.sparkleCircle}>
+                <Ionicons name="sparkles" size={18} color="#FFD700" />
+              </View>
+              <Text style={styles.bannerTitle}>RECOMENDAÇÃO SIMULALAR</Text>
+            </View>
+            <Text style={styles.recommendationText}>
+              {results.analise?.texto_principal || 'Análise indisponível para esta simulação.'}
+            </Text>
+          </LinearGradient>
+        </View>
+
+        <View style={styles.sectionTitleRow}>
+          <Text style={styles.sectionTitle}>Análise Visual</Text>
+        </View>
+        <View style={styles.chartContainer}>
+          <SimulationCharts results={results} />
+        </View>
 
         <View style={styles.actionRow}>
           <TouchableOpacity style={styles.pdfButton} onPress={handleExportPDF}>
-            <Ionicons name="download-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
-            <Text style={styles.pdfButtonText}>Exportar PDF</Text>
+            <LinearGradient 
+              colors={['#2e7d32', '#1b5e20']} 
+              style={styles.pdfGradient}
+            >
+              <Ionicons name="download-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
+              <Text style={styles.pdfButtonText}>Exportar para PDF</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.sectionTitle}>Comparativo Salvo</Text>
+        <View style={styles.sectionTitleRow}>
+          <Text style={styles.sectionTitle}>Comparativo de Cenários</Text>
+          <Ionicons name="layers-outline" size={20} color="rgba(255,255,255,0.4)" />
+        </View>
         
         {results.resultados && Object.entries(results.resultados).map(([key, value]: any) => (
           <ResultCard key={key} title={value.metodo} data={value} type={key} />
@@ -135,119 +174,180 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+  },
+  backIconButton: {
+    padding: 5,
   },
   headerTitle: {
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+    letterSpacing: 0.5,
+  },
+  deleteButton: {
+    padding: 5,
   },
   scrollContent: {
     padding: 20,
     paddingBottom: 40,
   },
-  simTitle: {
-    color: '#fff',
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 5,
-  },
-  simDate: {
-    color: '#666',
-    fontSize: 14,
+  titleSection: {
     marginBottom: 25,
   },
+  simTitle: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 6,
+  },
+  simDate: {
+    color: '#888',
+    fontSize: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   recommendationBanner: {
-    backgroundColor: 'rgba(106, 17, 203, 0.2)',
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 20,
+    borderRadius: 24,
+    overflow: 'hidden',
+    marginBottom: 30,
     borderWidth: 1,
-    borderColor: '#6a11cb',
+    borderColor: 'rgba(106, 17, 203, 0.4)',
+    elevation: 5,
+    shadowColor: '#6a11cb',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+  },
+  recommendationGradient: {
+    padding: 20,
   },
   bannerHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
+  },
+  sparkleCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 215, 0, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
   },
   bannerTitle: {
     color: '#FFD700',
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginLeft: 10,
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 1,
   },
   recommendationText: {
     color: '#fff',
     fontSize: 16,
     lineHeight: 24,
+    opacity: 0.9,
   },
-  actionRow: {
+  sectionTitleRow: {
     flexDirection: 'row',
-    marginBottom: 30,
-  },
-  pdfButton: {
-    flexDirection: 'row',
-    backgroundColor: '#2e7d32',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
+    justifyContent: 'space-between',
     alignItems: 'center',
-  },
-  pdfButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    marginBottom: 15,
   },
   sectionTitle: {
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 15,
+  },
+  chartContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 24,
+    padding: 10,
+    marginBottom: 30,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    marginBottom: 35,
+  },
+  pdfButton: {
+    flex: 1,
+    borderRadius: 16,
+    overflow: 'hidden',
+    elevation: 4,
+  },
+  pdfGradient: {
+    flexDirection: 'row',
+    height: 55,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pdfButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   card: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 20,
     padding: 20,
     marginBottom: 15,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    paddingBottom: 12,
   },
   cardTitle: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: 'bold',
+  },
+  cardIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cardContent: {
+    gap: 12,
   },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    alignItems: 'center',
   },
   detailLabel: {
-    color: '#888',
+    color: '#aaa',
     fontSize: 14,
   },
   detailValue: {
-    color: '#fff',
-    fontSize: 14,
+    color: '#7f7fd5',
+    fontSize: 15,
     fontWeight: 'bold',
   },
   backButton: {
-    height: 55,
-    borderRadius: 12,
+    height: 60,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 20,
+    marginTop: 25,
+    borderWidth: 1,
+    borderColor: 'rgba(106, 17, 203, 0.3)',
   },
   backButtonText: {
     color: '#6a11cb',
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: 'bold',
   },
 });

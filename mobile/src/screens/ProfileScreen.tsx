@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, Alert, Image } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import apiClient from '../api/client';
-import { authService } from '../api/authService';
+
+import { setAuthToken } from '../api/client';
 
 export default function ProfileScreen({ navigation }: any) {
   const [profile, setProfile] = useState<any>(null);
@@ -12,8 +14,12 @@ export default function ProfileScreen({ navigation }: any) {
     try {
       const response = await apiClient.get('/api/v1/dashboard/');
       setProfile(response.data.profile);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao buscar perfil:', error);
+      if (error.response?.status === 401) {
+        setAuthToken(null);
+        navigation.replace('Auth');
+      }
     } finally {
       setLoading(false);
     }
@@ -25,15 +31,15 @@ export default function ProfileScreen({ navigation }: any) {
 
   const handleLogout = () => {
     Alert.alert(
-      'Sair',
-      'Deseja realmente sair da sua conta?',
+      'Encerrar Sessão',
+      'Deseja realmente sair da sua conta no SIMULALAR?',
       [
         { text: 'Cancelar', style: 'cancel' },
         { 
-          text: 'Sair', 
+          text: 'Sair com Segurança', 
+          style: 'destructive',
           onPress: () => {
-            // No mobile, apenas voltamos para a tela de Login e limpamos o estado se necessário
-            // Idealmente limparíamos o token do storage aqui.
+            setAuthToken(null);
             navigation.replace('Auth');
           }
         }
@@ -41,70 +47,130 @@ export default function ProfileScreen({ navigation }: any) {
     );
   };
 
+  const InfoCard = ({ icon, label, value, color = '#6a11cb' }: any) => (
+    <View style={styles.infoCard}>
+      <View style={[styles.infoIconCircle, { backgroundColor: `${color}20` }]}>
+        <Ionicons name={icon} size={18} color={color} />
+      </View>
+      <View style={styles.infoTextContainer}>
+        <Text style={styles.infoLabel}>{label}</Text>
+        <Text style={styles.infoValue}>{value || 'Não informado'}</Text>
+      </View>
+    </View>
+  );
+
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6a11cb" />
-      </View>
+      <LinearGradient colors={['#0f0c29', '#302b63', '#24243e']} style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FFD700" />
+      </LinearGradient>
     );
   }
 
+  const isPremium = profile?.is_premium;
+  const isBroker = !!profile?.creci;
+
   return (
     <SafeAreaView style={styles.container}>
+      <LinearGradient colors={['#0f0c29', '#302b63', '#24243e']} style={StyleSheet.absoluteFill} />
+      
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Ionicons name="chevron-back" size={28} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Meu Perfil</Text>
-        <View style={{ width: 24 }} />
+        <Text style={styles.headerTitle}>Minha Conta</Text>
+        <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.avatarSection}>
-          <View style={styles.avatarBig}>
-            <Text style={styles.avatarTextBig}>
-              {(profile?.first_name?.[0] || 'U').toUpperCase()}
-            </Text>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Profile Identity Section */}
+        <View style={styles.avatarContainer}>
+          <View style={styles.orbitalGlow}>
+            <LinearGradient 
+              colors={['#6a11cb', '#2575fc']} 
+              style={styles.avatarBig}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              {profile?.avatar ? (
+                <Image source={{ uri: profile.avatar }} style={styles.avatarImage} />
+              ) : (
+                <Text style={styles.avatarTextBig}>
+                  {(profile?.first_name?.[0] || 'U').toUpperCase()}
+                </Text>
+              )}
+            </LinearGradient>
           </View>
+          
           <Text style={styles.userName}>{profile?.first_name || 'Usuário'}</Text>
-          <Text style={styles.userEmail}>{profile?.email || 'email@exemplo.com'}</Text>
-        </View>
-
-        <View style={styles.infoSection}>
-          <View style={styles.infoRow}>
-            <View style={styles.infoIcon}>
-              <Ionicons name="card-outline" size={20} color="#6a11cb" />
-            </View>
-            <View style={styles.infoText}>
-              <Text style={styles.infoLabel}>Plano Atual</Text>
-              <Text style={styles.infoValue}>
-                Plano {profile?.tipo_conta || 'FREE'} {profile?.is_premium ? '✅' : ''}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.infoRow}>
-            <View style={styles.infoIcon}>
-              <Ionicons name="shield-checkmark-outline" size={20} color="#6a11cb" />
-            </View>
-            <View style={styles.infoText}>
-              <Text style={styles.infoLabel}>Privacidade</Text>
-              <Text style={styles.infoValue}>Dados protegidos (LGPD)</Text>
-            </View>
+          <View style={[styles.badge, isPremium ? styles.premiumBadge : styles.freeBadge]}>
+            <Ionicons name={isPremium ? "star" : "person"} size={12} color="#fff" />
+            <Text style={styles.badgeText}>PLANO {isPremium ? 'PREMIUM' : 'FREE'}</Text>
           </View>
         </View>
+
+        {/* Info Groups */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Dados Pessoais</Text>
+          <View style={styles.glassGroup}>
+            <InfoCard icon="mail-outline" label="E-mail de Acesso" value={profile?.email} />
+            <View style={styles.divider} />
+            <InfoCard icon="phone-portrait-outline" label="Telefone" value={profile?.telefone} />
+          </View>
+        </View>
+
+        {isBroker && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Identidade Profissional</Text>
+            <View style={[styles.glassGroup, { borderColor: 'rgba(255, 215, 0, 0.3)' }]}>
+              <InfoCard icon="business-outline" label="Imobiliária / Empresa" value={profile?.nome_empresa} color="#FFD700" />
+              <View style={styles.divider} />
+              <InfoCard icon="ribbon-outline" label="Registro CRECI" value={profile?.creci} color="#FFD700" />
+            </View>
+          </View>
+        )}
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Preferências & Segurança</Text>
+          <View style={styles.glassGroup}>
+            <TouchableOpacity style={styles.menuItem}>
+              <View style={styles.menuItemLeft}>
+                <Ionicons name="notifications-outline" size={20} color="#fff" />
+                <Text style={styles.menuItemText}>Notificações</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#444" />
+            </TouchableOpacity>
+            
+            <View style={styles.divider} />
+            
+            <TouchableOpacity style={styles.menuItem}>
+              <View style={styles.menuItemLeft}>
+                <Ionicons name="lock-closed-outline" size={20} color="#fff" />
+                <Text style={styles.menuItemText}>Privacidade e Dados</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#444" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {!isPremium && (
+          <TouchableOpacity style={styles.premiumCTA}>
+            <LinearGradient colors={['#FFD700', '#FFA500']} style={styles.ctaGradient}>
+              <Ionicons name="flash-outline" size={20} color="#24243e" />
+              <Text style={styles.ctaText}>Seja Premium: PDF White-label e muito mais</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity 
           style={styles.logoutButton}
           onPress={handleLogout}
         >
-          <Ionicons name="log-out-outline" size={20} color="#ff4444" style={{ marginRight: 10 }} />
-          <Text style={styles.logoutText}>Sair da Conta</Text>
+          <Ionicons name="power-outline" size={20} color="#ff4444" />
+          <Text style={styles.logoutText}>Encerrar Sessão</Text>
         </TouchableOpacity>
 
-        <Text style={styles.versionText}>ImobCalc v1.0.0</Text>
+        <Text style={styles.versionText}>SIMULALAR v1.0.0 • 2026</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -117,7 +183,6 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#0f0c29',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -127,102 +192,190 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
   backButton: {
-    padding: 5,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
     color: '#fff',
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '900',
+    letterSpacing: 1,
   },
   scrollContent: {
     padding: 20,
-    alignItems: 'center',
+    paddingBottom: 40,
   },
-  avatarSection: {
+  avatarContainer: {
     alignItems: 'center',
-    marginVertical: 40,
+    marginVertical: 35,
+  },
+  orbitalGlow: {
+    padding: 6,
+    borderRadius: 60,
+    backgroundColor: 'rgba(106, 17, 203, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(106, 17, 203, 0.3)',
+    shadowColor: '#6a11cb',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
   },
   avatarBig: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#6a11cb',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
-    borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  avatarImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
   },
   avatarTextBig: {
     color: '#fff',
-    fontSize: 40,
+    fontSize: 42,
     fontWeight: 'bold',
   },
   userName: {
     color: '#fff',
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
+    marginTop: 15,
   },
-  userEmail: {
-    color: '#666',
-    fontSize: 16,
-    marginTop: 5,
-  },
-  infoSection: {
-    width: '100%',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 40,
-  },
-  infoRow: {
+  badge: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 50,
+    marginTop: 8,
   },
-  infoIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: 'rgba(106, 17, 203, 0.1)',
+  premiumBadge: {
+    backgroundColor: '#FFD70030',
+    borderWidth: 1,
+    borderColor: '#FFD700',
+  },
+  freeBadge: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+    marginLeft: 5,
+    letterSpacing: 1,
+  },
+  section: {
+    marginBottom: 25,
+  },
+  sectionTitle: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 12,
+    marginLeft: 5,
+  },
+  glassGroup: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 24,
+    padding: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  infoCard: {
+    flexDirection: 'row',
     alignItems: 'center',
+    padding: 15,
+  },
+  infoIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 15,
   },
-  infoText: {
+  infoTextContainer: {
     flex: 1,
   },
   infoLabel: {
-    color: '#888',
-    fontSize: 12,
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 11,
+    textTransform: 'uppercase',
+    fontWeight: 'bold',
   },
   infoValue: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     marginTop: 2,
   },
   divider: {
     height: 1,
     backgroundColor: 'rgba(255,255,255,0.05)',
-    marginVertical: 15,
+    marginHorizontal: 15,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 18,
+  },
+  menuItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  menuItemText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  premiumCTA: {
+    borderRadius: 18,
+    overflow: 'hidden',
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  ctaGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 18,
+    gap: 12,
+  },
+  ctaText: {
+    color: '#24243e',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 15,
+    justifyContent: 'center',
+    paddingVertical: 20,
+    gap: 10,
+    marginTop: 10,
   },
   logoutText: {
     color: '#ff4444',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
   },
   versionText: {
-    color: '#333',
+    color: 'rgba(255,255,255,0.1)',
     fontSize: 12,
-    marginTop: 40,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: 30,
+    letterSpacing: 1,
   },
 });

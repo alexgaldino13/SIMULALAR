@@ -1,0 +1,21 @@
+<div class="ad-container text-center my-4" style="min-height: 100px; display: flex; align-items: center; justify-content: center; background-color: #f8f9fa; border: 1px dashed #ced4da; border-radius: 8px;">
+    {% if not has_premium %}
+        <!-- Placeholder para AdMob / AdSense -->
+        <span class="text-muted small"><i class="fas fa-ad me-1"></i> Espaço Publicitário</span>
+        <!-- 
+        Para produção, insira seu script do Google AdSense aqui:
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+             data-ad-slot="YYYYYYYYYY"
+             data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
+        <script>
+             (adsbygoogle = window.adsbygoogle || []).push({});
+        </script>
+        -->
+    {% else %}
+        <span class="text-success small"><i class="fas fa-star me-1"></i> Experiência Premium (Sem Anúncios)</span>
+    {% endif %}
+</div>

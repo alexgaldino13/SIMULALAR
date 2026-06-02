@@ -33,7 +33,8 @@ urlpatterns = [
     # Landing Page (Nova porta de entrada)
     path('', views.landing_page, name='landing_page'),
     path('landing/', views.landing_page, name='landing_page_explicit'),
-    
+    path('health/', views.health_check, name='health_check'),
+
     # Redireciona direto para o Wizard V2 (mantendo o nome antigo para compatibilidade interna)
     path('simulacao-direta/', wizard_views_v2.wizard_v2, name='simulacao_principal'),
     
@@ -44,7 +45,11 @@ urlpatterns = [
     path('wizard-v2/reset/', wizard_views_v2.wizard_v2_reset, name='wizard_v2_reset'),
     path('wizard-v2/salvar/', wizard_views_v2.salvar_simulacao_v2, name='wizard_v2_salvar'),
     path('wizard-v2/exportar-pdf/', wizard_views_v2.exportar_pdf_simulacao_v2, name='wizard_v2_exportar_pdf'),
-        
+
+    # Compartilhamento de Simulações (Fase 12 - Escala)
+    path('wizard-v2/gerar-compartilhamento/', wizard_views_v2.compartilhar_simulacao_v2, name='wizard_v2_gerar_compartilhamento'),
+    path('compartilhar/<str:token>/', wizard_views_v2.visualizar_simulacao_compartilhada, name='visualizar_compartilhada'),
+
     # Rota para acesso direto ao dashboard
     path('direct-dashboard/', auth_views.direct_dashboard_view, name='direct_dashboard'),
 
@@ -68,6 +73,7 @@ urlpatterns = [
     # APIs para AdMob/Monetizacao
     path('api/assinaturas/status/', SubscriptionStatusView.as_view(), name='api_assinatura_status'),
     path('api/monetizacao/ad-view/', AdViewTrackingView.as_view(), name='api_registrar_ad_view'),
+    path('api/ads/view/', views.api_registrar_ad_view, name='api_ads_view'),  # alias legado usado pelo template
     path('api/monetizacao/google-play-billing-webhook/', GooglePlayBillingWebhookView.as_view(), name='api_google_play_billing_webhook'),
 
     path('afiliado/<int:link_id>/', views.redirecionar_afiliado, name='redirecionar_afiliado'),

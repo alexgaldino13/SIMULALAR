@@ -1,0 +1,49 @@
+# Pipeline definitions for Auditor Financeiro Premium
+# These steps are orchestrated by the Pipeline Runner.
+
+steps:
+  - step: 1
+    name: "Definição de Foco"
+    type: "checkpoint"
+    output_file: "squads/auditor-financeiro-premium/output/research-focus.md"
+    instruction: |
+      Determine o foco da auditoria de hoje.
+      Exemplos: 'Taxas da Caixa MCMV', 'Seguros Santander', 'Índices de Aluguel QuintoAndar'.
+
+  - step: 2
+    name: "Investigação de Mercado"
+    type: "agent"
+    agent: "rita-referencia"
+    execution: "subagent"
+    task: "pesquisar-taxas-detalhadas"
+    input_file: "squads/auditor-financeiro-premium/output/research-focus.md"
+    output_file: "squads/auditor-financeiro-premium/output/research-brief.md"
+    model_tier: "powerful"
+
+  - step: 3
+    name: "Análise de Código"
+    type: "agent"
+    agent: "dante-dados"
+    execution: "inline"
+    task: "analisar-logica-atual"
+    input_file: "squads/auditor-financeiro-premium/output/research-brief.md"
+    output_file: "squads/auditor-financeiro-premium/output/code-analysis.md"
+
+  - step: 4
+    name: "Mapeamento de Divergências"
+    type: "agent"
+    agent: "dante-dados"
+    execution: "inline"
+    task: "mapear-divergencias-tecnicas"
+    input_file: "squads/auditor-financeiro-premium/output/code-analysis.md"
+    output_file: "squads/auditor-financeiro-premium/output/analysis-report.md"
+
+  - step: 5
+    name: "Veredito e Checklist Final"
+    type: "agent"
+    agent: "vera-veredito"
+    execution: "inline"
+    task: "gerar-checklist-final"
+    input_file: "squads/auditor-financeiro-premium/output/analysis-report.md"
+    output_file: "squads/auditor-financeiro-premium/output/final-checklist.md"
+    on_reject: 4
