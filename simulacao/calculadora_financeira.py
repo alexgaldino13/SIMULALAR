@@ -1002,8 +1002,8 @@ def comparar_cenarios_e_formatar(dados_wizard: Dict[str, Any]) -> Dict[str, Any]
         "custas_iniciais": custas,
         "mcmv": mcmv,
         "sfh": {
-            "enquadra": valor_imovel <= float(SFH_VALOR_MAX),
-            "taxa_referencia_aa": float(TAXA_SBPE_AA),
+            "enquadra": valor_imovel <= float(sfh_valor_max),
+            "taxa_referencia_aa": float(taxa_sbpe),
         },
         "renda_minima_recomendada": float(_q(renda_minima)),
         "renda_minima_fmt": _fmt_brl(renda_minima),
