@@ -28,6 +28,8 @@ export interface SimulationData {
     valor_imovel_desejado: number;
     prazo_desejado_anos: number;
     custas_documentacao_forma: string;
+    estado: string;
+    cidade_tipo: string;
   };
   cenarios: {
     comparar_financiamento_price: boolean;
@@ -75,6 +77,8 @@ const initialData: SimulationData = {
     valor_imovel_desejado: 500000,
     prazo_desejado_anos: 30,
     custas_documentacao_forma: 'financiado',
+    estado: 'SP',
+    cidade_tipo: 'capital',
   },
   cenarios: {
     comparar_financiamento_price: true,

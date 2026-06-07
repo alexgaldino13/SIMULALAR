@@ -720,6 +720,8 @@ def comparar_cenarios_e_formatar(dados_wizard: Dict[str, Any]) -> Dict[str, Any]
     valor_imovel = float(imovel_d.get("valor_imovel_desejado", 0) or 0)
     prazo_anos = max(1, int(imovel_d.get("prazo_desejado_anos", 30) or 30))
     custas_forma = str(imovel_d.get("custas_documentacao_forma", "a_vista") or "a_vista")
+    estado = str(imovel_d.get("estado", "SP") or "SP").upper()[:2]
+    cidade_tipo = str(imovel_d.get("cidade_tipo", "capital") or "capital")
 
     usar_fgts = bool(cen.get("usar_fgts", False))
     comparar_price = bool(cen.get("comparar_financiamento_price", True))
@@ -736,7 +738,7 @@ def comparar_cenarios_e_formatar(dados_wizard: Dict[str, Any]) -> Dict[str, Any]
     prazo_meses = min(prazo_meses, prazo_max)
 
     # Custas iniciais
-    custas = calcular_custas_iniciais(valor_imovel, financiar=(custas_forma == "financiado"))
+    custas = calcular_custas_iniciais(valor_imovel, estado=estado, cidade_tipo=cidade_tipo, financiar=(custas_forma == "financiado"))
     custas_valor = custas["total"] if custas_forma == "a_vista" else 0.0
 
     # Entrada disponível
@@ -755,7 +757,7 @@ def comparar_cenarios_e_formatar(dados_wizard: Dict[str, Any]) -> Dict[str, Any]
     taxa_invest = float(cen.get("taxa_investimento_esperada", None) or taxas_vivas["selic"])
 
     # MCMV
-    mcmv = verificar_mcmv(renda_total, valor_imovel, taxas_vivas=taxas_vivas)
+    mcmv = verificar_mcmv(renda_total, valor_imovel, cidade_tipo=cidade_tipo, taxas_vivas=taxas_vivas)
     taxa_financing = (
         float(mcmv["taxa_aa"])
         if mcmv["elegivel"] and comparar_mcmv_req
