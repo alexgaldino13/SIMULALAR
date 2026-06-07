@@ -46,6 +46,7 @@ export interface SimulationData {
     pagar_aluguel_com_rendimentos: boolean;
     usar_fgts: boolean;
     taxa_investimento_esperada: number;
+    comparar_bancos: boolean;
   };
 }
 
@@ -95,6 +96,7 @@ const initialData: SimulationData = {
     pagar_aluguel_com_rendimentos: false,
     usar_fgts: true,
     taxa_investimento_esperada: 9.5,
+    comparar_bancos: false,
   },
 };
 
