@@ -1,998 +1,1025 @@
-from decimal import Decimal
+"""
+Motor de cálculo financeiro imobiliário — ImobCalc
+Regras do mercado brasileiro 2025/2026.
+
+Referências:
+  - SFH/SFI: Lei 4.380/64, Resolução CMN 4.676/2018
+  - MCMV: Lei 14.118/2021, Portaria MDR vigente
+  - FGTS: Lei 8.036/90, Circular CEF 820/2017
+  - Seguros MIP/DFI: Circular SUSEP 399/2009
+"""
+from __future__ import annotations
+
 import math
+from decimal import ROUND_HALF_UP, Decimal, getcontext
+from typing import Any, Dict, List, Tuple
 
-# Use centralized formatting helpers
-from simulacao.formatacao import (
-    formatar_moeda_brl,
-    formatar_percentual,
-    formatar_numero,
-    formatar_meses_anos,
-)
+getcontext().prec = 28
 
-# ----------------------------------------------------------------------
-# CONSTANTES DE MERCADO (Benchmark 2024/2026)
-# ----------------------------------------------------------------------
-TAXA_ADMINISTRACAO_MENSAL_PADRAO = Decimal('25.00') # Padrão SBPE
-LIMITE_RENDA_MCMV_FAIXA_1 = Decimal('3200.00')      # Atualizado 2025 (Benchmark Auditoria)
-LIMITE_RENDA_MCMV_FAIXA_2 = Decimal('5000.00')
-LIMITE_RENDA_MCMV_MAX = Decimal('13000.00')      # Atualizado 2026 (Benchmark Auditoria)
-TAXA_JUROS_PADRAO = Decimal('10.5')                   # Benchmark SBPE 2026
-
-# ----------------------------------------------------------------------
-# FUNÇÕES AUXILIARES DE SEGURO
-# ----------------------------------------------------------------------
-
-def obter_taxa_mip_por_idade(idade):
-    """
-    Retorna a taxa mensal de seguro MIP (Morte e Invalidez Permanente) 
-    baseada na faixa etária do participante com maior renda.
-    Valores atualizados 2024/2026 (Benchmark Caixa/Santander).
-    """
-    idade = int(idade)
-    if idade <= 30:
-        return Decimal('0.011') # 0.011% ao mês
-    elif idade <= 40:
-        return Decimal('0.018') # 0.018% ao mês
-    elif idade <= 50:
-        return Decimal('0.032') # 0.032% ao mês
-    elif idade <= 60:
-        # Reajuste de 0.082 para 0.155 (Benchmark 2025)
-        return Decimal('0.082')
-    elif idade <= 70:
-        # Reajuste de 0.145 para 0.165 (Benchmark 2024)
-        return Decimal('0.165')
-    else:
-        # Reajuste de 0.250 para 0.280 (> 70 anos)
-        return Decimal('0.280')
-
-def calcular_seguro_dfi(valor_imovel):
-    """
-    Calcula o valor mensal do seguro DFI (Danos Físicos ao Imóvel).
-    Média de mercado: 0.005% sobre o valor do imóvel.
-    """
-    valor_dec = Decimal(str(valor_imovel))
-    # Coeficiente padrão 0.005%
-    taxa_dfi = Decimal('0.00005') 
-    return (valor_dec * taxa_dfi)
+_ZERO = Decimal("0")
+_CENT = Decimal("0.01")
 
 
-def calcular_cet_legal(valor_financiado, parcelas_lista):
-    """
-    Calcula o Custo Efetivo Total (CET) anualizado conforme normas do Banco Central.
-    Usa o método Newton-Raphson para encontrar a taxa interna de retorno.
-    """
-    from scipy.optimize import newton
+# ─── helpers ──────────────────────────────────────────────────────────────────
 
-    # Filtra apenas parcelas que representam pagamentos (ignora amortizações extras de FGTS na tabela)
-    fluxo = [float(p) for p in parcelas_lista if p > 0]
-
-    if not fluxo or float(valor_financiado) <= 0:
-        return 0.0
-
-    def vpl(i_mensal):
-        # f(i) = Principal - Sum(Parcela_t / (1+i)^t)
-        res = float(valor_financiado)
-        for t, parcela in enumerate(fluxo, 1):
-            res -= parcela / ((1 + i_mensal) ** t)
-        return res
-
+def _d(x) -> Decimal:
+    if isinstance(x, Decimal):
+        return x
+    if x is None:
+        return _ZERO
     try:
-        # Resolve para a taxa mensal (chute inicial 1%)
-        taxa_mensal = newton(vpl, x0=0.01, maxiter=100)
-        # Anualiza a taxa (CET Anual)
-        cet_anual = ((1 + taxa_mensal) ** 12 - 1) * 100
-        return round(float(cet_anual), 2)
+        return Decimal(str(x))
     except Exception:
-        return 0.0
+        return _ZERO
 
 
-# ----------------------------------------------------------------------
-# FUNÇÃO 1: CÁLCULO PRICE/SAC (COM LÓGICA DE AMORTIZAÇÃO FGTS) - CORRIGIDA
-# ----------------------------------------------------------------------
+def _q(x, places: int = 2) -> Decimal:
+    fmt = Decimal("0." + "0" * places)
+    return _d(x).quantize(fmt, rounding=ROUND_HALF_UP)
 
-def calcular_price_sac(metodo, valor_principal, taxa_anual, prazo_meses, seguro_mensal=0.0, taxa_admin_mensal=0.0, **kwargs):
-    """
-    Calcula a tabela de amortização (Price ou SAC) e retorna a lista de parcelas.
-    Inclui suporte à amortização extra com FGTS.
-    """
-    
-    # CONVERSÃO DOS PARÂMETROS AUXILIARES PARA DECIMAL (Correção do TypeError)
-    seguro_mensal_dec = Decimal(str(seguro_mensal))
-    taxa_admin_mensal_dec = Decimal(str(taxa_admin_mensal))
-    fgts_saldo_amortizacao_dec = Decimal(str(kwargs.get('fgts_saldo', 0.0)))
-    valor_principal_dec = Decimal(str(valor_principal))
-    taxa_anual_dec = Decimal(str(taxa_anual))
 
-    # NOVOS PARAMETROS FGTS E IDADE
-    usar_fgts = kwargs.get('usar_fgts_financiamento', False)
-    tipo_amortizacao = kwargs.get('tipo_amortizacao_fgts', 'reduzir_prazo')
-    mes_uso = kwargs.get('mes_uso_fgts_financiamento', 1)
-    idade = kwargs.get('idade', 30)
-    
-    # FGTS Periódico (Matemática Real: Salário Crescente + Rendimentos)
-    intervalo_fgts_meses = kwargs.get('intervalo_fgts_meses', 24)
-    taxa_crescimento_salarial_anual = Decimal(str(kwargs.get('taxa_crescimento_salarial_anual', 0.045))) # 4.5% a.a (Inflação modesta)
-    taxa_rendimento_fgts_mensal = (Decimal('1.03') ** (Decimal('1')/Decimal('12'))) - Decimal('1') # 3% a.a equivalente mensal
-    
-    renda_familiar_atual = Decimal(str(kwargs.get('renda_familiar', 0.0)))
-    saldo_fgts_acumulado = Decimal('0.0')
-    
-    # Se o seguro_mensal for 0 (default), calculamos via MIP baseado na idade
-    if seguro_mensal_dec == 0:
-        taxa_mip_mensal = obter_taxa_mip_por_idade(idade)
-        # O seguro MIP é aplicado sobre o SALDO DEVEDOR. 
-        # Aqui definimos a taxa, o valor será calculado dentro do loop.
-        is_mip_dinamico = True
+def _fmt_brl(v) -> str:
+    f = float(_d(v))
+    s = f"{f:,.2f}"
+    s = s.replace(",", "X").replace(".", ",").replace("X", ".")
+    return f"R$ {s}"
+
+
+def _fmt_pct(v, decimals: int = 2) -> str:
+    return f"{float(_d(v)):.{decimals}f}%".replace(".", ",")
+
+
+def _pmt(pv: Decimal, r: Decimal, n: int) -> Decimal:
+    """Parcela PRICE (sistema francês de amortização)."""
+    if r == _ZERO:
+        return _q(pv / n) if n > 0 else _ZERO
+    factor = (1 + r) ** n
+    return _q(pv * (r * factor) / (factor - 1))
+
+
+# ─── tabelas de mercado ────────────────────────────────────────────────────────
+
+# MIP: seguro de vida mensal (% sobre saldo devedor)
+_MIP_TABELA: List[Tuple[int, Decimal]] = [
+    (25, Decimal("0.009")),
+    (30, Decimal("0.011")),
+    (35, Decimal("0.018")),
+    (40, Decimal("0.022")),
+    (45, Decimal("0.032")),
+    (50, Decimal("0.056")),
+    (55, Decimal("0.082")),
+    (60, Decimal("0.135")),
+    (70, Decimal("0.165")),
+    (999, Decimal("0.280")),
+]
+
+# ITBI por estado (alíquotas municipais típicas de capitais)
+_ITBI_ESTADO: Dict[str, Decimal] = {
+    "SP": Decimal("3.0"),  "RJ": Decimal("2.0"),  "MG": Decimal("3.0"),
+    "RS": Decimal("3.0"),  "PR": Decimal("2.7"),  "SC": Decimal("2.0"),
+    "BA": Decimal("2.0"),  "PE": Decimal("3.0"),  "CE": Decimal("2.0"),
+    "GO": Decimal("2.0"),  "DF": Decimal("3.0"),  "AM": Decimal("2.0"),
+    "PA": Decimal("2.0"),  "MT": Decimal("2.0"),  "MS": Decimal("2.0"),
+    "ES": Decimal("2.0"),  "MA": Decimal("2.0"),  "PI": Decimal("2.0"),
+    "RN": Decimal("3.0"),  "PB": Decimal("2.0"),  "AL": Decimal("2.0"),
+    "SE": Decimal("2.0"),  "RO": Decimal("2.0"),  "TO": Decimal("2.0"),
+    "AC": Decimal("2.0"),  "RR": Decimal("2.0"),  "AP": Decimal("2.0"),
+}
+
+# MCMV 2025/2026 — Portaria MDR vigente
+_MCMV_FAIXAS = [
+    {
+        "faixa": 1,
+        "nome": "Faixa 1",
+        "renda_max": Decimal("2850"),
+        "taxa_aa": Decimal("4.75"),
+        "entrada_min_pct": Decimal("5"),
+        "teto_capital": Decimal("190000"),
+        "teto_interior": Decimal("130000"),
+        "descricao": "Subsídio máximo do governo. Taxa a partir de 4,75% a.a.",
+    },
+    {
+        "faixa": 2,
+        "nome": "Faixa 2",
+        "renda_max": Decimal("4400"),
+        "taxa_aa": Decimal("6.5"),
+        "entrada_min_pct": Decimal("10"),
+        "teto_capital": Decimal("264000"),
+        "teto_interior": Decimal("264000"),
+        "descricao": "Subsídio parcial. Taxa a partir de 6,5% a.a.",
+    },
+    {
+        "faixa": 3,
+        "nome": "Faixa 3",
+        "renda_max": Decimal("8000"),
+        "taxa_aa": Decimal("7.66"),
+        "entrada_min_pct": Decimal("10"),
+        "teto_capital": Decimal("350000"),
+        "teto_interior": Decimal("264000"),
+        "descricao": "Taxa subsidiada CEF. Capitais SP, RJ, DF e ES têm teto maior.",
+    },
+]
+
+TAXA_SBPE_AA = Decimal("10.49")      # CEF SBPE referência 2025
+SFH_VALOR_MAX = Decimal("1500000")   # teto do imóvel no SFH
+DFI_TAXA_ANUAL_PCT = Decimal("0.025")  # 0,025% a.a. do valor do imóvel
+
+
+# ─── seguros ──────────────────────────────────────────────────────────────────
+
+def calcular_mip_taxa(idade: int) -> Decimal:
+    """Taxa mensal MIP (% sobre saldo devedor) pela faixa etária."""
+    for limite, taxa in _MIP_TABELA:
+        if int(idade) <= limite:
+            return taxa
+    return Decimal("0.280")
+
+
+def calcular_dfi_mensal(valor_imovel: Decimal) -> Decimal:
+    """DFI: 0,025% a.a. sobre o valor do imóvel, cobrado mensalmente."""
+    return _q(valor_imovel * DFI_TAXA_ANUAL_PCT / Decimal("100") / Decimal("12"))
+
+
+# ─── custas de aquisição ──────────────────────────────────────────────────────
+
+def calcular_custas_iniciais(
+    valor_imovel,
+    estado: str = "SP",
+    cidade_tipo: str = "capital",
+    financiar: bool = False,
+) -> Dict[str, Any]:
+    """Estima ITBI, cartório, escritura e avaliação bancária."""
+    V = _d(valor_imovel)
+    itbi_pct = _ITBI_ESTADO.get(estado.upper(), Decimal("2.5")) / Decimal("100")
+    itbi = _q(V * itbi_pct)
+    cartorio = _q(V * Decimal("0.01"))
+    escritura = _q(V * Decimal("0.005"))
+    avaliacao = _q(Decimal("1000"))
+    total = itbi + cartorio + escritura + avaliacao
+
+    return {
+        "itbi": float(itbi),
+        "itbi_pct": float(itbi_pct * 100),
+        "itbi_fmt": _fmt_brl(itbi),
+        "cartorio_registro": float(cartorio),
+        "cartorio_fmt": _fmt_brl(cartorio),
+        "escritura": float(escritura),
+        "escritura_fmt": _fmt_brl(escritura),
+        "avaliacao_bancaria": float(avaliacao),
+        "total": float(total),
+        "total_fmt": _fmt_brl(total),
+        "financiado": financiar,
+        "nota": (
+            "Custas pagas separadamente — não reduzem sua entrada."
+            if financiar
+            else "Custas pagas à vista — descontadas do seu capital disponível."
+        ),
+    }
+
+
+# ─── MCMV ────────────────────────────────────────────────────────────────────
+
+def verificar_mcmv(
+    renda_familiar,
+    valor_imovel,
+    cidade_tipo: str = "capital",
+) -> Dict[str, Any]:
+    """Verifica elegibilidade ao MCMV e retorna faixa, taxa e teto."""
+    renda = _d(renda_familiar)
+    valor = _d(valor_imovel)
+
+    for f in _MCMV_FAIXAS:
+        if renda <= f["renda_max"]:
+            teto = f["teto_capital"] if cidade_tipo == "capital" else f["teto_interior"]
+            if valor <= teto:
+                return {
+                    "elegivel": True,
+                    "faixa": f["faixa"],
+                    "nome_faixa": f["nome"],
+                    "taxa_aa": float(f["taxa_aa"]),
+                    "entrada_min_pct": float(f["entrada_min_pct"]),
+                    "teto_imovel": float(teto),
+                    "descricao": f["descricao"],
+                    "motivo": None,
+                }
+
+    if renda > _MCMV_FAIXAS[-1]["renda_max"]:
+        motivo = (
+            f"Renda familiar {_fmt_brl(renda)}/mês acima do limite MCMV "
+            f"({_fmt_brl(_MCMV_FAIXAS[-1]['renda_max'])}/mês)."
+        )
     else:
-        is_mip_dinamico = False
-        taxa_mip_mensal = seguro_mensal_dec # Se veio taxa fixa (ex: 0.030)
-    
-    # 1. Inicialização de Variáveis
-    taxa_mensal_dec = taxa_anual_dec / 12 / 100
-    saldo_devedor = valor_principal_dec
-    tabela = []
-
-    if taxa_mensal_dec == 0 and saldo_devedor > 0:
-        return []
-
-    # Variáveis mutáveis do financiamento
-    prazo_atual = prazo_meses
-    amortizacao_fixa = valor_principal_dec / prazo_meses # SAC inicial
-    parcela_fixa = Decimal(0) # Price inicial
-    
-    # Variáveis de Soma (para o resumo)
-    total_juros = Decimal(0)
-    total_seguros_taxas = Decimal(0)
-    
-    # 2. Cálculo do Fator de Pagamento Inicial (Price)
-    if metodo == 'price' and taxa_mensal_dec > 0 and prazo_atual > 0:
-        try:
-            # Fórmula da Parcela Fixa (PMT)
-            fator = (taxa_mensal_dec * (1 + taxa_mensal_dec) ** prazo_atual) / (((1 + taxa_mensal_dec) ** prazo_atual) - 1)
-            parcela_fixa = valor_principal_dec * fator
-        except ZeroDivisionError:
-            parcela_fixa = Decimal(0)
-
-    # 3. Simulação Mês a Mês
-    mes_original = 1
-    while saldo_devedor > Decimal('0.001') and mes_original <= prazo_meses + 10: 
-        
-        # --- LÓGICA DE AMORTIZAÇÃO EXTRA COM FGTS (NO MÊS ESCOLHIDO) ---
-        if usar_fgts and mes_original == mes_uso and fgts_saldo_amortizacao_dec > 0:
-            
-            valor_amortizado_fgts = min(saldo_devedor, fgts_saldo_amortizacao_dec) 
-            saldo_anterior = saldo_devedor
-            saldo_devedor -= valor_amortizado_fgts # Reduz o saldo devedor
-            
-            prazo_restante = prazo_atual - mes_original + 1 
-            
-            if tipo_amortizacao == 'reduzir_prazo':
-                
-                if metodo == 'price' and taxa_mensal_dec > 0 and parcela_fixa > 0:
-                    # CONVERSÃO PARA FLOAT NECESSÁRIA PARA math.log (Correção Crítica)
-                    parcela_fixa_float = float(parcela_fixa)
-                    taxa_mensal_float = float(taxa_mensal_dec)
-                    saldo_devedor_float = float(saldo_devedor)
-                    
-                    try:
-                        # Recalcula o número de parcelas restantes (n)
-                        novo_n = math.log(parcela_fixa_float / (parcela_fixa_float - taxa_mensal_float * saldo_devedor_float)) / math.log(1 + taxa_mensal_float)
-                        prazo_restante = math.ceil(novo_n)
-                        prazo_atual = mes_original + prazo_restante - 1 
-                    except ValueError:
-                        prazo_restante = 0 
-                        prazo_atual = mes_original 
-                        
-                elif metodo == 'sac':
-                    if prazo_restante > 0:
-                        # No SAC, Reduzir Prazo significa MANTER a amortização constante (amortizacao_fixa).
-                        # O saldo menor fará o financiamento terminar antes naturalmente.
-                        # Recalculamos apenas o prazo_atual estimado para o relatório.
-                        prazo_restante_novo = math.ceil(float(saldo_devedor / amortizacao_fixa))
-                        prazo_atual = mes_original + prazo_restante_novo - 1
-            
-            elif tipo_amortizacao == 'reduzir_parcela':
-                
-                if metodo == 'price' and prazo_restante > 0 and taxa_mensal_dec > 0:
-                    # Recalcula a Parcela Fixa (mantendo como Decimal)
-                    fator_novo = (taxa_mensal_dec * (1 + taxa_mensal_dec) ** prazo_restante) / (((1 + taxa_mensal_dec) ** prazo_restante) - 1)
-                    parcela_fixa = saldo_devedor * fator_novo
-                
-                elif metodo == 'sac' and prazo_restante > 0:
-                    # Recalcula a amortização constante com o novo saldo (não muda o prazo)
-                    amortizacao_fixa = saldo_devedor / prazo_restante
-            
-            # Adiciona o evento FGTS
-            tabela.append({
-                'mes': mes_original - Decimal('0.1'),
-                'saldo_inicial': float(saldo_anterior), 
-                'juros': 0.0,
-                'amortizacao': float(valor_amortizado_fgts),
-                'parcela': 0.0,
-                'saldo_final': float(saldo_devedor),
-                'tipo': 'FGTS_LumpSum'
-            })
-            
-            if saldo_devedor <= Decimal('0.001'):
-                break
-
-        # --- RENTABILIZA FGTS E REAJUSTA SALÁRIO ---
-        if usar_fgts:
-            # Rende saldo anterior + adiciona parcela deste mês (8% sobre salário)
-            saldo_fgts_acumulado = saldo_fgts_acumulado * (Decimal('1') + taxa_rendimento_fgts_mensal)
-            saldo_fgts_acumulado += renda_familiar_atual * Decimal('0.08')
-            
-            # A cada 12 meses, aplica a taxa anual de reajuste salarial (ex: inflação)
-            if mes_original > 1 and mes_original % 12 == 0:
-                renda_familiar_atual = renda_familiar_atual * (Decimal('1') + taxa_crescimento_salarial_anual)
-
-        # --- LÓGICA DE AMORTIZAÇÃO EXTRA COM FGTS PERIÓDICO ---
-        if usar_fgts and mes_original > 1 and (mes_original - mes_uso) % intervalo_fgts_meses == 0 and saldo_fgts_acumulado > 0:
-            valor_amortizado_periodico = min(saldo_devedor, saldo_fgts_acumulado)
-            
-            if valor_amortizado_periodico > 0:
-                saldo_anterior = saldo_devedor
-                saldo_devedor -= valor_amortizado_periodico
-                saldo_fgts_acumulado -= valor_amortizado_periodico # Deduz o que usou
-                
-                prazo_restante = prazo_atual - mes_original + 1 
-                
-                if tipo_amortizacao == 'reduzir_prazo':
-                    if metodo == 'price' and taxa_mensal_dec > 0 and parcela_fixa > 0:
-                        parcela_fixa_float = float(parcela_fixa)
-                        taxa_mensal_float = float(taxa_mensal_dec)
-                        saldo_devedor_float = float(saldo_devedor)
-                        try:
-                            novo_n = math.log(parcela_fixa_float / (parcela_fixa_float - taxa_mensal_float * saldo_devedor_float)) / math.log(1 + taxa_mensal_float)
-                            prazo_restante = math.ceil(novo_n)
-                            prazo_atual = mes_original + prazo_restante - 1 
-                        except ValueError:
-                            prazo_restante = 0 
-                            prazo_atual = mes_original 
-                            
-                    elif metodo == 'sac':
-                        if prazo_restante > 0:
-                            # Mantém amortização constante, reduzindo o tempo
-                            prazo_restante_novo = math.ceil(float(saldo_devedor / amortizacao_fixa))
-                            prazo_atual = mes_original + prazo_restante_novo - 1
-                
-                elif tipo_amortizacao == 'reduzir_parcela':
-                    if metodo == 'price' and prazo_restante > 0 and taxa_mensal_dec > 0:
-                        fator_novo = (taxa_mensal_dec * (1 + taxa_mensal_dec) ** prazo_restante) / (((1 + taxa_mensal_dec) ** prazo_restante) - 1)
-                        parcela_fixa = saldo_devedor * fator_novo
-                    elif metodo == 'sac' and prazo_restante > 0:
-                        amortizacao_fixa = saldo_devedor / prazo_restante
-                
-                tabela.append({
-                    'mes': mes_original - Decimal('0.05'),
-                    'saldo_inicial': float(saldo_anterior), 
-                    'juros': 0.0,
-                    'amortizacao': float(valor_amortizado_periodico),
-                    'parcela': 0.0,
-                    'saldo_final': float(saldo_devedor),
-                    'tipo': 'FGTS_Periodico'
-                })
-                
-                if saldo_devedor <= Decimal('0.001'):
-                    break
-        
-        # B) CÁLCULO DO MÊS NORMAL
-        if mes_original > prazo_atual:
-            break
-            
-        juros_mensal = saldo_devedor * taxa_mensal_dec
-        
-        if is_mip_dinamico:
-            # Seguro MIP = Taxa * Saldo Devedor / 100
-            seguro_mes = (saldo_devedor * taxa_mip_mensal) / 100
-            # CÁLCULO DINÂMICO DFI: Baseado no valor do imóvel (Ref: Auditoria 2024)
-            seguro_mes += calcular_seguro_dfi(valor_principal_dec)
-        else:
-            # Caso antigo: percentual fixo sobre o saldo ou valor fixo
-            # Se for < 1, tratamos como percentual. Se for > 1, valor fixo.
-            if taxa_mip_mensal < 1:
-                seguro_mes = (saldo_devedor * taxa_mip_mensal) / 100
-            else:
-                seguro_mes = taxa_mip_mensal
-
-        if metodo == 'price':
-            amortizacao = parcela_fixa - juros_mensal
-            # CORRIGIDO: Agora Decimal + Decimal
-            parcela = parcela_fixa + seguro_mes + taxa_admin_mensal_dec
-            
-        elif metodo == 'sac':
-            amortizacao = amortizacao_fixa
-            # CORRIGIDO: Agora Decimal + Decimal
-            parcela = amortizacao + juros_mensal + seguro_mes + taxa_admin_mensal_dec
-        
-        # Acumula totais para resumo
-        total_juros += juros_mensal
-        total_seguros_taxas += seguro_mes + taxa_admin_mensal_dec
-        
-        # Aplica a amortização
-        if saldo_devedor > Decimal('0.001') and amortizacao > 0:
-            saldo_anterior_mes = saldo_devedor
-            saldo_devedor -= amortizacao
-            
-            # Correção de arredondamento para o último mês
-            if saldo_devedor < Decimal('0.01'):
-                amortizacao += saldo_devedor
-                saldo_devedor = Decimal(0)
-            
-            tabela.append({
-                'mes': mes_original,
-                'saldo_inicial': float(saldo_anterior_mes),
-                'juros': float(juros_mensal),
-                'amortizacao': float(amortizacao),
-                'parcela': float(parcela),
-                'saldo_final': float(saldo_devedor),
-                'tipo': metodo
-            })
-        
-        mes_original += 1
-        
-    # Encontrar a primeira e última parcelas válidas
-    primeira_parcela = 0.0
-    ultima_parcela = 0.0
-    if tabela:
-        # Pega a primeira que não é FGTS
-        for linha in tabela:
-            if linha.get('parcela', 0) > 0:
-                primeira_parcela = float(linha['parcela'])
-                break
-        # Pega a última que não é FGTS
-        for linha in reversed(tabela):
-            if linha.get('parcela', 0) > 0:
-                ultima_parcela = float(linha['parcela'])
-                break
-
-    # Cálculo do CET (Custo Efetivo Total)
-    parcelas_fluxo = [l.get('parcela', 0) for l in tabela]
-    cet_anual = calcular_cet_legal(valor_principal_dec, parcelas_fluxo)
+        teto_ref = _MCMV_FAIXAS[-1]["teto_capital"]
+        motivo = (
+            f"Valor do imóvel {_fmt_brl(valor)} acima do teto MCMV "
+            f"({_fmt_brl(teto_ref)}) para sua faixa de renda."
+        )
 
     return {
-        'tabela': tabela,
-        'parcela_inicial': primeira_parcela,
-        'ultima_parcela': ultima_parcela,
-        'total_juros': float(total_juros),
-        'total_seguros_taxas': float(total_seguros_taxas),
-        'prazo_final_meses': mes_original - 1, # O número do último mês simulado
-        'total_principal': float(valor_principal_dec),
-        'cet_anual': cet_anual
-    }
-
-# ----------------------------------------------------------------------
-# FUNÇÃO 2: CÁLCULO CONSÓRCIO (AGORA INCLUI LANCE FGTS NO RESULTADO) - CORRIGIDA
-# ----------------------------------------------------------------------
-
-def simular_consorcio(valor_imovel, prazo_meses, taxa_adm, fundo_reserva, fgts_saldo=0.0):
-    """
-    Calcula os custos totais e a parcela fixa do Consórcio.
-    """
-    # valor_imovel já é Decimal vindo da função 4
-    valor_imovel_total = valor_imovel
-    
-    # CONVERSÃO DOS PARÂMETROS PARA DECIMAL (Correção do TypeError)
-    prazo_meses_dec = Decimal(str(prazo_meses))
-    valor_lance_fgts = Decimal(str(fgts_saldo))
-    taxa_adm_anual = Decimal(str(taxa_adm)) / 100
-    fundo_reserva_percent = Decimal(str(fundo_reserva)) / 100
-    
-    # 1. CUSTOS TOTAIS (Taxas sobre a Carta de Crédito)
-    # Total de Taxa de Administração (Taxa Anual * Prazo em Anos * Valor)
-    taxa_adm_total = taxa_adm_anual * (prazo_meses_dec / 12) * valor_imovel_total
-    # Fundo de Reserva Total (% total * Valor)
-    fundo_reserva_total = fundo_reserva_percent * valor_imovel_total 
-
-    total_custo = taxa_adm_total + fundo_reserva_total
-    
-    # 2. CÁLCULO DA PARCELA
-    parcela_fixa = (valor_imovel_total + total_custo) / prazo_meses_dec
-    
-    return {
-        'parcela_fixa': float(parcela_fixa),
-        'total_custo': float(total_custo),
-        'valor_lance_fgts': float(valor_lance_fgts),
-        'taxa_administracao_total': float(taxa_adm_total),
-        'fundo_reserva_total': float(fundo_reserva_total)
+        "elegivel": False,
+        "faixa": None,
+        "nome_faixa": None,
+        "taxa_aa": None,
+        "entrada_min_pct": 20.0,
+        "teto_imovel": None,
+        "descricao": None,
+        "motivo": motivo,
     }
 
 
-# ----------------------------------------------------------------------
-# FUNÇÃO 3: CÁLCULO ALUGUEL + INVESTIMENTO (DINÂMICO) - REVISADA
-# ----------------------------------------------------------------------
+# ─── FGTS ────────────────────────────────────────────────────────────────────
+
+def calcular_fgts_mensal(
+    renda_bruta,
+    tipo_contrato: str,
+    recebe_13: bool = True,
+) -> Decimal:
+    """Acúmulo mensal de FGTS (8% da renda CLT + proporcional do 13º)."""
+    if tipo_contrato.lower() not in ("clt",):
+        return _ZERO
+    renda = _d(renda_bruta)
+    base = renda * Decimal("0.08")
+    if recebe_13:
+        base = base * Decimal("13") / Decimal("12")
+    return _q(base)
+
+
+# ─── calculadora SAC / PRICE ─────────────────────────────────────────────────
+
+def calcular_price_sac(
+    metodo: str,
+    valor_principal,
+    taxa_anual,
+    prazo_meses,
+    seguro_mensal: float = 0.0,
+    taxa_admin_mensal: float = 0.0,
+    tr_mensal: float = 0.0,
+    usar_fgts: bool = False,
+    saldo_fgts_inicial: float = 0.0,
+    acumulo_fgts_mensal: float = 0.0,
+    tipo_amortizacao_fgts: str = "reduzir_prazo",
+    idade: int = 30,
+    valor_imovel=None,
+    **kwargs,
+) -> Dict[str, Any]:
+    """
+    Calcula tabela de amortização SAC ou PRICE com seguros MIP/DFI e FGTS.
+
+    FGTS é aplicado a cada 24 meses (regra CEF/SFH).
+    tipo_amortizacao_fgts: 'reduzir_prazo' | 'reduzir_parcela'
+    """
+    PV = _d(valor_principal)
+    n_orig = max(1, int(prazo_meses))
+    r_aa = _d(taxa_anual) / Decimal("100")
+    r_m = r_aa / Decimal("12")
+    tr = _d(tr_mensal)
+    taxa_admin = _d(taxa_admin_mensal)
+    VI = _d(valor_imovel) if valor_imovel else PV
+
+    mip_taxa = calcular_mip_taxa(max(18, int(idade)))
+    dfi_mes = calcular_dfi_mensal(VI)
+    seg_extra = _d(seguro_mensal)
+
+    saldo = PV
+    fgts_bal = _d(saldo_fgts_inicial)
+    fgts_acum = _d(acumulo_fgts_mensal)
+
+    tabela: List[Dict[str, Any]] = []
+    total_juros = _ZERO
+    total_seguros = _ZERO
+    total_admin_sum = _ZERO
+
+    cap = n_orig * 2 + 1
+
+    if metodo.lower() == "price":
+        pmt_base = _pmt(PV, r_m, n_orig)
+
+        for p in range(1, cap):
+            if saldo < _d("0.01"):
+                break
+            fgts_bal += fgts_acum
+
+            juros = _q(saldo * r_m)
+            amort = _q(pmt_base - juros)
+            if amort <= _ZERO:
+                amort = _q(saldo)
+            amort = min(amort, saldo)
+
+            mip = _q(saldo * mip_taxa / Decimal("100"))
+            pag_total = _q(pmt_base + mip + dfi_mes + seg_extra + taxa_admin)
+
+            saldo -= amort
+            if tr > _ZERO:
+                saldo = _q(saldo * (1 + tr))
+
+            tabela.append({
+                "periodo": p,
+                "pagamento": float(pag_total),
+                "juros": float(juros),
+                "amortizacao": float(amort),
+                "mip": float(mip),
+                "dfi": float(dfi_mes),
+                "saldo": float(max(saldo, _ZERO)),
+            })
+            total_juros += juros
+            total_seguros += mip + dfi_mes
+            total_admin_sum += taxa_admin
+
+            if usar_fgts and p % 24 == 0 and fgts_bal > _ZERO and saldo > _d("1"):
+                fgts_usado = min(fgts_bal, saldo)
+                saldo -= _q(fgts_usado)
+                fgts_bal = _ZERO
+                meses_rest = n_orig - p
+                if meses_rest > 0 and saldo > _ZERO and tipo_amortizacao_fgts == "reduzir_parcela":
+                    pmt_base = _pmt(saldo, r_m, meses_rest)
+
+    else:  # SAC
+        amort_const = _q(PV / n_orig) if n_orig > 0 else PV
+
+        for p in range(1, cap):
+            if saldo < _d("0.01"):
+                break
+            fgts_bal += fgts_acum
+
+            juros = _q(saldo * r_m)
+            amort = min(amort_const, saldo)
+
+            mip = _q(saldo * mip_taxa / Decimal("100"))
+            pag_total = _q(amort + juros + mip + dfi_mes + seg_extra + taxa_admin)
+
+            saldo -= amort
+            if tr > _ZERO:
+                saldo = _q(saldo * (1 + tr))
+
+            tabela.append({
+                "periodo": p,
+                "pagamento": float(pag_total),
+                "juros": float(juros),
+                "amortizacao": float(amort),
+                "mip": float(mip),
+                "dfi": float(dfi_mes),
+                "saldo": float(max(saldo, _ZERO)),
+            })
+            total_juros += juros
+            total_seguros += mip + dfi_mes
+            total_admin_sum += taxa_admin
+
+            if usar_fgts and p % 24 == 0 and fgts_bal > _ZERO and saldo > _d("1"):
+                fgts_usado = min(fgts_bal, saldo)
+                saldo -= _q(fgts_usado)
+                fgts_bal = _ZERO
+                meses_rest = n_orig - p
+                if meses_rest > 0 and saldo > _ZERO and tipo_amortizacao_fgts == "reduzir_parcela":
+                    amort_const = _q(saldo / meses_rest)
+
+    prazo_final = len(tabela)
+    total_pago = float(_q(sum(r["pagamento"] for r in tabela)))
+    parcela_ini = tabela[0]["pagamento"] if tabela else 0.0
+    parcela_fin = tabela[-1]["pagamento"] if tabela else 0.0
+
+    fluxos = [r["pagamento"] for r in tabela]
+    cet_info = calcular_cet(float(PV), fluxos)
+
+    return {
+        "tabela": tabela,
+        "parcela_inicial": float(_q(parcela_ini)),
+        "parcela_final": float(_q(parcela_fin)),
+        "total_juros": float(_q(total_juros)),
+        "total_seguros_taxas": float(_q(total_seguros + total_admin_sum)),
+        "total_pago": total_pago,
+        "prazo_final_meses": prazo_final,
+        "cet_anual": cet_info.get("cet_anual", 0.0),
+        "saldo_final": float(_q(tabela[-1]["saldo"] if tabela else _ZERO)),
+    }
+
+
+# ─── consórcio ───────────────────────────────────────────────────────────────
+
+def simular_consorcio(
+    valor_imovel,
+    prazo_meses,
+    taxa_adm: float = 18.0,
+    fundo_reserva: float = 1.0,
+    fgts_saldo: float = 0.0,
+    lance_percentual: float = 0.0,
+    tipo_lance: str = "fixo",
+    tempo_espera_meses: int = None,
+    **kwargs,
+) -> Dict[str, Any]:
+    """
+    Simula consórcio imobiliário com ou sem lance.
+
+    taxa_adm: % total sobre o prazo (ex: 18 = 18% do valor total)
+    fundo_reserva: % sobre o valor do imóvel
+    lance_percentual: % do valor da carta disponível como lance
+    """
+    V = _d(valor_imovel)
+    n = max(1, int(prazo_meses))
+    taxa = _d(taxa_adm) / Decimal("100")
+    fundo = _d(fundo_reserva) / Decimal("100")
+    lance_pct = _d(lance_percentual) / Decimal("100")
+    fgts = _d(fgts_saldo)
+
+    total_taxa_adm = _q(V * taxa)
+    total_fundo = _q(V * fundo)
+    total_consorcio = V + total_taxa_adm + total_fundo
+
+    parcela = _q(total_consorcio / n)
+
+    lance_valor = _q(V * lance_pct) + fgts
+    lance_efetivo_pct = float(lance_valor / V * 100) if V > _ZERO else 0.0
+
+    if lance_valor > _ZERO and lance_efetivo_pct >= 20:
+        meses_contemplacao = max(6, int(n * 0.15))
+    else:
+        meses_contemplacao = (
+            int(tempo_espera_meses)
+            if tempo_espera_meses and tempo_espera_meses > 0
+            else int(n * 0.45)
+        )
+
+    lance_abate = min(lance_valor, V)
+    total_pago = float(_q(total_consorcio + lance_abate))
+
+    tabela = [{"periodo": i + 1, "parcela": float(parcela)} for i in range(n)]
+
+    return {
+        "tabela": tabela,
+        "parcela": float(parcela),
+        "total_pago": total_pago,
+        "total_taxa_adm": float(total_taxa_adm),
+        "total_fundo_reserva": float(total_fundo),
+        "meses_contemplacao_estimado": meses_contemplacao,
+        "anos_contemplacao_estimado": round(meses_contemplacao / 12, 1),
+        "lance_valor": float(lance_valor),
+        "lance_pct": lance_efetivo_pct,
+        "carta_credito": float(V),
+    }
+
+
+def simular_consorcio_com_lances(*args, **kwargs) -> Dict[str, Any]:
+    return simular_consorcio(*args, **kwargs)
+
+
+# ─── aluguel + investimento ───────────────────────────────────────────────────
 
 def simular_aluguel_investimento(
-    valor_imovel_total, entrada_total, taxa_investimento, aluguel_inicial, 
-    taxa_inflacao, prazo_meses, recursos_proprios_iniciais, opcao_pagamento_aluguel,
-    fgts_saldo, rendimento_fgts, fgts_mensal_percent, aporte_13,
-    renda_familiar_bruta, 
-    valorizacao_imovel,
-    taxa_anual_financiamento,
-    **kwargs
-):
-
+    valor_imovel,
+    aluguel_atual,
+    saldo_inicial,
+    aporte_mensal,
+    taxa_investimento_anual,
+    prazo_anos: int = 30,
+    ipca_anual: float = 4.83,
+    valorizacao_imovel_anual: float = 4.0,
+    recebe_13: bool = True,
+    fgts_mensal: float = 0.0,
+    **kwargs,
+) -> Dict[str, Any]:
     """
-    Simula o cenário Aluguel + Investimento mês a mês.
+    Compara alugar+investir versus comprar agora.
+    Investe o saldo disponível e faz aportes mensais enquanto paga aluguel.
     """
-    
-    # 1. CONVERSÃO INICIAL DE TODOS OS PARÂMETROS PARA DECIMAL OU INT
-    
-    # Valores numéricos puros (devem ser Decimal para cálculo)
-    valor_imovel_total_dec = Decimal(str(valor_imovel_total))
-    entrada_total_dec = Decimal(str(entrada_total))
-    recursos_proprios_iniciais_dec = Decimal(str(recursos_proprios_iniciais))
-    fgts_saldo_dec = Decimal(str(fgts_saldo))
-    aluguel_inicial_dec = Decimal(str(aluguel_inicial))
-    renda_familiar_bruta_dec = Decimal(str(renda_familiar_bruta))
-    aporte_13_dec = Decimal(str(aporte_13))
-    
-    # Taxas (convertidas para Decimal e Mensal/Anual)
-    taxa_investimento_mensal = Decimal(str(taxa_investimento)) / 100 / 12
-    rendimento_fgts_mensal = Decimal(str(rendimento_fgts)) / 100 / 12
-    fgts_mensal_percent = Decimal(str(fgts_mensal_percent)) / 100
-    taxa_inflacao_anual_percent = Decimal(str(taxa_inflacao)) / 100 
-    valorizacao_imovel_anual_percent = Decimal(str(valorizacao_imovel)) / 100
-    
-    # Prazo (deve ser Int)
-    prazo_meses_int = int(prazo_meses)
-    
-    # 2. Inicialização de Variáveis
-    aluguel_mensal_atual = aluguel_inicial_dec 
-    total_gasto_aluguel = Decimal(0)
-    valor_imovel_final = valor_imovel_total_dec 
-    
-    # Taxa de Administração (Default 9.3% - QuintoAndar)
-    taxa_adm_aluguel = Decimal(str(kwargs.get('taxa_adm_aluguel', 9.3))) / 100
+    V0 = _d(valor_imovel)
+    aluguel = _d(aluguel_atual)
+    saldo = _d(saldo_inicial)
+    aporte = _d(aporte_mensal)
+    taxa_m = _d(taxa_investimento_anual) / Decimal("100") / Decimal("12")
+    valorizacao_m = _d(valorizacao_imovel_anual) / Decimal("100") / Decimal("12")
+    n_meses = max(1, prazo_anos * 12)
 
-    # Capital Inicial é a Entrada (Investida) + Recursos Próprios Iniciais
-    capital_inicial = entrada_total_dec + recursos_proprios_iniciais_dec
-    saldo_investimento_atual = capital_inicial
-    fgts_saldo_atual = fgts_saldo_dec
-    
-    # 3. Loop de Simulação
-    for mes in range(1, prazo_meses_int + 1): 
-        
-        # A) RENDIMENTO MENSAL DOS INVESTIMENTOS E FGTS
-        saldo_investimento_atual *= (1 + taxa_investimento_mensal) 
-        fgts_saldo_atual *= (1 + rendimento_fgts_mensal)
-        
-        # B) DEPÓSITO MENSAL NO FGTS
-        deposito_fgts_mensal = renda_familiar_bruta_dec * fgts_mensal_percent
-        fgts_saldo_atual += deposito_fgts_mensal
-        
-        # C) PAGAMENTO DO ALUGUEL E RECEBIMENTO LÍQUIDO (Se investidor)
-        total_gasto_aluguel += aluguel_mensal_atual
-        aluguel_liquido = aluguel_mensal_atual * (1 - taxa_adm_aluguel)
+    valor_imovel_atual = V0
+    total_aluguel = _ZERO
+    meses_para_comprar = None
 
-        
-        # Decisão de onde o aluguel é pago
-        if opcao_pagamento_aluguel == 'investimento':
-            # Subtrai do investimento (se saldo positivo)
-            if saldo_investimento_atual >= aluguel_mensal_atual:
-                 saldo_investimento_atual -= aluguel_mensal_atual
-            else:
-                 # Se o investimento não cobre o aluguel, o saldo vai a zero.
-                 # Neste cenário, o aluguel restante teria que vir da renda
-                 # ou o investimento é insuficiente. Para simplificar, zeramos.
-                 saldo_investimento_atual = Decimal(0)
+    tabela_resumo = []
+    for mes in range(1, n_meses + 1):
+        saldo = _q(saldo * (1 + taxa_m) + aporte)
+        total_aluguel += aluguel
+        valor_imovel_atual = _q(valor_imovel_atual * (1 + valorizacao_m))
 
-        # D) TRATAMENTO DO APORTE ANUAL
         if mes % 12 == 0:
-            saldo_investimento_atual += aporte_13_dec
+            aluguel = _q(aluguel * (1 + _d(ipca_anual) / 100))
+            if recebe_13 and fgts_mensal > 0:
+                saldo += _q(_d(fgts_mensal) * 12)
+            if mes % 60 == 0:
+                tabela_resumo.append({
+                    "ano": mes // 12,
+                    "saldo_investido": float(_q(saldo)),
+                    "valor_imovel": float(_q(valor_imovel_atual)),
+                    "diferenca": float(_q(saldo - valor_imovel_atual)),
+                })
 
-        # E) REAJUSTE ANUAL (Aluguel e Valorização do Imóvel)
-        if mes % 12 == 0 and mes < prazo_meses_int:
-            aluguel_mensal_atual *= (1 + taxa_inflacao_anual_percent) 
-            valor_imovel_final *= (1 + valorizacao_imovel_anual_percent)
+        if meses_para_comprar is None and saldo >= valor_imovel_atual:
+            meses_para_comprar = mes
 
-    # 4. Cálculo Final
+    saldo_final = float(_q(saldo))
+    valor_imovel_final = float(_q(valor_imovel_atual))
+    total_aluguel_pago = float(_q(total_aluguel))
+    ganho_capital = float(_q(saldo - _d(saldo_inicial) - aporte * n_meses))
+    custo_liquido = total_aluguel_pago - ganho_capital
+
     return {
-        'acumulado_final': float(saldo_investimento_atual),
-        'total_gasto_aluguel': float(total_gasto_aluguel),
-        'fgts_final': float(fgts_saldo_atual),
-        'valor_imovel_final': float(valor_imovel_final),
-        'capital_inicial': float(capital_inicial),
-        'aluguel_inicial': float(aluguel_inicial_dec)
+        "saldo_final_investimento": saldo_final,
+        "saldo_final_fmt": _fmt_brl(saldo_final),
+        "valor_imovel_final": valor_imovel_final,
+        "valor_imovel_final_fmt": _fmt_brl(valor_imovel_final),
+        "total_aluguel_pago": total_aluguel_pago,
+        "total_aluguel_fmt": _fmt_brl(total_aluguel_pago),
+        "custo_liquido": float(_q(custo_liquido)),
+        "meses_para_comprar": meses_para_comprar,
+        "anos_para_comprar": (
+            round(meses_para_comprar / 12, 1) if meses_para_comprar else None
+        ),
+        "consegue_comprar_no_prazo": meses_para_comprar is not None,
+        "vantagem": "investimento" if saldo_final > valor_imovel_final else "imovel",
+        "tabela_resumo": tabela_resumo,
     }
 
 
-# ----------------------------------------------------------------------
-# FUNÇÃO 4: PRINCIPAL DE DISTRIBUIÇÃO (ATUALIZADA) - CORRIGIDA
-# ----------------------------------------------------------------------
+# ─── guardar dinheiro ─────────────────────────────────────────────────────────
 
-def simular_financiamento_geral(metodo, valor_principal, taxa_anual, prazo_meses, **kwargs):
-    """
-    Função principal que roteia a simulação para o método correto.
-    """
-    
-    # CONVERSÃO DOS ARGUMENTOS CORE PARA DECIMAL OU INT (CORREÇÃO CRÍTICA)
-    try:
-        vp_dec = Decimal(str(valor_principal))
-        ta_dec = Decimal(str(taxa_anual))
-        pm_int = int(prazo_meses)
-    except Exception:
-        # Retorna lista vazia ou levanta exceção se a conversão falhar.
-        return [] 
-        
-    if metodo in ['price', 'sac']:
-        # Roteia para Financiamento com os valores base convertidos
-        return calcular_price_sac(metodo, vp_dec, ta_dec, pm_int, **kwargs)
-        
-    elif metodo == 'consorcio':
-        # Roteia para Consórcio (vp_dec e pm_int serão convertidos internamente)
-        taxa_adm = kwargs.get('taxa_adm', 0.0)
-        fundo_reserva = kwargs.get('fundo_reserva', 0.0)
-        fgts_saldo = kwargs.get('fgts_saldo', 0.0) 
-        return simular_consorcio(vp_dec, pm_int, taxa_adm, fundo_reserva, fgts_saldo)
-        
-    elif metodo == 'renda':
-        # Roteia para Aluguel + Investimento
-        return simular_aluguel_investimento(
-            valor_imovel_total=kwargs.get('valor_imovel_total', 0.0), # Será convertido dentro da função
-            entrada_total=kwargs.get('entrada_total', 0.0),
-            taxa_investimento=kwargs.get('taxa_investimento', 0.0),
-            aluguel_inicial=kwargs.get('aluguel_inicial', 0.0),
-            taxa_inflacao=kwargs.get('taxa_inflacao', 0.0), 
-            prazo_meses=pm_int,
-            recursos_proprios_iniciais=kwargs.get('recursos_proprios_iniciais', 0.0),
-            opcao_pagamento_aluguel=kwargs.get('opcao_pagamento_aluguel', 'renda'),
-            
-            fgts_saldo=kwargs.get('fgts_saldo', 0.0),
-            rendimento_fgts=kwargs.get('rendimento_fgts', 0.0),
-            fgts_mensal_percent=kwargs.get('fgts_mensal_percent', 0.0),
-            aporte_13=kwargs.get('aporte_13', 0.0),
-            taxa_anual_financiamento=ta_dec,
-            renda_familiar_bruta=kwargs.get('renda_familiar_bruta', 0.0), 
-            valorizacao_imovel=kwargs.get('valorizacao_imovel', 0.0) 
-        )
+def guardar_dinheiro(
+    valor_imovel,
+    custas_total,
+    saldo_inicial,
+    poupanca_mensal,
+    taxa_investimento_anual,
+    recebe_13: bool = True,
+    renda_bruta: float = 0.0,
+    **kwargs,
+) -> Dict[str, Any]:
+    """Simula acúmulo até comprar à vista (imóvel + custas)."""
+    alvo = _d(valor_imovel) + _d(custas_total)
+    saldo = _d(saldo_inicial)
+    poupanca = _d(poupanca_mensal)
+    taxa_m = _d(taxa_investimento_anual) / Decimal("100") / Decimal("12")
+    bonus_13 = _q(_d(renda_bruta) * Decimal("0.9")) if recebe_13 and renda_bruta > 0 else _ZERO
 
-    return []
-
-# ----------------------------------------------------------------------
-# FUNÇÃO CENTRAL DE AGREGAÇÃO E FORMATAÇÃO (CHAMADA PELO VIEWS.PY)
-# ----------------------------------------------------------------------
-
-def comparar_cenarios_e_formatar(dados_form):
-    """
-    Função principal que recebe os dados brutos, coordena os cálculos
-    e retorna o resumo comparativo FORMATADO para o template.
-    """
-    
-    # 1. PARSE E PREPARAÇÃO DOS DADOS DE ENTRADA (LÓGICA DE NEGÓCIO)
-    try:
-        # Variáveis Core
-        valor_imovel_num = float(dados_form.get('valor_imovel'))
-        entrada_num = float(dados_form.get('entrada'))
-        valor_despesas_num = float(dados_form.get('valor_despesas'))
-        prazo_anos_num = int(dados_form.get('prazo_anos'))
-        prazo_meses_num = prazo_anos_num * 12
-        
-        # Variáveis de Configuração
-        taxa_anual_num = float(dados_form.get('taxa_anual'))
-        seguro_mensal_num = float(dados_form.get('seguro_mensal'))
-        taxa_admin_mensal_num = float(dados_form.get('taxa_admin_mensal'))
-        fgts_saldo_num = float(dados_form.get('fgts_saldo'))
-        incorporar_despesas = dados_form.get('incorporar_despesas') == 'on'
-        
-        # 2. CÁLCULO DO PRINCIPAL FINANCIADO (CARTA DE CRÉDITO)
-        principal_base = valor_imovel_num - entrada_num
-        principal_financiado = principal_base
-        
-        if incorporar_despesas:
-            principal_financiado += valor_despesas_num
-        else:
-            # Se não incorporar, a despesa deve ser adicionada ao "desembolso" total
-            pass 
-        
-        # Dicionário de Kwargs para as funções de cálculo
-        kwargs_comuns = {
-            'seguro_mensal': seguro_mensal_num,
-            'taxa_admin_mensal': taxa_admin_mensal_num,
-            'fgts_saldo': fgts_saldo_num,
-            'usar_fgts_financiamento': dados_form.get('usar_fgts_financiamento') == 'on',
-            'tipo_amortizacao_fgts': dados_form.get('tipo_amortizacao_fgts'),
-            'mes_uso_fgts_financiamento': int(dados_form.get('mes_uso_fgts_financiamento')),
-            
-            # Variáveis para Consórcio e Aluguel
-            'taxa_adm': float(dados_form.get('taxa_adm')),
-            'fundo_reserva': float(dados_form.get('fundo_reserva')),
-            'valor_imovel_total': valor_imovel_num,
-            'entrada_total': entrada_num,
-            'taxa_investimento': float(dados_form.get('taxa_investimento')),
-            'aluguel_inicial': float(dados_form.get('aluguel_inicial')),
-            'taxa_inflacao': float(dados_form.get('taxa_inflacao')),
-            'recursos_proprios_iniciais': float(dados_form.get('recursos_proprios_iniciais')),
-            'opcao_pagamento_aluguel': dados_form.get('opcao_pagamento_aluguel'),
-            'rendimento_fgts': float(dados_form.get('rendimento_fgts')),
-            'fgts_mensal_percent': float(dados_form.get('fgts_mensal_percent')),
-            'aporte_13': float(dados_form.get('aporte_13')),
-            'renda_familiar_bruta': float(dados_form.get('renda_familiar_bruta')), 
-            'valorizacao_imovel': float(dados_form.get('valorizacao_imovel'))
-        }
-
-    except Exception as e:
-        # Se algum campo numérico obrigatório falhar, retorna erro
-        print(f"Erro de conversão de dados: {e}")
-        return None 
-    
-    resumo = []
-    
-    # 3. CENÁRIO 1: FINANCIAMENTO (PRICE E SAC)
-    
-    for metodo in ['price', 'sac']:
-        # Simulação com as opções do formulário
-        resultado = simular_financiamento_geral(
-            metodo=metodo,
-            valor_principal=principal_financiado,
-            taxa_anual=taxa_anual_num,
-            prazo_meses=prazo_meses_num,
-            **kwargs_comuns
-        )
-
-        # Simulação baseline: sem uso de FGTS / sem amortizações extras
-        baseline_kwargs = kwargs_comuns.copy()
-        baseline_kwargs['usar_fgts_financiamento'] = False
-        baseline_kwargs['fgts_saldo'] = 0.0
-        baseline = simular_financiamento_geral(
-            metodo=metodo,
-            valor_principal=principal_financiado,
-            taxa_anual=taxa_anual_num,
-            prazo_meses=prazo_meses_num,
-            **baseline_kwargs
-        )
-
-        # Se a simulação falhar ou retornar lista vazia
-        if not resultado or not resultado['tabela']:
-             continue
-
-        total_juros_e_taxas = resultado['total_juros'] + resultado['total_seguros_taxas']
-        total_desembolsado = principal_base + valor_despesas_num + total_juros_e_taxas
-
-        # Baseline totals (sem amortização/FGTS)
-        baseline_juros_taxas = baseline['total_juros'] + baseline['total_seguros_taxas']
-        baseline_desembolsado = principal_base + valor_despesas_num + baseline_juros_taxas
-
-        # Economia obtida ao aplicar FGTS/amortizações (positivo se economizou)
-        economia_valor = baseline_desembolsado - total_desembolsado
-        prazo_reducao = max(0, baseline.get('prazo_final_meses', prazo_meses_num) - resultado.get('prazo_final_meses', prazo_meses_num))
-        
-        # Mapeamento do nome
-        nome_metodo = 'Tabela Price' if metodo == 'price' else 'Tabela SAC'
-
-        resumo.append({
-            'metodo': nome_metodo,
-            'parcela_inicial': formatar_moeda_brl(resultado['parcela_inicial']),
-            'custo_total': formatar_moeda_brl(total_juros_e_taxas),
-            'total_pago': formatar_moeda_brl(total_desembolsado),
-            'economia': formatar_moeda_brl(economia_valor),
-            'prazo_reducao_meses': prazo_reducao,
-            'extra': f'Prazo Final: {resultado["prazo_final_meses"] // 12} anos e {resultado["prazo_final_meses"] % 12} meses.'
-        })
-
-    # 4. CENÁRIO 2: CONSÓRCIO
-    
-    resultado_cons = simular_financiamento_geral(
-        metodo='consorcio',
-        valor_principal=valor_imovel_num, # O principal do consórcio é o valor do bem (carta de crédito)
-        taxa_anual=0, # A taxa de juros não se aplica aqui
-        prazo_meses=prazo_meses_num,
-        **kwargs_comuns
-    )
-    
-    # Total pago = Valor do Imóvel + Custos (taxa adm + reserva) + Despesas de transação
-    total_pago_cons = valor_imovel_num + resultado_cons['total_custo'] + valor_despesas_num
-
-    resumo.append({
-        'metodo': 'Consórcio',
-        'parcela_inicial': formatar_moeda_brl(resultado_cons['parcela_fixa']),
-        'custo_total': formatar_moeda_brl(resultado_cons['total_custo']), # Total de Taxas
-        'total_pago': formatar_moeda_brl(total_pago_cons),
-        'extra': f'Lance FGTS: {formatar_moeda_brl(resultado_cons["valor_lance_fgts"])} usado.'
-    })
-
-
-    # 5. CENÁRIO 3: ALUGUEL + INVESTIMENTO
-    
-    resultado_aluguel = simular_financiamento_geral(
-        metodo='renda',
-        valor_principal=0, # Não se aplica
-        taxa_anual=0, # Não se aplica
-        prazo_meses=prazo_meses_num,
-        **kwargs_comuns
-    )
-    
-    # Saldo final acumulado (Investimento + FGTS Final)
-    saldo_total_acumulado = resultado_aluguel['acumulado_final'] + resultado_aluguel['fgts_final']
-    
-    # Detalhes para o campo 'Resultado/Vantagem Extra'
-    detalhes = [
-        f'Saldo Investimento Final: {formatar_moeda_brl(resultado_aluguel["acumulado_final"])}',
-        f'Saldo FGTS Final: {formatar_moeda_brl(resultado_aluguel["fgts_final"])}',
-        f'Valor Final do Imóvel (Estimado): {formatar_moeda_brl(resultado_aluguel["valor_imovel_final"])}',
-        f'Ganho Líquido Total: <strong style="color: green;">{formatar_moeda_brl(saldo_total_acumulado - resultado_aluguel["capital_inicial"])}</strong>',
-    ]
-
-    resumo.append({
-        'metodo': 'Aluguel + Investimento',
-        'parcela_inicial': formatar_moeda_brl(resultado_aluguel['aluguel_inicial']),
-        'custo_total': formatar_moeda_brl(saldo_total_acumulado), # Acumulado Total (GANHO)
-        'total_pago': formatar_moeda_brl(resultado_aluguel['total_gasto_aluguel']), # Gasto Total com Aluguel Bruto
-        'extra': {'detalhes': detalhes}
-    })
-    
-    return resumo
-
-
-
-
-def calcular_investidor_imobiliario(dados_form):
-    """
-    Cenário 6: Investidor Imobiliário
-    Calcula a viabilidade de comprar um imóvel para investimento com aluguel.
-    """
-    from decimal import Decimal, ROUND_HALF_UP
-    
-    # 1. DADOS DO IMÓVEL
-    valor_imovel = float(dados_form.get('valor_imovel', 0))
-    valor_entrada = float(dados_form.get('valor_entrada', 0))
-    
-    # 2. DADOS DO FINANCIAMENTO
-    prazo_meses = int(dados_form.get('prazo_meses', 360))
-    taxa_juros_anual = float(dados_form.get('taxa_juros_anual', 10.0))
-    sistema_amortizacao = dados_form.get('sistema_amortizacao', 'SAC')
-    
-    # 3. DADOS DO ALUGUEL
-    valor_aluguel_mensal = float(dados_form.get('valor_aluguel_mensal', 0))
-    usar_estimativa_aluguel = dados_form.get('usar_estimativa_aluguel', False)
-    
-    # Se não forneceu aluguel e quer estimativa, usar 0.5% do valor do imóvel
-    if usar_estimativa_aluguel or valor_aluguel_mensal == 0:
-        valor_aluguel_mensal = valor_imovel * 0.005
-    
-    # 4. ESTRATÉGIA DE USO DO ALUGUEL
-    usar_aluguel_para_prestacao = dados_form.get('usar_aluguel_para_prestacao', True)
-    
-    # 5. CUSTOS ADICIONAIS
-    taxa_administracao_pct = float(dados_form.get('taxa_administracao_pct', 8.0))
-    iptu_anual = float(dados_form.get('iptu_anual', 0))
-    condominio_mensal = float(dados_form.get('condominio_mensal', 0))
-    
-    # 6. INVESTIMENTO ALTERNATIVO
-    taxa_investimento_anual = float(dados_form.get('taxa_investimento_anual', 12.0))
-    
-    # CÁLCULOS
-    valor_financiado = valor_imovel - valor_entrada
-    taxa_juros_mensal = taxa_juros_anual / 12 / 100
-    taxa_investimento_mensal = taxa_investimento_anual / 12 / 100
-    
-    # Calcular financiamento (SAC ou PRICE)
-    if sistema_amortizacao == 'SAC':
-        amortizacao_mensal = valor_financiado / prazo_meses
-        tabela_financiamento = []
-        saldo_devedor = valor_financiado
-        
-        for mes in range(1, prazo_meses + 1):
-            juros = saldo_devedor * taxa_juros_mensal
-            prestacao = amortizacao_mensal + juros
-            saldo_devedor -= amortizacao_mensal
-            
-            tabela_financiamento.append({
-                'mes': mes,
-                'prestacao': round(prestacao, 2),
-                'juros': round(juros, 2),
-                'amortizacao': round(amortizacao_mensal, 2),
-                'saldo_devedor': round(max(0, saldo_devedor), 2)
-            })
-    else:
-        if taxa_juros_mensal > 0:
-            prestacao_fixa = valor_financiado * (taxa_juros_mensal * (1 + taxa_juros_mensal)**prazo_meses) / ((1 + taxa_juros_mensal)**prazo_meses - 1)
-        else:
-            prestacao_fixa = valor_financiado / prazo_meses
-            
-        tabela_financiamento = []
-        saldo_devedor = valor_financiado
-        
-        for mes in range(1, prazo_meses + 1):
-            juros = saldo_devedor * taxa_juros_mensal
-            amortizacao = prestacao_fixa - juros
-            saldo_devedor -= amortizacao
-            
-            tabela_financiamento.append({
-                'mes': mes,
-                'prestacao': round(prestacao_fixa, 2),
-                'juros': round(juros, 2),
-                'amortizacao': round(amortizacao, 2),
-                'saldo_devedor': round(max(0, saldo_devedor), 2)
-            })
-    
-    # Calcular custos mensais do imóvel
-    taxa_administracao = valor_aluguel_mensal * (taxa_administracao_pct / 100)
-    iptu_mensal = iptu_anual / 12
-    custo_mensal_imovel = taxa_administracao + iptu_mensal + condominio_mensal
-    aluguel_liquido = valor_aluguel_mensal - custo_mensal_imovel
-    
-    # CENÁRIO A: Sem aluguel
-    total_pago_a = sum([p['prestacao'] for p in tabela_financiamento])
-    custo_total_a = valor_entrada + total_pago_a + (custo_mensal_imovel * prazo_meses)
-    
-    # CENÁRIO B: Aluguel usado para pagar prestação
-    fluxo_caixa_b = []
-    saldo_investido_b = 0
-    
-    for mes_data in tabela_financiamento:
-        prestacao = mes_data['prestacao']
-        diferenca = aluguel_liquido - prestacao
-        
-        if diferenca >= 0:
-            saldo_investido_b = saldo_investido_b * (1 + taxa_investimento_mensal) + diferenca
-            desembolso_mensal = 0
-        else:
-            desembolso_mensal = abs(diferenca)
-            saldo_investido_b = saldo_investido_b * (1 + taxa_investimento_mensal)
-        
-        fluxo_caixa_b.append({
-            'mes': mes_data['mes'],
-            'aluguel_liquido': round(aluguel_liquido, 2),
-            'prestacao': round(prestacao, 2),
-            'diferenca': round(diferenca, 2),
-            'desembolso': round(desembolso_mensal, 2),
-            'saldo_investido': round(saldo_investido_b, 2)
-        })
-    
-    total_desembolsado_b = valor_entrada + sum([f['desembolso'] for f in fluxo_caixa_b])
-    patrimonio_final_b = valor_imovel + saldo_investido_b
-    
-    # CENÁRIO C: Aluguel totalmente investido
-    saldo_investido_c = 0
-    for mes in range(1, prazo_meses + 1):
-        saldo_investido_c = saldo_investido_c * (1 + taxa_investimento_mensal) + aluguel_liquido
-    
-    total_desembolsado_c = valor_entrada + total_pago_a
-    patrimonio_final_c = valor_imovel + saldo_investido_c
-    
-    # INDICADORES
-    yield_bruto = (valor_aluguel_mensal * 12 / valor_imovel) * 100
-    yield_liquido = (aluguel_liquido * 12 / valor_imovel) * 100
-    roi_b = ((patrimonio_final_b - total_desembolsado_b) / total_desembolsado_b) * 100 if total_desembolsado_b > 0 else 0
-    roi_c = ((patrimonio_final_c - total_desembolsado_c) / total_desembolsado_c) * 100 if total_desembolsado_c > 0 else 0
-    
-    payback_meses_b = 0
-    acumulado = 0
-    for f in fluxo_caixa_b:
-        acumulado += f['diferenca']
-        if acumulado >= valor_entrada:
-            payback_meses_b = f['mes']
-            break
-    
-    resultado = {
-        'dados_entrada': {
-            'valor_imovel': valor_imovel,
-            'valor_entrada': valor_entrada,
-            'valor_financiado': valor_financiado,
-            'prazo_meses': prazo_meses,
-            'taxa_juros_anual': taxa_juros_anual,
-            'sistema_amortizacao': sistema_amortizacao,
-            'valor_aluguel_mensal': valor_aluguel_mensal,
-            'aluguel_estimado': usar_estimativa_aluguel,
-        },
-        'custos_mensais': {
-            'taxa_administracao': round(taxa_administracao, 2),
-            'iptu_mensal': round(iptu_mensal, 2),
-            'condominio': round(condominio_mensal, 2),
-            'total_custos': round(custo_mensal_imovel, 2),
-            'aluguel_liquido': round(aluguel_liquido, 2),
-        },
-        'financiamento': {
-            'primeira_prestacao': tabela_financiamento[0]['prestacao'],
-            'ultima_prestacao': tabela_financiamento[-1]['prestacao'],
-            'total_juros': round(sum([p['juros'] for p in tabela_financiamento]), 2),
-            'total_pago': round(total_pago_a, 2),
-        },
-        'cenario_a_sem_aluguel': {
-            'descricao': 'Imóvel vazio (sem aluguel)',
-            'custo_total': round(custo_total_a, 2),
-            'patrimonio_final': round(valor_imovel, 2),
-        },
-        'cenario_b_aluguel_prestacao': {
-            'descricao': 'Aluguel usado para pagar prestação',
-            'total_desembolsado': round(total_desembolsado_b, 2),
-            'saldo_investido_final': round(saldo_investido_b, 2),
-            'patrimonio_final': round(patrimonio_final_b, 2),
-            'lucro': round(patrimonio_final_b - total_desembolsado_b, 2),
-            'roi_percentual': round(roi_b, 2),
-        },
-        'cenario_c_aluguel_investido': {
-            'descricao': 'Aluguel totalmente investido',
-            'total_desembolsado': round(total_desembolsado_c, 2),
-            'saldo_investido_final': round(saldo_investido_c, 2),
-            'patrimonio_final': round(patrimonio_final_c, 2),
-            'lucro': round(patrimonio_final_c - total_desembolsado_c, 2),
-            'roi_percentual': round(roi_c, 2),
-        },
-        'indicadores': {
-            'yield_bruto': round(yield_bruto, 2),
-            'yield_liquido': round(yield_liquido, 2),
-            'payback_meses': payback_meses_b if payback_meses_b > 0 else 'Não recupera',
-            'payback_anos': round(payback_meses_b / 12, 1) if payback_meses_b > 0 else 'N/A',
-        },
-        'melhor_cenario': 'B' if patrimonio_final_b > patrimonio_final_c else 'C',
-        'tabela_financiamento': tabela_financiamento[:12],
-        'fluxo_caixa_b': fluxo_caixa_b[:12],
-    }
-    
-    return resultado
-
-
-# FUNÇÃO MCMV (Minha Casa Minha Vida)
-def calcular_mcmv(valor_imovel, renda_familiar_mensal, valor_entrada, prazo_meses, usa_fgts=False, valor_fgts_disponivel=0):
-    """
-    Calcula simulação do programa MCMV.
-    Retorna dicionário com resultado da simulação.
-    """
-    from decimal import Decimal
-    
-    # Determinar faixa MCMV baseado na renda (Atualizado 2024/2026)
-    renda_anual = renda_familiar_mensal * 12
-    
-    subsidio = Decimal('0')
-    if renda_familiar_mensal <= LIMITE_RENDA_MCMV_FAIXA_1:
-        faixa = 'faixa1'
-        taxa_juros = Decimal('0.04')  # 4% ao ano
-        subsidio_percent = Decimal('0.90')  # até 90% de subsídio
-    elif renda_familiar_mensal <= LIMITE_RENDA_MCMV_FAIXA_2:
-        faixa = 'faixa2'
-        taxa_juros = Decimal('0.045')  # 4.5% ao ano
-
-
-        subsidio_percent = Decimal('0.50')
-    elif renda_familiar_mensal <= 8000:
-        faixa = 'faixa3'
-        taxa_juros = Decimal('0.075')  # 7.5% ao ano
-        subsidio_percent = Decimal('0.0')
-    else:
+    if saldo >= alvo:
         return {
-            'qualificado': False,
-            'erro': 'Renda familiar acima do limite do MCMV (R$ 8.000)'
+            "meses": 0, "anos": 0, "viavel": True,
+            "saldo_no_prazo": float(saldo), "alvo": float(alvo),
+            "alvo_fmt": _fmt_brl(alvo),
+            "mensagem": "Você já tem capital suficiente para comprar à vista!",
         }
-    
-    # Calcular subsídio
-    subsidio = Decimal(str(valor_imovel)) * subsidio_percent
-    if subsidio > Decimal('55000'):
-        subsidio = Decimal('55000')    
-    # Valor financiado
-    valor_financiado = Decimal(str(valor_imovel)) - Decimal(str(valor_entrada)) - subsidio
-    if usa_fgts:
-        valor_financiado -= valor_fgts_disponivel
-    
-    if valor_financiado <= 0:
-        valor_financiado = 0
-        parcela_media = 0
-        custo_total = valor_entrada
-        cet_anual = 0.0
-    else:
-        # Calcular parcela (SAC simplificado)
-        taxa_mensal = float(taxa_juros) / 12
-        parcela_media = float(valor_financiado) * (taxa_mensal * (1 + taxa_mensal)**prazo_meses) / ((1 + taxa_mensal)**prazo_meses - 1)
-        custo_total = parcela_media * prazo_meses + float(valor_entrada)
-        # CET para MCMV (incluindo apenas juros, já que MCMV tem taxas muito baixas)
-        cet_anual = calcular_cet_legal(valor_financiado, [parcela_media] * prazo_meses)
+
+    if poupanca <= _ZERO and saldo <= _ZERO:
+        return {
+            "meses": None, "anos": None, "viavel": False,
+            "saldo_no_prazo": 0.0, "alvo": float(alvo),
+            "alvo_fmt": _fmt_brl(alvo),
+            "mensagem": "Sem poupança mensal não é possível acumular.",
+        }
+
+    meses = 0
+    for mes in range(1, 601):
+        saldo = _q(saldo * (1 + taxa_m) + poupanca)
+        if recebe_13 and mes % 12 == 0 and bonus_13 > _ZERO:
+            saldo += bonus_13
+        if saldo >= alvo:
+            meses = mes
+            break
+
+    viavel = meses > 0
+    anos = round(meses / 12, 1) if viavel else None
 
     return {
-        'qualificado': True,
-        'faixa': faixa,
-        'metodo': f'MCMV - Faixa {faixa[-1]}',
-        'taxa_juros': taxa_juros,
-        'taxa_juros_anual': float(taxa_juros) * 100,
-        'subsidio': round(subsidio, 2),
-        'valor_financiado': round(valor_financiado, 2),
-        'parcela_inicial': round(parcela_media * 1.1, 2),
-        'parcela_media': round(parcela_media, 2),
-        'parcela_final': round(parcela_media * 0.9, 2),
-        'custo_total': round(custo_total, 2),
-        'patrimonio_final': valor_imovel,
-        'cet_anual': cet_anual
+        "meses": meses if viavel else None,
+        "anos": anos,
+        "viavel": viavel,
+        "saldo_no_prazo": float(_q(saldo)),
+        "alvo": float(alvo),
+        "alvo_fmt": _fmt_brl(alvo),
+        "mensagem": (
+            f"Você consegue comprar à vista em {anos} anos ({meses} meses) "
+            f"investindo {_fmt_brl(poupanca)}/mês a {_fmt_pct(taxa_investimento_anual)}% a.a."
+            if viavel
+            else "Com a poupança atual, a compra à vista em 50 anos não é viável."
+        ),
     }
 
 
-    
+# ─── CET ─────────────────────────────────────────────────────────────────────
+
+def calcular_cet(
+    valor_financiado,
+    parcelas_mensais,
+    custos_iniciais: float = 0.0,
+) -> Dict[str, float]:
+    """Custo Efetivo Total via bissecção (TIR)."""
+    PV = _d(valor_financiado)
+    custos = _d(custos_iniciais)
+    if not isinstance(parcelas_mensais, (list, tuple)) or not parcelas_mensais:
+        return {"cet_mensal": 0.0, "cet_anual": 0.0}
+
+    fluxos = [_d(p) for p in parcelas_mensais]
+    pv_liquido = PV - custos
+
+    # Taxa zero: pagamentos iguais ao principal sem juros
+    if abs(sum(fluxos) - pv_liquido) < _d("1"):
+        return {"cet_mensal": 0.0, "cet_anual": 0.0}
+
+    def npv(r: Decimal) -> Decimal:
+        s = _ZERO
+        for i, p in enumerate(fluxos, 1):
+            s += p / ((1 + r) ** i)
+        return s - pv_liquido
+
+    low, high, mid = _d("0"), _d("1"), _d("0")
+    for _ in range(80):
+        mid = (low + high) / 2
+        val = npv(mid)
+        if abs(val) < _d("0.01"):
+            break
+        if val > 0:
+            low = mid
+        else:
+            high = mid
+
+    cet_mensal = float(mid)
+    cet_anual = float((1 + mid) ** 12 - 1)
+    return {"cet_mensal": cet_mensal, "cet_anual": cet_anual}
+
+
+# ─── orquestrador principal ───────────────────────────────────────────────────
+
+def comparar_cenarios_e_formatar(dados_wizard: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Recebe os dados do wizard (5 etapas) e retorna comparação formatada.
+
+    Entrada: estrutura SimulationData do app mobile.
+    Saída: estrutura consumida pelo ResultsScreen e SimulationCharts.
+    """
+    perf = dados_wizard.get("perfil_objetivos", {})
+    renda_d = dados_wizard.get("trabalho_renda", {})
+    fin = dados_wizard.get("financas_atuais", {})
+    imovel_d = dados_wizard.get("imovel_desejado", {})
+    cen = dados_wizard.get("cenarios", {})
+
+    idade = int(perf.get("idade_comprador", 30) or 30)
+    perfil_usuario = perf.get("perfil_usuario", "comprador_morar")
+    prioridade = perf.get("prioridade_principal", "equilibrio")
+    aluguel_atual = float(perf.get("aluguel_atual", 0) or 0)
+
+    renda = float(renda_d.get("renda_familiar_bruta", 0) or 0)
+    tipo_contrato = str(renda_d.get("tipo_contrato", "clt") or "clt")
+    recebe_13 = bool(renda_d.get("recebe_13_salario", True))
+    outras_rendas = float(renda_d.get("outras_rendas", 0) or 0)
+    renda_total = renda + outras_rendas
+
+    saldo_guardado = float(fin.get("saldo_dinheiro_guardado", 0) or 0)
+    saldo_fgts = float(fin.get("saldo_fgts", 0) or 0)
+    despesas = float(fin.get("despesas_mensais_fixas", 0) or 0)
+
+    valor_imovel = float(imovel_d.get("valor_imovel_desejado", 0) or 0)
+    prazo_anos = max(1, int(imovel_d.get("prazo_desejado_anos", 30) or 30))
+    custas_forma = str(imovel_d.get("custas_documentacao_forma", "a_vista") or "a_vista")
+
+    usar_fgts = bool(cen.get("usar_fgts", False))
+    taxa_invest = float(cen.get("taxa_investimento_esperada", 9.5) or 9.5)
+    comparar_price = bool(cen.get("comparar_financiamento_price", True))
+    comparar_sac = bool(cen.get("comparar_financiamento_sac", True))
+    comparar_consorcio_flag = bool(cen.get("comparar_consorcio", True))
+    comparar_aluguel = bool(cen.get("comparar_aluguel_investimento", False))
+    comparar_guardar = bool(cen.get("comparar_guardar_dinheiro", False))
+    comparar_mcmv_req = bool(cen.get("comparar_mcmv", False))
+    prazo_consorcio = max(12, int(cen.get("prazo_consorcio", 180) or 180))
+    lance_disponivel = float(cen.get("valor_lance_disponivel", 0) or 0)
+
+    prazo_meses = prazo_anos * 12
+    prazo_max = max(12, (80 - idade) * 12)
+    prazo_meses = min(prazo_meses, prazo_max)
+
+    # Custas iniciais
+    custas = calcular_custas_iniciais(valor_imovel, financiar=(custas_forma == "financiado"))
+    custas_valor = custas["total"] if custas_forma == "a_vista" else 0.0
+
+    # Entrada disponível
+    entrada_bruta = saldo_guardado + (saldo_fgts if usar_fgts else 0.0)
+    entrada_efetiva = max(0.0, entrada_bruta - custas_valor)
+    entrada_pct = (entrada_efetiva / valor_imovel * 100) if valor_imovel > 0 else 0.0
+
+    # Acúmulo mensal de FGTS
+    fgts_mensal_acum = float(calcular_fgts_mensal(renda, tipo_contrato, recebe_13))
+
+    # MCMV
+    mcmv = verificar_mcmv(renda_total, valor_imovel)
+    taxa_financing = (
+        float(mcmv["taxa_aa"])
+        if mcmv["elegivel"] and comparar_mcmv_req
+        else float(TAXA_SBPE_AA)
+    )
+
+    valor_financiado = max(0.0, valor_imovel - entrada_efetiva)
+    alertas: List[str] = []
+
+    if valor_imovel > float(SFH_VALOR_MAX):
+        alertas.append(
+            f"Imóvel acima do teto do SFH ({_fmt_brl(SFH_VALOR_MAX)}). "
+            "Taxas SFI (sem teto de juros) podem ser mais altas."
+        )
+
+    if entrada_pct < 20 and not mcmv["elegivel"] and valor_financiado > 0:
+        falta = max(0.0, valor_imovel * 0.20 - entrada_efetiva)
+        alertas.append(
+            f"Entrada de {entrada_pct:.1f}% abaixo do mínimo de 20% para SBPE. "
+            f"Você precisa de mais {_fmt_brl(falta)} de entrada ou busque o MCMV."
+        )
+
+    # Estimativa de comprometimento de renda
+    r_m_est = _d(taxa_financing) / Decimal("100") / Decimal("12")
+    parcela_est = float(_pmt(_d(valor_financiado), r_m_est, prazo_meses)) if valor_financiado > 0 else 0.0
+    comprometimento_pct = (parcela_est / renda_total * 100) if renda_total > 0 else 0.0
+    renda_minima = (parcela_est / 0.30) if parcela_est > 0 else 0.0
+
+    if comprometimento_pct > 30 and renda_total > 0 and parcela_est > 0:
+        alertas.append(
+            f"Parcela estimada representa {comprometimento_pct:.1f}% da renda — "
+            f"acima do limite de 30% dos bancos. "
+            f"Renda mínima recomendada: {_fmt_brl(renda_minima)}/mês."
+        )
+
+    # ── rodar cenários ────────────────────────────────────────────────────────
+    resultados: Dict[str, Any] = {}
+
+    def _res_fin(metodo_key: str, metodo_nome: str, taxa: float) -> Dict:
+        if valor_financiado <= 0:
+            return {}
+        res = calcular_price_sac(
+            metodo=metodo_key,
+            valor_principal=valor_financiado,
+            taxa_anual=taxa,
+            prazo_meses=prazo_meses,
+            usar_fgts=usar_fgts and tipo_contrato.lower() == "clt",
+            saldo_fgts_inicial=saldo_fgts if usar_fgts else 0,
+            acumulo_fgts_mensal=fgts_mensal_acum if usar_fgts else 0,
+            tipo_amortizacao_fgts="reduzir_prazo",
+            idade=idade,
+            valor_imovel=valor_imovel,
+        )
+        total_custo = res["total_pago"] + entrada_efetiva + custas_valor
+        fgts_label = " + FGTS" if usar_fgts and tipo_contrato.lower() == "clt" else ""
+        return {
+            "metodo": f"{metodo_nome}{fgts_label}",
+            "parcela_inicial": _fmt_brl(res["parcela_inicial"]),
+            "parcela_final": _fmt_brl(res["parcela_final"]),
+            "total_custo": _fmt_brl(total_custo),
+            "total_juros": _fmt_brl(res["total_juros"]),
+            "total_seguros": _fmt_brl(res["total_seguros_taxas"]),
+            "cet_anual": _fmt_pct(res["cet_anual"] * 100),
+            "prazo_meses": res["prazo_final_meses"],
+            "prazo_anos": round(res["prazo_final_meses"] / 12, 1),
+            "entrada": _fmt_brl(entrada_efetiva),
+            "valor_financiado": _fmt_brl(valor_financiado),
+            "taxa_aa": _fmt_pct(taxa),
+            "comprometimento_renda": round(
+                res["parcela_inicial"] / renda_total * 100, 1
+            ) if renda_total > 0 else 0,
+            "_total_custo_raw": total_custo,
+            "_parcela_raw": res["parcela_inicial"],
+            "_prazo_raw": res["prazo_final_meses"],
+        }
+
+    if comparar_price and valor_financiado > 0:
+        r = _res_fin("price", "Financiamento PRICE", taxa_financing)
+        if r:
+            resultados["price"] = r
+
+    if comparar_sac and valor_financiado > 0:
+        r = _res_fin("sac", "Financiamento SAC", taxa_financing)
+        if r:
+            resultados["sac"] = r
+
+    if comparar_mcmv_req and mcmv["elegivel"] and valor_financiado > 0:
+        r = _res_fin("sac", f"MCMV {mcmv['nome_faixa']}", float(mcmv["taxa_aa"]))
+        if r:
+            r["metodo"] = f"MCMV {mcmv['nome_faixa']} (SAC)"
+            resultados["mcmv"] = r
+
+    if comparar_consorcio_flag:
+        lance_pct = (lance_disponivel / valor_imovel * 100) if lance_disponivel > 0 and valor_imovel > 0 else 0.0
+        cons = simular_consorcio(
+            valor_imovel=valor_imovel,
+            prazo_meses=prazo_consorcio,
+            taxa_adm=18.0,
+            fundo_reserva=1.0,
+            fgts_saldo=saldo_fgts if usar_fgts else 0,
+            lance_percentual=lance_pct,
+        )
+        total_cons = cons["total_pago"] + custas_valor
+        resultados["consorcio"] = {
+            "metodo": "Consórcio Imobiliário",
+            "parcela_inicial": _fmt_brl(cons["parcela"]),
+            "parcela_final": _fmt_brl(cons["parcela"]),
+            "total_custo": _fmt_brl(total_cons),
+            "total_juros": _fmt_brl(cons["total_taxa_adm"]),
+            "total_seguros": "R$ 0,00",
+            "cet_anual": "0,00%",
+            "prazo_meses": prazo_consorcio,
+            "prazo_anos": round(prazo_consorcio / 12, 1),
+            "contemplacao_estimada": f"{cons['anos_contemplacao_estimado']} anos",
+            "lance_sugerido": _fmt_brl(cons["lance_valor"]),
+            "entrada": "N/A",
+            "valor_financiado": _fmt_brl(valor_imovel),
+            "taxa_aa": "18% (taxa adm total)",
+            "comprometimento_renda": round(
+                cons["parcela"] / renda_total * 100, 1
+            ) if renda_total > 0 else 0,
+            "_total_custo_raw": total_cons,
+            "_parcela_raw": cons["parcela"],
+            "_prazo_raw": prazo_consorcio,
+        }
+
+    poupanca_mensal = max(0.0, renda_total - despesas - aluguel_atual)
+
+    if comparar_aluguel and valor_imovel > 0:
+        eff_aluguel = aluguel_atual or (valor_imovel * 0.004)
+        alug = simular_aluguel_investimento(
+            valor_imovel=valor_imovel,
+            aluguel_atual=eff_aluguel,
+            saldo_inicial=saldo_guardado,
+            aporte_mensal=poupanca_mensal,
+            taxa_investimento_anual=taxa_invest,
+            prazo_anos=prazo_anos,
+            recebe_13=recebe_13,
+            fgts_mensal=fgts_mensal_acum,
+        )
+        resultados["aluguel_investimento"] = {
+            "metodo": "Aluguel + Investimento",
+            "parcela_inicial": _fmt_brl(eff_aluguel + poupanca_mensal),
+            "parcela_final": _fmt_brl(eff_aluguel * 1.4),
+            "total_custo": _fmt_brl(alug["total_aluguel_pago"]),
+            "total_juros": "N/A",
+            "total_seguros": "N/A",
+            "cet_anual": _fmt_pct(taxa_invest),
+            "saldo_final": alug["saldo_final_fmt"],
+            "valor_imovel_futuro": alug["valor_imovel_final_fmt"],
+            "consegue_comprar": "Sim" if alug["consegue_comprar_no_prazo"] else "Não no prazo",
+            "anos_para_comprar": alug["anos_para_comprar"],
+            "prazo_meses": prazo_anos * 12,
+            "prazo_anos": prazo_anos,
+            "entrada": _fmt_brl(saldo_guardado),
+            "valor_financiado": "N/A",
+            "taxa_aa": _fmt_pct(taxa_invest),
+            "comprometimento_renda": round(
+                eff_aluguel / renda_total * 100, 1
+            ) if renda_total > 0 else 0,
+            "_total_custo_raw": alug["total_aluguel_pago"],
+            "_parcela_raw": eff_aluguel + poupanca_mensal,
+            "_prazo_raw": prazo_anos * 12,
+        }
+
+    if comparar_guardar and valor_imovel > 0:
+        guard = guardar_dinheiro(
+            valor_imovel=valor_imovel,
+            custas_total=custas["total"],
+            saldo_inicial=saldo_guardado,
+            poupanca_mensal=poupanca_mensal,
+            taxa_investimento_anual=taxa_invest,
+            recebe_13=recebe_13,
+            renda_bruta=renda,
+        )
+        total_guard = valor_imovel + custas["total"]
+        resultados["guardar_dinheiro"] = {
+            "metodo": "Guardar Dinheiro",
+            "parcela_inicial": _fmt_brl(poupanca_mensal),
+            "parcela_final": _fmt_brl(poupanca_mensal),
+            "total_custo": _fmt_brl(total_guard),
+            "total_juros": "R$ 0,00",
+            "total_seguros": "R$ 0,00",
+            "cet_anual": "0,00%",
+            "prazo_meses": guard.get("meses"),
+            "prazo_anos": guard.get("anos"),
+            "viavel": guard["viavel"],
+            "mensagem_prazo": guard["mensagem"],
+            "entrada": "N/A",
+            "valor_financiado": "N/A",
+            "taxa_aa": _fmt_pct(taxa_invest),
+            "comprometimento_renda": round(
+                poupanca_mensal / renda_total * 100, 1
+            ) if renda_total > 0 else 0,
+            "_total_custo_raw": total_guard,
+            "_parcela_raw": poupanca_mensal,
+            "_prazo_raw": guard.get("meses") or (prazo_anos * 12),
+        }
+
+    # ── análise e recomendação ────────────────────────────────────────────────
+    melhor_cenario, texto_principal = _gerar_analise(
+        resultados=resultados,
+        prioridade=prioridade,
+        perfil_usuario=perfil_usuario,
+        renda_total=renda_total,
+        valor_imovel=valor_imovel,
+        mcmv=mcmv,
+        alertas=alertas,
+    )
+
+    for key in list(resultados.keys()):
+        for k in ("_total_custo_raw", "_parcela_raw", "_prazo_raw"):
+            resultados[key].pop(k, None)
+
+    return {
+        "valor_imovel": valor_imovel,
+        "valor_imovel_fmt": _fmt_brl(valor_imovel),
+        "entrada_efetiva": entrada_efetiva,
+        "entrada_pct": round(entrada_pct, 1),
+        "valor_financiado": valor_financiado,
+        "valor_financiado_fmt": _fmt_brl(valor_financiado),
+        "prazo_meses": prazo_meses,
+        "prazo_anos": prazo_anos,
+        "custas_iniciais": custas,
+        "mcmv": mcmv,
+        "sfh": {
+            "enquadra": valor_imovel <= float(SFH_VALOR_MAX),
+            "taxa_referencia_aa": float(TAXA_SBPE_AA),
+        },
+        "renda_minima_recomendada": float(_q(renda_minima)),
+        "renda_minima_fmt": _fmt_brl(renda_minima),
+        "comprometimento_estimado": round(comprometimento_pct, 1),
+        "resultados": resultados,
+        "analise": {
+            "melhor_cenario": melhor_cenario,
+            "texto_principal": texto_principal,
+            "alertas": alertas,
+        },
+    }
+
+
+# ─── geração de análise / recomendação ───────────────────────────────────────
+
+def _gerar_analise(
+    resultados: Dict,
+    prioridade: str,
+    perfil_usuario: str,
+    renda_total: float,
+    valor_imovel: float,
+    mcmv: Dict,
+    alertas: List[str],
+) -> Tuple[str, str]:
+    """Retorna (chave_melhor_cenario, texto_recomendacao)."""
+
+    if not resultados:
+        return (
+            "",
+            "Nenhum cenário foi selecionado para comparação. "
+            "Volte e ative pelo menos uma opção.",
+        )
+
+    scores: Dict[str, float] = {}
+    for key, res in resultados.items():
+        raw_custo = float(res.get("_total_custo_raw", 0) or 0)
+        raw_parcela = float(res.get("_parcela_raw", 0) or 0)
+        raw_prazo = float(res.get("_prazo_raw", 0) or 0)
+
+        if prioridade == "pagar_menos":
+            scores[key] = raw_custo
+        elif prioridade == "parcelas_suaves":
+            scores[key] = raw_parcela
+        elif prioridade == "quitar_rapido":
+            scores[key] = raw_prazo
+        else:
+            scores[key] = (raw_custo / 1_000_000) + (raw_parcela / 10_000)
+
+    melhor = min(scores, key=lambda k: scores[k]) if scores else ""
+    if not melhor:
+        return "", "Não foi possível determinar a melhor opção com os dados fornecidos."
+
+    melhor_res = resultados[melhor]
+    parcela_str = melhor_res.get("parcela_inicial", "N/A")
+    custo_str = melhor_res.get("total_custo", "N/A")
+    prazo_str = melhor_res.get("prazo_anos", "N/A")
+    metodo_str = melhor_res.get("metodo", melhor)
+
+    intro = ""
+    if mcmv["elegivel"] and "mcmv" in resultados:
+        intro = (
+            f"Boa notícia: você se enquadra no {mcmv['nome_faixa']} do MCMV "
+            f"com taxa de {_fmt_pct(mcmv['taxa_aa'])} a.a. — muito abaixo do mercado. "
+        )
+
+    if prioridade == "pagar_menos":
+        texto = (
+            f"{intro}Para pagar menos juros no total, o melhor caminho é "
+            f"{metodo_str}: custo total de {custo_str} em {prazo_str} anos."
+        )
+    elif prioridade == "parcelas_suaves":
+        texto = (
+            f"{intro}Para ter as parcelas mais baixas possíveis, recomendamos "
+            f"{metodo_str}: sua primeira parcela seria de {parcela_str}/mês."
+        )
+    elif prioridade == "quitar_rapido":
+        texto = (
+            f"{intro}Para quitar no menor tempo, a melhor opção é "
+            f"{metodo_str}: você finaliza em {prazo_str} anos."
+        )
+    else:
+        texto = (
+            f"{intro}Para o melhor custo-benefício, recomendamos "
+            f"{metodo_str}: parcela inicial de {parcela_str} e custo total de {custo_str}."
+        )
+
+    if alertas:
+        texto += f" Atenção: {alertas[0]}"
+
+    return melhor, texto
