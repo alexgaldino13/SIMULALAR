@@ -4,6 +4,8 @@ from . import views
 urlpatterns = [
     # Wizard — endpoint principal do app mobile
     path('wizard/calculate/', views.wizard_calculate_api, name='api_wizard_calculate'),
+    path('wizard/tabela/', views.wizard_tabela_api, name='api_wizard_tabela'),
+    path('wizard/exportar-excel/', views.wizard_exportar_excel_api, name='api_wizard_exportar_excel'),
 
     # Calculadoras avulsas
     path('calcular-price-sac/', views.calcular_price_sac_api, name='api_calcular_price_sac'),

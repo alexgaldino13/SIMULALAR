@@ -6,6 +6,7 @@ import Step3Screen from '../screens/Wizard/Step3Screen';
 import Step4Screen from '../screens/Wizard/Step4Screen';
 import Step5Screen from '../screens/Wizard/Step5Screen';
 import ResultsScreen from '../screens/Wizard/ResultsScreen';
+import TabelaScreen from '../screens/Wizard/TabelaScreen';
 
 const Stack = createStackNavigator();
 
@@ -18,6 +19,7 @@ export const WizardNavigator = () => {
       <Stack.Screen name="Step4" component={Step4Screen} />
       <Stack.Screen name="Step5" component={Step5Screen} />
       <Stack.Screen name="Results" component={ResultsScreen} />
+      <Stack.Screen name="Tabela" component={TabelaScreen} />
     </Stack.Navigator>
   );
 };

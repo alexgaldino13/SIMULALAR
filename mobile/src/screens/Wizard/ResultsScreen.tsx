@@ -326,6 +326,19 @@ export default function ResultsScreen({ route, navigation }: any) {
             </View>
           )}
 
+          {/* Ver tabela de amortização */}
+          <TouchableOpacity
+            style={styles.tabelaButton}
+            onPress={() => navigation.navigate('Tabela', { isPremium: false })}
+          >
+            <Ionicons name="grid-outline" size={20} color="#6a11cb" style={{ marginRight: 10 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.tabelaButtonTitle}>Ver Tabela de Amortização</Text>
+              <Text style={styles.tabelaButtonSub}>Parcela a parcela, com FGTS bienal e projeção de renda</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#6a11cb" />
+          </TouchableOpacity>
+
           {/* Botões de ação */}
           <TouchableOpacity
             style={[styles.saveButton, saving ? { opacity: 0.7 } : {}]}
@@ -425,8 +438,15 @@ const styles = StyleSheet.create({
   custasBox: { backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 18, padding: 18, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   custasTitle: { color: '#fff', fontSize: 15, fontWeight: 'bold', marginBottom: 12 },
 
+  tabelaButton: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(106,17,203,0.1)',
+    borderRadius: 18, padding: 18, marginTop: 20,
+    borderWidth: 1, borderColor: 'rgba(106,17,203,0.35)',
+  },
+  tabelaButtonTitle: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
+  tabelaButtonSub: { color: 'rgba(255,255,255,0.45)', fontSize: 12, marginTop: 2 },
   /* Botões */
-  saveButton: { width: '100%', borderRadius: 15, overflow: 'hidden', marginTop: 20 },
+  saveButton: { width: '100%', borderRadius: 15, overflow: 'hidden', marginTop: 12 },
   saveGradient: { flexDirection: 'row', height: 55, alignItems: 'center', justifyContent: 'center' },
   saveButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   redoButton: { marginTop: 20, padding: 20, alignItems: 'center' },

@@ -11,6 +11,7 @@ Referências:
 from __future__ import annotations
 
 import math
+from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal, getcontext
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -291,6 +292,14 @@ def calcular_fgts_mensal(
 
 # ─── calculadora SAC / PRICE ─────────────────────────────────────────────────
 
+def _mes_label(inicio: date, offset: int) -> str:
+    """Retorna 'MM/AAAA' para o mês de início + offset meses."""
+    m = inicio.month - 1 + offset
+    ano = inicio.year + m // 12
+    mes = m % 12 + 1
+    return f"{mes:02d}/{ano}"
+
+
 def calcular_price_sac(
     metodo: str,
     valor_principal,
@@ -305,13 +314,20 @@ def calcular_price_sac(
     tipo_amortizacao_fgts: str = "reduzir_prazo",
     idade: int = 30,
     valor_imovel=None,
+    crescimento_renda_anual_pct: float = 0.0,
+    renda_bruta_inicial: float = 0.0,
+    data_inicio: Optional[date] = None,
     **kwargs,
 ) -> Dict[str, Any]:
     """
-    Calcula tabela de amortização SAC ou PRICE com seguros MIP/DFI e FGTS.
+    Calcula tabela de amortização SAC ou PRICE.
 
-    FGTS é aplicado a cada 24 meses (regra CEF/SFH).
-    tipo_amortizacao_fgts: 'reduzir_prazo' | 'reduzir_parcela'
+    Inclui por linha: FGTS projetado, renda estimada com crescimento anual,
+    data de competência e eventos de amortização FGTS bienal.
+
+    crescimento_renda_anual_pct: aumento % ao ano da renda (ex: 5.0)
+    renda_bruta_inicial: renda mensal bruta no início do contrato
+    data_inicio: data da 1ª parcela (padrão: mês seguinte ao hoje)
     """
     PV = _d(valor_principal)
     n_orig = max(1, int(prazo_meses))
@@ -327,12 +343,22 @@ def calcular_price_sac(
 
     saldo = PV
     fgts_bal = _d(saldo_fgts_inicial)
-    fgts_acum = _d(acumulo_fgts_mensal)
+    fgts_acum_base = _d(acumulo_fgts_mensal)  # acúmulo mensal no mês 1
+
+    crescimento_m = _d(crescimento_renda_anual_pct) / Decimal("100") / Decimal("12")
+    renda_atual = _d(renda_bruta_inicial)
+
+    if data_inicio is None:
+        hoje = date.today()
+        # primeira parcela no próximo mês
+        data_inicio = date(hoje.year + (hoje.month // 12), hoje.month % 12 + 1, 1)
 
     tabela: List[Dict[str, Any]] = []
+    fgts_schedule: List[Dict[str, Any]] = []  # resumo dos eventos FGTS bienais
     total_juros = _ZERO
     total_seguros = _ZERO
     total_admin_sum = _ZERO
+    total_fgts_usado = _ZERO
 
     cap = n_orig * 2 + 1
 
@@ -342,7 +368,14 @@ def calcular_price_sac(
         for p in range(1, cap):
             if saldo < _d("0.01"):
                 break
-            fgts_bal += fgts_acum
+
+            # crescimento de renda e FGTS
+            if crescimento_m > _ZERO:
+                renda_atual = _q(renda_atual * (1 + crescimento_m))
+                fgts_acum_mes = _q(renda_atual * Decimal("0.08"))
+            else:
+                fgts_acum_mes = fgts_acum_base
+            fgts_bal += fgts_acum_mes
 
             juros = _q(saldo * r_m)
             amort = _q(pmt_base - juros)
@@ -357,26 +390,40 @@ def calcular_price_sac(
             if tr > _ZERO:
                 saldo = _q(saldo * (1 + tr))
 
-            tabela.append({
-                "periodo": p,
-                "pagamento": float(pag_total),
-                "juros": float(juros),
-                "amortizacao": float(amort),
-                "mip": float(mip),
-                "dfi": float(dfi_mes),
-                "saldo": float(max(saldo, _ZERO)),
-            })
-            total_juros += juros
-            total_seguros += mip + dfi_mes
-            total_admin_sum += taxa_admin
-
+            fgts_evento = _ZERO
             if usar_fgts and p % 24 == 0 and fgts_bal > _ZERO and saldo > _d("1"):
-                fgts_usado = min(fgts_bal, saldo)
-                saldo -= _q(fgts_usado)
+                fgts_evento = min(fgts_bal, saldo)
+                saldo -= _q(fgts_evento)
+                total_fgts_usado += fgts_evento
+                fgts_schedule.append({
+                    "mes": p,
+                    "data": _mes_label(data_inicio, p - 1),
+                    "fgts_saldo_antes": float(fgts_bal),
+                    "fgts_utilizado": float(_q(fgts_evento)),
+                    "saldo_devedor_apos": float(max(saldo, _ZERO)),
+                    "tipo": tipo_amortizacao_fgts,
+                })
                 fgts_bal = _ZERO
                 meses_rest = n_orig - p
                 if meses_rest > 0 and saldo > _ZERO and tipo_amortizacao_fgts == "reduzir_parcela":
                     pmt_base = _pmt(saldo, r_m, meses_rest)
+
+            tabela.append({
+                "mes": p,
+                "data": _mes_label(data_inicio, p - 1),
+                "pagamento": float(pag_total),
+                "amortizacao": float(amort),
+                "juros": float(juros),
+                "mip": float(mip),
+                "dfi": float(dfi_mes),
+                "saldo_devedor": float(max(saldo, _ZERO)),
+                "fgts_saldo": float(fgts_bal),
+                "fgts_utilizado": float(_q(fgts_evento)),
+                "renda_estimada": float(renda_atual) if renda_atual > _ZERO else None,
+            })
+            total_juros += juros
+            total_seguros += mip + dfi_mes
+            total_admin_sum += taxa_admin
 
     else:  # SAC
         amort_const = _q(PV / n_orig) if n_orig > 0 else PV
@@ -384,7 +431,13 @@ def calcular_price_sac(
         for p in range(1, cap):
             if saldo < _d("0.01"):
                 break
-            fgts_bal += fgts_acum
+
+            if crescimento_m > _ZERO:
+                renda_atual = _q(renda_atual * (1 + crescimento_m))
+                fgts_acum_mes = _q(renda_atual * Decimal("0.08"))
+            else:
+                fgts_acum_mes = fgts_acum_base
+            fgts_bal += fgts_acum_mes
 
             juros = _q(saldo * r_m)
             amort = min(amort_const, saldo)
@@ -396,26 +449,40 @@ def calcular_price_sac(
             if tr > _ZERO:
                 saldo = _q(saldo * (1 + tr))
 
-            tabela.append({
-                "periodo": p,
-                "pagamento": float(pag_total),
-                "juros": float(juros),
-                "amortizacao": float(amort),
-                "mip": float(mip),
-                "dfi": float(dfi_mes),
-                "saldo": float(max(saldo, _ZERO)),
-            })
-            total_juros += juros
-            total_seguros += mip + dfi_mes
-            total_admin_sum += taxa_admin
-
+            fgts_evento = _ZERO
             if usar_fgts and p % 24 == 0 and fgts_bal > _ZERO and saldo > _d("1"):
-                fgts_usado = min(fgts_bal, saldo)
-                saldo -= _q(fgts_usado)
+                fgts_evento = min(fgts_bal, saldo)
+                saldo -= _q(fgts_evento)
+                total_fgts_usado += fgts_evento
+                fgts_schedule.append({
+                    "mes": p,
+                    "data": _mes_label(data_inicio, p - 1),
+                    "fgts_saldo_antes": float(fgts_bal),
+                    "fgts_utilizado": float(_q(fgts_evento)),
+                    "saldo_devedor_apos": float(max(saldo, _ZERO)),
+                    "tipo": tipo_amortizacao_fgts,
+                })
                 fgts_bal = _ZERO
                 meses_rest = n_orig - p
                 if meses_rest > 0 and saldo > _ZERO and tipo_amortizacao_fgts == "reduzir_parcela":
                     amort_const = _q(saldo / meses_rest)
+
+            tabela.append({
+                "mes": p,
+                "data": _mes_label(data_inicio, p - 1),
+                "pagamento": float(pag_total),
+                "amortizacao": float(amort),
+                "juros": float(juros),
+                "mip": float(mip),
+                "dfi": float(dfi_mes),
+                "saldo_devedor": float(max(saldo, _ZERO)),
+                "fgts_saldo": float(fgts_bal),
+                "fgts_utilizado": float(_q(fgts_evento)),
+                "renda_estimada": float(renda_atual) if renda_atual > _ZERO else None,
+            })
+            total_juros += juros
+            total_seguros += mip + dfi_mes
+            total_admin_sum += taxa_admin
 
     prazo_final = len(tabela)
     total_pago = float(_q(sum(r["pagamento"] for r in tabela)))
@@ -427,14 +494,16 @@ def calcular_price_sac(
 
     return {
         "tabela": tabela,
+        "fgts_schedule": fgts_schedule,
         "parcela_inicial": float(_q(parcela_ini)),
         "parcela_final": float(_q(parcela_fin)),
         "total_juros": float(_q(total_juros)),
         "total_seguros_taxas": float(_q(total_seguros + total_admin_sum)),
         "total_pago": total_pago,
+        "total_fgts_usado": float(_q(total_fgts_usado)),
         "prazo_final_meses": prazo_final,
         "cet_anual": cet_info.get("cet_anual", 0.0),
-        "saldo_final": float(_q(tabela[-1]["saldo"] if tabela else _ZERO)),
+        "saldo_final": float(_q(tabela[-1]["saldo_devedor"] if tabela else _ZERO)),
     }
 
 
