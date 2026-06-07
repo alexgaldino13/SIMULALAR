@@ -1,3 +1,5 @@
+import os
+
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from rest_framework.decorators import api_view, permission_classes
@@ -11,6 +13,9 @@ from .calculadora_financeira import (
     comparar_cenarios_e_formatar,
 )
 from .models import ParametroMercado, SavedSimulation
+
+# Token secreto para o endpoint de atualização de índices (Railway cron)
+_BCB_UPDATE_TOKEN = os.environ.get("BCB_UPDATE_TOKEN", "")
 
 PARAMETROS_MERCADO_FALLBACK = {
     "selic": {"nome": "SELIC", "valor": 13.75, "unidade": "percentual", "descricao": "Taxa básica de juros do Brasil."},
@@ -144,6 +149,34 @@ def wizard_calculate_api(request):
         return Response(resultado)
     except Exception as exc:
         return Response({"erro": f"Erro no cálculo: {str(exc)}"}, status=500)
+
+
+# ─── atualização de índices BCB (cron Railway) ───────────────────────────────
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def atualizar_indices_bcb_api(request):
+    """
+    Endpoint para o cron do Railway chamar e manter os índices atualizados.
+    Autenticado via header X-BCB-Token ou query param token.
+    Chama o management command atualizar_indices_bcb internamente.
+    """
+    token_recebido = (
+        request.headers.get("X-BCB-Token", "")
+        or request.query_params.get("token", "")
+    )
+
+    if _BCB_UPDATE_TOKEN and token_recebido != _BCB_UPDATE_TOKEN:
+        return Response({"erro": "Token inválido."}, status=403)
+
+    try:
+        from django.core.management import call_command
+        from io import StringIO
+        out = StringIO()
+        call_command("atualizar_indices_bcb", stdout=out, stderr=out)
+        return Response({"status": "ok", "log": out.getvalue()})
+    except Exception as exc:
+        return Response({"erro": str(exc)}, status=500)
 
 
 # ─── simulações salvas ────────────────────────────────────────────────────────

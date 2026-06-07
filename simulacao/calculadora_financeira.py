@@ -12,12 +12,47 @@ from __future__ import annotations
 
 import math
 from decimal import ROUND_HALF_UP, Decimal, getcontext
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 getcontext().prec = 28
 
 _ZERO = Decimal("0")
 _CENT = Decimal("0.01")
+
+
+# ─── índices de mercado (fallback + carregamento do DB) ───────────────────────
+
+def _carregar_taxas() -> Dict[str, Decimal]:
+    """
+    Carrega taxas do ParametroMercado (DB) com fallback para constantes.
+    Django ORM só é importado aqui para evitar import circular no nível do módulo.
+    """
+    _defaults: Dict[str, Decimal] = {
+        "selic":               Decimal("14.75"),
+        "ipca":                Decimal("5.53"),
+        "tr":                  Decimal("0.0832"),
+        "taxa_sbpe_cef":       Decimal("10.49"),
+        "taxa_sbpe_bb":        Decimal("10.99"),
+        "taxa_sbpe_bradesco":  Decimal("11.19"),
+        "taxa_sbpe_itau":      Decimal("10.99"),
+        "taxa_sbpe_santander": Decimal("11.49"),
+        "mcmv_faixa1_taxa":    Decimal("4.75"),
+        "mcmv_faixa2_taxa":    Decimal("6.50"),
+        "mcmv_faixa3_taxa":    Decimal("7.66"),
+        "mcmv_faixa1_renda_max": Decimal("2850"),
+        "mcmv_faixa2_renda_max": Decimal("4400"),
+        "mcmv_faixa3_renda_max": Decimal("8000"),
+        "sfh_valor_max":       Decimal("1500000"),
+    }
+    try:
+        from simulacao.models import ParametroMercado  # noqa: PLC0415
+        qs = ParametroMercado.objects.filter(ativo=True).values("chave", "valor")
+        for row in qs:
+            if row["chave"] in _defaults:
+                _defaults[row["chave"]] = Decimal(str(row["valor"]))
+    except Exception:
+        pass
+    return _defaults
 
 
 # ─── helpers ──────────────────────────────────────────────────────────────────
@@ -183,12 +218,22 @@ def verificar_mcmv(
     renda_familiar,
     valor_imovel,
     cidade_tipo: str = "capital",
+    taxas_vivas: Optional[Dict[str, Decimal]] = None,
 ) -> Dict[str, Any]:
     """Verifica elegibilidade ao MCMV e retorna faixa, taxa e teto."""
     renda = _d(renda_familiar)
     valor = _d(valor_imovel)
 
-    for f in _MCMV_FAIXAS:
+    # Permite sobrescrever taxas/rendas via DB
+    faixas = _MCMV_FAIXAS
+    if taxas_vivas:
+        faixas = [
+            {**_MCMV_FAIXAS[0], "renda_max": taxas_vivas.get("mcmv_faixa1_renda_max", _MCMV_FAIXAS[0]["renda_max"]), "taxa_aa": taxas_vivas.get("mcmv_faixa1_taxa", _MCMV_FAIXAS[0]["taxa_aa"])},
+            {**_MCMV_FAIXAS[1], "renda_max": taxas_vivas.get("mcmv_faixa2_renda_max", _MCMV_FAIXAS[1]["renda_max"]), "taxa_aa": taxas_vivas.get("mcmv_faixa2_taxa", _MCMV_FAIXAS[1]["taxa_aa"])},
+            {**_MCMV_FAIXAS[2], "renda_max": taxas_vivas.get("mcmv_faixa3_renda_max", _MCMV_FAIXAS[2]["renda_max"]), "taxa_aa": taxas_vivas.get("mcmv_faixa3_taxa", _MCMV_FAIXAS[2]["taxa_aa"])},
+        ]
+
+    for f in faixas:
         if renda <= f["renda_max"]:
             teto = f["teto_capital"] if cidade_tipo == "capital" else f["teto_interior"]
             if valor <= teto:
@@ -203,13 +248,13 @@ def verificar_mcmv(
                     "motivo": None,
                 }
 
-    if renda > _MCMV_FAIXAS[-1]["renda_max"]:
+    if renda > faixas[-1]["renda_max"]:
         motivo = (
             f"Renda familiar {_fmt_brl(renda)}/mês acima do limite MCMV "
-            f"({_fmt_brl(_MCMV_FAIXAS[-1]['renda_max'])}/mês)."
+            f"({_fmt_brl(faixas[-1]['renda_max'])}/mês)."
         )
     else:
-        teto_ref = _MCMV_FAIXAS[-1]["teto_capital"]
+        teto_ref = faixas[-1]["teto_capital"]
         motivo = (
             f"Valor do imóvel {_fmt_brl(valor)} acima do teto MCMV "
             f"({_fmt_brl(teto_ref)}) para sua faixa de renda."
@@ -677,7 +722,6 @@ def comparar_cenarios_e_formatar(dados_wizard: Dict[str, Any]) -> Dict[str, Any]
     custas_forma = str(imovel_d.get("custas_documentacao_forma", "a_vista") or "a_vista")
 
     usar_fgts = bool(cen.get("usar_fgts", False))
-    taxa_invest = float(cen.get("taxa_investimento_esperada", 9.5) or 9.5)
     comparar_price = bool(cen.get("comparar_financiamento_price", True))
     comparar_sac = bool(cen.get("comparar_financiamento_sac", True))
     comparar_consorcio_flag = bool(cen.get("comparar_consorcio", True))
@@ -703,20 +747,27 @@ def comparar_cenarios_e_formatar(dados_wizard: Dict[str, Any]) -> Dict[str, Any]
     # Acúmulo mensal de FGTS
     fgts_mensal_acum = float(calcular_fgts_mensal(renda, tipo_contrato, recebe_13))
 
+    # Carrega taxas do DB (com fallback para constantes hardcoded)
+    taxas_vivas = _carregar_taxas()
+    taxa_sbpe = taxas_vivas["taxa_sbpe_cef"]
+    sfh_valor_max = taxas_vivas["sfh_valor_max"]
+    ipca_anual = float(taxas_vivas["ipca"])
+    taxa_invest = float(cen.get("taxa_investimento_esperada", None) or taxas_vivas["selic"])
+
     # MCMV
-    mcmv = verificar_mcmv(renda_total, valor_imovel)
+    mcmv = verificar_mcmv(renda_total, valor_imovel, taxas_vivas=taxas_vivas)
     taxa_financing = (
         float(mcmv["taxa_aa"])
         if mcmv["elegivel"] and comparar_mcmv_req
-        else float(TAXA_SBPE_AA)
+        else float(taxa_sbpe)
     )
 
     valor_financiado = max(0.0, valor_imovel - entrada_efetiva)
     alertas: List[str] = []
 
-    if valor_imovel > float(SFH_VALOR_MAX):
+    if valor_imovel > float(sfh_valor_max):
         alertas.append(
-            f"Imóvel acima do teto do SFH ({_fmt_brl(SFH_VALOR_MAX)}). "
+            f"Imóvel acima do teto do SFH ({_fmt_brl(sfh_valor_max)}). "
             "Taxas SFI (sem teto de juros) podem ser mais altas."
         )
 
@@ -797,6 +848,23 @@ def comparar_cenarios_e_formatar(dados_wizard: Dict[str, Any]) -> Dict[str, Any]
             r["metodo"] = f"MCMV {mcmv['nome_faixa']} (SAC)"
             resultados["mcmv"] = r
 
+    # ── comparação multi-banco (SAC) ──────────────────────────────────────────
+    # Exibe as taxas dos principais bancos lado a lado para o usuário escolher.
+    comparar_bancos = bool(cen.get("comparar_bancos", False))
+    if comparar_bancos and valor_financiado > 0 and not mcmv["elegivel"]:
+        _BANCOS = [
+            ("banco_cef",       "CEF SBPE",   "taxa_sbpe_cef"),
+            ("banco_bb",        "BB SBPE",    "taxa_sbpe_bb"),
+            ("banco_bradesco",  "Bradesco",   "taxa_sbpe_bradesco"),
+            ("banco_itau",      "Itaú",       "taxa_sbpe_itau"),
+            ("banco_santander", "Santander",  "taxa_sbpe_santander"),
+        ]
+        for chave, nome_banco, taxa_key in _BANCOS:
+            taxa_banco = float(taxas_vivas.get(taxa_key, taxa_sbpe))
+            r = _res_fin("sac", f"{nome_banco} (SAC)", taxa_banco)
+            if r:
+                resultados[chave] = r
+
     if comparar_consorcio_flag:
         lance_pct = (lance_disponivel / valor_imovel * 100) if lance_disponivel > 0 and valor_imovel > 0 else 0.0
         cons = simular_consorcio(
@@ -842,6 +910,7 @@ def comparar_cenarios_e_formatar(dados_wizard: Dict[str, Any]) -> Dict[str, Any]
             aporte_mensal=poupanca_mensal,
             taxa_investimento_anual=taxa_invest,
             prazo_anos=prazo_anos,
+            ipca_anual=ipca_anual,
             recebe_13=recebe_13,
             fgts_mensal=fgts_mensal_acum,
         )
